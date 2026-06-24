@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Deploy: firebase deploy --only firestore:rules
+// Or paste into Firebase Console → Firestore → Rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Ad account requests (client read for dashboard count; writes via Admin SDK only)
+    match /ad-accounts/{docId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /subscriptions/{docId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /top-ups/{docId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // User profile docs (read own doc; writes via Admin SDK / session API)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update, delete: if false;
+    }
+
+    match /affiliate-profiles/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /referral-codes/{code} {
+      allow read, create, update, delete: if false;
+    }
+  }
+}
+
