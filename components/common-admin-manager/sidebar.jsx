@@ -14,10 +14,11 @@ import {
   BalanceRequestsIcon,
   ServiceIcon,
   InvoicesIcon,
-  HelpIcon
+  HelpIcon,
+  MessageIcon
 } from '@/components/icons';
 
-const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose, role = 'admin' }) => {
+const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose, role = 'admin', chatUnreadCount = 0 }) => {
   // Highlight must follow `activeItem` (derived from the URL in layouts). Do not keep a
   // separate selected state that only updates on click — e.g. router.push to Dashboard from
   // a success modal would leave the old item highlighted.
@@ -68,6 +69,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       label: 'Balance Requests',
       icon: BalanceRequestsIcon,
     },
+    {
+      id: 'chat',
+      label: 'Messages',
+      icon: MessageIcon,
+    },
   ];
 
   // User navigation items
@@ -106,6 +112,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       id: 'affiliates',
       label: 'Affiliates',
       icon: AffiliatesIcon,
+    },
+    {
+      id: 'chat',
+      label: 'Messages',
+      icon: MessageIcon,
     },
     {
       id: 'help',
@@ -170,13 +181,13 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       {/* Sidebar */}
       <div
         className={`
-          w-[254px] h-screen bg-tertiary flex flex-col fixed left-0 top-0 z-50
+          w-[254px] h-screen bg-tertiary flex flex-col overflow-hidden fixed left-0 top-0 z-50
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}
         `}
       >
         {/* Logo Section */}
-        <div className="p-6 border-b border-border">
+        <div className="shrink-0 p-6 border-b border-border">
           <div className="flex items-center justify-center">
             <Image
               src="/logo.png"
@@ -188,8 +199,8 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <div className="flex-1 flex-col gap-12 px-4 pt-6">
+        {/* Navigation Items — scroll when list is taller than viewport */}
+        <div className="flex-1 min-h-0 overflow-y-auto sidebar-scrollbar px-4 pt-6 pb-2">
           <nav className="space-y-2">
             {navigationItems.map((item) => {
               const Icon = item.icon;
@@ -213,17 +224,22 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
                     width={24}
                     height={24}
                   />
-                  <span className="text-[15px] font-normal">
+                  <span className="text-[15px] font-normal flex-1 text-left">
                     {item.label}
                   </span>
+                  {item.id === 'chat' && chatUnreadCount > 0 ? (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#FA3C67] text-white text-[10px] font-medium flex items-center justify-center">
+                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </nav>
         </div>
 
-        {/* Bottom Items */}
-        <div className="px-4 pb-6">
+        {/* Bottom Items — always visible at bottom */}
+        <div className="shrink-0 px-4 pb-6 pt-2 border-t border-border">
           <nav className="space-y-2">
             {bottomItems.map((item) => {
               const Icon = item.icon;

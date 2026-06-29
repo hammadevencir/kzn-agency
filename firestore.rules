@@ -38,6 +38,23 @@ service cloud.firestore {
     match /referral-codes/{code} {
       allow read, create, update, delete: if false;
     }
+
+    // Admin–user chat (client read only; writes via Admin SDK)
+    match /chat-conversations/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.role == 'admin'
+      );
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == userId ||
+          request.auth.token.role == 'admin'
+        );
+        allow create, update, delete: if false;
+      }
+    }
   }
 }
 

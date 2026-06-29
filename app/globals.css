@@ -222,6 +222,29 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
   }
+
+  /* Visible scrollbar for sidebar nav — matches site gold/dark palette */
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(197, 169, 100, 0.55) #151e25;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: #151e25;
+    border-radius: 9999px;
+    margin-block: 4px;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(197, 169, 100, 0.45);
+    border-radius: 9999px;
+    border: 1px solid rgba(197, 169, 100, 0.15);
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(197, 169, 100, 0.75);
+  }
 }
 
 .gradient-bg {

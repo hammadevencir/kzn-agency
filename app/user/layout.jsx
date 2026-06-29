@@ -9,12 +9,15 @@ import SubscriptionExpiryDialog from '@/components/User/subscription-expiry-dial
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
+import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { ROLE } from '@/lib/auth/constants';
 
 const UserLayout = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const chatUnreadCount = useChatUnreadCount(ROLE.USER);
 
   // Determine active item based on current path
   const getActiveItem = () => {
@@ -25,6 +28,7 @@ const UserLayout = ({ children }) => {
     if (pathname.includes('/invoices')) return 'invoices';
     if (pathname.includes('/services')) return 'services';
     if (pathname.includes('/affiliates')) return 'affiliates';
+    if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/help')) return 'help';
     if (pathname.includes('/settings')) return 'settings';
     return 'dashboard'; // default
@@ -47,6 +51,8 @@ const UserLayout = ({ children }) => {
       router.push('/user/services');
     } else if (item === 'affiliates') {
       router.push('/user/affiliates');
+    } else if (item === 'chat') {
+      router.push('/user/chat');
     } else if (item === 'help') {
       router.push('/user/help');
     } else if (item === 'settings') {
@@ -94,6 +100,7 @@ const UserLayout = ({ children }) => {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         role="user"
+        chatUnreadCount={chatUnreadCount}
       />
       
       {/* Main Content Area */}

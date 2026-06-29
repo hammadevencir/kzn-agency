@@ -7,12 +7,15 @@ import Header from '@/components/common-admin-manager/header';
 import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
+import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { ROLE } from '@/lib/auth/constants';
 
 const AdminLayout = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const chatUnreadCount = useChatUnreadCount(ROLE.ADMIN);
 
   // Determine active item based on current path (specific routes before dashboard)
   const getActiveItem = () => {
@@ -24,6 +27,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/top-ups')) return 'top-ups';
     if (pathname.includes('/balance-requests')) return 'balance-requests';
     if (pathname.includes('/invoices')) return 'invoices';
+    if (pathname.includes('/chat')) return 'chat';
     if (pathname === '/admin' || pathname.startsWith('/admin/dashboard')) return 'dashboard';
     return 'dashboard';
   };
@@ -49,6 +53,8 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/balance-requests');
     } else if (item === 'invoices') {
       router.push('/admin/invoices');
+    } else if (item === 'chat') {
+      router.push('/admin/chat');
     }
   };
 
@@ -94,6 +100,7 @@ const AdminLayout = ({ children }) => {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         role="admin"
+        chatUnreadCount={chatUnreadCount}
       />
       
       {/* Main Content Area */}
