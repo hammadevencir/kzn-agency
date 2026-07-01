@@ -16,6 +16,8 @@ import {
   metaPlanToFlowAndCheckout,
 } from "@/lib/meta/meta-plan-catalog";
 import { buildReferralAttachmentForPurchase } from "@/lib/affiliates/server-referral";
+import { validateSubscriptionCheckoutReferralDiscount } from "@/lib/affiliates/validate-subscription-checkout";
+import { checkoutPreviewHasReferralDiscount } from "@/lib/affiliates/discount-eligibility";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 
@@ -172,6 +174,19 @@ export async function POST(request) {
       );
     }
     throw e;
+  }
+
+  const referralValidation = await validateSubscriptionCheckoutReferralDiscount(
+    db,
+    user.uid,
+    /** @type {Record<string, unknown>} */ (checkoutPreview),
+    referralBlock
+  );
+  if (!referralValidation.ok) {
+    return NextResponse.json(
+      { error: referralValidation.error },
+      { status: 400 }
+    );
   }
 
   const fullFlow = {
@@ -388,6 +403,23 @@ export async function POST(request) {
   }
 
   await docRef.set(payload);
+
+  if (
+    referralBlock.referral &&
+    typeof referralBlock.referral.refereeDiscountPercent === "number" &&
+    referralBlock.referral.refereeDiscountPercent > 0 &&
+    checkoutPreviewHasReferralDiscount(
+      /** @type {Record<string, unknown>} */ (checkoutPreview)
+    )
+  ) {
+    await db.collection("users").doc(user.uid).set(
+      {
+        referralFirstMonthDiscountUsed: true,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
 
   return NextResponse.json({ id: docRef.id });
 }

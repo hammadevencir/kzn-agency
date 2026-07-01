@@ -13,7 +13,6 @@ import toast from 'react-hot-toast';
 import {
   REFEREE_DISCOUNT_PERCENT,
   REFERRER_SUBSCRIPTION_COMMISSION_PERCENT,
-  COMMISSION_CENTS_AD_ACCOUNT,
   AFFILIATE_MIN_CLAIM_BALANCE_CENTS,
 } from '@/lib/affiliates/constants';
 import Pagination from '@/components/common-admin-manager/pagination';
@@ -220,9 +219,14 @@ const Affiliates = () => {
         <div>
           <h1 className="text-[32px] font-bold text-white tracking-tight">Affiliates</h1>
           <p className="text-[#8B9197] text-[14px] mt-2 max-w-xl">
-            Your invite link gives new customers <strong className="text-white/90">{REFEREE_DISCOUNT_PERCENT}% off</strong> their qualifying purchase. You earn{' '}
-            <strong className="text-white/90">{REFERRER_SUBSCRIPTION_COMMISSION_PERCENT}%</strong> of each new subscription payment and{' '}
-            <strong className="text-white/90">${(COMMISSION_CENTS_AD_ACCOUNT / 100).toFixed(2)}</strong> per ad account (credited when admin approves their payment).
+            Your invite link gives customers{' '}
+            <strong className="text-white/90">{REFEREE_DISCOUNT_PERCENT}% off</strong> their
+            subscription purchase for the{' '}
+            <strong className="text-white/90">first month</strong>. You earn{' '}
+            <strong className="text-white/90">{REFERRER_SUBSCRIPTION_COMMISSION_PERCENT}%</strong>{' '}
+            of their subscription payment monthly. You can earn passive income through our
+            dashboard by referring new people. We take care of keeping your referrals satisfied
+            while you keep earning money easy.
           </p>
         </div>
         <button 

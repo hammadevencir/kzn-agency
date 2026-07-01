@@ -6,6 +6,7 @@ import {
   lookupReferrerUserId,
   normalizeReferralCode,
 } from "@/lib/affiliates/server-referral";
+import { hasUsedReferralFirstMonthDiscount } from "@/lib/affiliates/discount-eligibility";
 
 export async function POST(request) {
   const user = await requireEndUserSession();
@@ -27,6 +28,9 @@ export async function POST(request) {
     return NextResponse.json({ error: "missing_code" }, { status: 400 });
   }
 
+  const purpose =
+    body?.purpose === "ad_account" ? "ad_account" : "subscription";
+
   const db = getAdminDb();
   const referrerUserId = await lookupReferrerUserId(db, normalized);
   if (!referrerUserId) {
@@ -42,10 +46,29 @@ export async function POST(request) {
     );
   }
 
+  const discountAlreadyUsed = await hasUsedReferralFirstMonthDiscount(
+    db,
+    user.uid
+  );
+
+  let discountPercent = 0;
+  let discountMessage;
+
+  if (purpose === "subscription" && !discountAlreadyUsed) {
+    discountPercent = REFEREE_DISCOUNT_PERCENT;
+    discountMessage = `${REFEREE_DISCOUNT_PERCENT}% off your first subscription month will be applied at checkout.`;
+  } else if (purpose === "subscription" && discountAlreadyUsed) {
+    discountMessage =
+      "Referral linked for affiliate tracking. First-month discount already used.";
+  } else {
+    discountMessage = "Referral linked for affiliate tracking.";
+  }
+
   return NextResponse.json({
     valid: true,
     normalizedCode: normalized,
-    discountPercent: REFEREE_DISCOUNT_PERCENT,
-    discountMessage: `${REFEREE_DISCOUNT_PERCENT}% referral discount will be applied at checkout.`,
+    discountPercent,
+    discountMessage,
+    purpose,
   });
 }

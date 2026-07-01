@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { XIcon, CloudUploadIcon, TrashIcon } from '@/components/icons';
 import { uploadPaymentProof } from '@/lib/user/upload-payment-proof';
+import BankDetailsCard from '@/components/payments/bank-details-card';
 
 const PayNowModal = ({
   isOpen,
@@ -167,34 +168,7 @@ const PayNowModal = ({
           </div>
 
           {/* Bank Details */}
-          <div className="space-y-5">
-            <h3 className="text-[18px] font-bold text-white tracking-wide">Bank details</h3>
-            <div className="bg-[#161D26] rounded-[24px] p-7 border border-white/5 space-y-8">
-              <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex -space-x-3 items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-[#EB001B]" />
-                  <div className="w-10 h-10 rounded-full bg-[#F79E1B] mix-blend-screen opacity-90" />
-                </div>
-                <p className="text-[14px] text-[#8B9197] leading-relaxed max-w-[340px] font-medium">
-                  Add funds via wire transfer. Upload a screenshot for verification, and we'll credit your account.
-                </p>
-              </div>
-
-              <div className="space-y-4 pt-2">
-                {[
-                  ["Bank Name:", "Chase Bank"],
-                  ["Account Name:", "KZN Agency LLC"],
-                  ["Account Number:", "040123456789"],
-                  ["Bank Address:", "US29Chase Bank, 270 Park Ave, NY 10017"],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-start text-[14px]">
-                    <span className="text-white font-semibold w-36 shrink-0">{label}</span>
-                    <span className="text-[#8B9197] font-medium">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <BankDetailsCard showTitle />
 
           {/* Upload Screenshot */}
           <div className="space-y-5">

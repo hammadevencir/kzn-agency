@@ -500,7 +500,7 @@ function DashboardContent() {
     const saved = getSavedReferralCode();
     if (saved) {
       try {
-        const validation = await validateReferralCodeForCheckout(saved);
+        const validation = await validateReferralCodeForCheckout(saved, 'subscription');
         if (validation.valid) {
           referralCode = validation.normalizedCode || saved;
           const pct = typeof validation.discountPercent === 'number'

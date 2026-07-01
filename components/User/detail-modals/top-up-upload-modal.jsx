@@ -22,6 +22,7 @@ import {
 import { createTopUpRequest } from "@/lib/user/top-ups-client";
 import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
 import toast from "react-hot-toast";
+import BankDetailsCard from "@/components/payments/bank-details-card";
 
 const PLATFORM_ICONS = {
   meta: MetaIcon,
@@ -232,37 +233,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
             />
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-white">Bank details</h3>
-            <div className="bg-[#151E25] rounded-3xl p-6 space-y-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="flex">
-                  <div className="w-8 h-8 rounded-full bg-[#EB001B] -mr-3" />
-                  <div className="w-8 h-8 rounded-full bg-[#F79E1B] opacity-80" />
-                </div>
-                <p className="text-[12px] text-quaternary leading-relaxed px-4">
-                  Add funds via wire transfer. Use the reference details if your
-                  bank requires them.
-                </p>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {[
-                  ["Bank Name:", "Chase Bank"],
-                  ["Account Name:", "KZN Agency LLC"],
-                  ["Account Number:", "040123456789"],
-                  ["Bank Address:", "US29Chase Bank, 270 Park Ave, NY 10017"],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-start text-[14px]">
-                    <span className="text-white font-medium w-32 shrink-0">
-                      {label}
-                    </span>
-                    <span className="text-quaternary font-light">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <BankDetailsCard compact showTitle />
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-white">Proof of payment</h3>
