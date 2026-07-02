@@ -283,6 +283,8 @@
   background: linear-gradient(23.95deg, #18181d 30.95%, #0d0d10 83.96%);
 }
 
+
+/* Custom cursor */
 button {
   cursor: pointer;
 }
