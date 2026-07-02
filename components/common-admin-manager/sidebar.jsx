@@ -15,7 +15,8 @@ import {
   ServiceIcon,
   InvoicesIcon,
   HelpIcon,
-  MessageIcon
+  MessageIcon,
+  AnnouncementsIcon
 } from '@/components/icons';
 
 const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose, role = 'admin', chatUnreadCount = 0 }) => {
@@ -73,6 +74,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       id: 'chat',
       label: 'Messages',
       icon: MessageIcon,
+    },
+    {
+      id: 'announcements',
+      label: 'Announcements',
+      icon: AnnouncementsIcon,
     },
   ];
 

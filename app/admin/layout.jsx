@@ -28,6 +28,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/balance-requests')) return 'balance-requests';
     if (pathname.includes('/invoices')) return 'invoices';
     if (pathname.includes('/chat')) return 'chat';
+    if (pathname.includes('/announcements')) return 'announcements';
     if (pathname === '/admin' || pathname.startsWith('/admin/dashboard')) return 'dashboard';
     return 'dashboard';
   };
@@ -55,6 +56,8 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/invoices');
     } else if (item === 'chat') {
       router.push('/admin/chat');
+    } else if (item === 'announcements') {
+      router.push('/admin/announcements');
     }
   };
 

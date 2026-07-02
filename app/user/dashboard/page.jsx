@@ -24,6 +24,7 @@ import { applyRefereeDiscountToCheckoutPreview, REFEREE_DISCOUNT_PERCENT } from 
 import Pagination from '@/components/common-admin-manager/pagination';
 import { getActiveMetaAccountCategory } from '@/lib/meta/get-active-meta-account-category';
 import { consumeMetaUpgradeExitToDashboard } from '@/lib/meta/meta-upgrade-session';
+import DashboardAnnouncements from '@/components/User/dashboard-announcements';
 
 function formatStat(n) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
@@ -602,6 +603,7 @@ function DashboardContent() {
 
   return (
     <div className="flex-1 p-6 md:p-10 lg:p-12 mb-20 max-w-[1400px]">
+      <DashboardAnnouncements />
       {approvalItems.length > 0 && (
         <ApprovalBanner
           count={approvalItems.length}

@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
 import { markNotificationIdsRead } from "@/lib/notifications/read-state";
+import { processNotificationMarkReadSideEffects } from "@/lib/notifications/mark-read-side-effects";
 
 export async function POST(request) {
   const sessionUser = await getSessionUser();
@@ -26,6 +27,12 @@ export async function POST(request) {
   }
 
   const db = getAdminDb();
+  await processNotificationMarkReadSideEffects(
+    db,
+    sessionUser.uid,
+    sessionUser.role,
+    ids
+  );
   await markNotificationIdsRead(db, sessionUser.uid, ids);
 
   return NextResponse.json({ ok: true });
