@@ -120,7 +120,7 @@ const PayNowModal = ({
       <DialogContent showCloseButton={false} className="sm:max-w-[500px] max-h-[92vh] bg-[#0E1318] border-none p-0 overflow-hidden rounded-[40px] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         {/* Header */}
         <div className="p-8 pb-2 flex items-center justify-center shrink-0 relative">
-          <DialogTitle className="text-[26px] font-bold text-white tracking-tight">
+          <DialogTitle className="text-[26px] font-bold pr-2 text-white tracking-tight">
             {headerTitle}
           </DialogTitle>
           <button 
