@@ -9,6 +9,7 @@ import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
 import { ROLE } from '@/lib/auth/constants';
+import PushNotificationSetup from '@/components/push/push-notification-setup';
 
 const AdminLayout = ({ children }) => {
   const router = useRouter();
@@ -123,6 +124,7 @@ const AdminLayout = ({ children }) => {
         onClose={handleLogoutModalClose}
         onConfirm={handleLogoutConfirm}
       />
+      <PushNotificationSetup />
     </div>
   );
 };

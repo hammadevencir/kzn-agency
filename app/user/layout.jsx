@@ -11,6 +11,7 @@ import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
 import { ROLE } from '@/lib/auth/constants';
+import PushNotificationSetup from '@/components/push/push-notification-setup';
 
 const UserLayout = ({ children }) => {
   const router = useRouter();
@@ -121,6 +122,7 @@ const UserLayout = ({ children }) => {
         onConfirm={handleLogoutConfirm}
       />
       <SubscriptionExpiryDialog />
+      <PushNotificationSetup />
       <Toaster position="top-right" />
     </div>
   );
