@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { NotificationIcon, EuroIcon } from '@/components/icons';
@@ -45,6 +45,7 @@ const Header = ({
   showEuroButton = false,
 }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const [authDisplayName, setAuthDisplayName] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authPhotoURL, setAuthPhotoURL] = useState(/** @type {string | null} */(null));
@@ -105,7 +106,7 @@ const Header = ({
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState(
-    /** @type {{ id: string, title: string, desc: string, time: string, kind?: string, read?: boolean }[]} */ ([])
+    /** @type {{ id: string, title: string, desc: string, time: string, kind?: string, read?: boolean, href?: string }[]} */ ([])
   );
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -183,6 +184,32 @@ const Header = ({
     } finally {
       setMarkingRead(false);
     }
+  };
+
+  const handleNotificationClick = async (msg) => {
+    if (!msg.href) return;
+
+    setIsNotificationsOpen(false);
+
+    if (!msg.read) {
+      try {
+        const res = await fetch(markReadEndpoint, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: [msg.id] }),
+        });
+        if (res.ok) {
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === msg.id ? { ...n, read: true } : n))
+          );
+        }
+      } catch {
+        /* still navigate */
+      }
+    }
+
+    router.push(msg.href);
   };
 
   const unreadCount = loaded
@@ -265,6 +292,7 @@ const Header = ({
                 ) : notifications.map((msg) => {
                   const initial = getInitial(msg.title);
                   const isRead = Boolean(msg.read);
+                  const isClickable = Boolean(msg.href);
                   const dot =
                     msg.kind === 'success'
                       ? 'bg-[#39CB7F]'
@@ -274,7 +302,20 @@ const Header = ({
                   return (
                     <div
                       key={msg.id}
-                      className={`flex items-start gap-4 p-4 hover:bg-white/[0.02] rounded-[16px] transition-colors cursor-default ${isRead ? 'opacity-[0.58]' : ''}`}
+                      role={isClickable ? 'button' : undefined}
+                      tabIndex={isClickable ? 0 : undefined}
+                      onClick={isClickable ? () => void handleNotificationClick(msg) : undefined}
+                      onKeyDown={
+                        isClickable
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                void handleNotificationClick(msg);
+                              }
+                            }
+                          : undefined
+                      }
+                      className={`flex items-start gap-4 p-4 hover:bg-white/[0.02] rounded-[16px] transition-colors ${isClickable ? 'cursor-pointer' : 'cursor-default'} ${isRead ? 'opacity-[0.58]' : ''}`}
                     >
                       <div className="relative w-[46px] h-[46px] shrink-0">
                         <div className="w-[46px] h-[46px] rounded-full bg-[#1C242C] text-white text-[15px] font-bold flex items-center justify-center shadow-inner">

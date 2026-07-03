@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 function AnnouncementBanner({ announcement, onDismiss }) {
   return (
-    <div className="bg-[#151D24] rounded-2xl p-5 flex items-start gap-4 mb-6 w-full border border-[#C5A964]/30">
+    <div className="bg-[#151D24] rounded-2xl p-5 flex items-start gap-4 w-full border border-[#C5A964]/30">
       <div className="w-11 h-11 rounded-xl bg-[#C5A964]/20 flex items-center justify-center shrink-0">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -82,14 +82,19 @@ export default function DashboardAnnouncements() {
   if (announcements.length === 0) return null;
 
   return (
-    <div className="mb-2">
-      {announcements.map((announcement) => (
-        <AnnouncementBanner
-          key={announcement.id}
-          announcement={announcement}
-          onDismiss={handleDismiss}
-        />
-      ))}
-    </div>
+    <section className="mb-8 w-full">
+      <h2 className="text-white text-[18px] font-semibold tracking-tight mb-4">
+        Announcements
+      </h2>
+      <div className="flex flex-col gap-4">
+        {announcements.map((announcement) => (
+          <AnnouncementBanner
+            key={announcement.id}
+            announcement={announcement}
+            onDismiss={handleDismiss}
+          />
+        ))}
+      </div>
+    </section>
   );
 }

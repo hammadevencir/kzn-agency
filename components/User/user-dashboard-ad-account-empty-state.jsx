@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronRight } from "lucide-react";
+import DashboardAnnouncements from "@/components/User/dashboard-announcements";
 
 export default function UserDashboardAdAccountEmptyState({
   displayName,
@@ -15,6 +16,8 @@ export default function UserDashboardAdAccountEmptyState({
           Dashboard
         </h1>
       </div>
+
+      <DashboardAnnouncements />
 
       <div className="flex justify-center w-full py-2 md:py-4">
         <div

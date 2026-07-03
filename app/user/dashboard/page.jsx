@@ -603,7 +603,6 @@ function DashboardContent() {
 
   return (
     <div className="flex-1 p-6 md:p-10 lg:p-12 mb-20 max-w-[1400px]">
-      <DashboardAnnouncements />
       {approvalItems.length > 0 && (
         <ApprovalBanner
           count={approvalItems.length}
@@ -623,6 +622,7 @@ function DashboardContent() {
               <h1 className="text-[32px] font-bold text-white tracking-tight">Dashboard</h1>
             </div>
           </div>
+          <DashboardAnnouncements />
           <div className="h-56 rounded-2xl bg-tertiary/50 animate-pulse max-w-3xl mx-auto" />
         </>
       ) : showSubscriptionEmpty ? (
@@ -655,6 +655,8 @@ function DashboardContent() {
               Add Subscription
             </button>
           </div>
+
+          <DashboardAnnouncements />
 
           <div className="flex flex-col xl:flex-row gap-6 mb-12 w-full">
             <div
