@@ -147,7 +147,15 @@ export default function UnifiedLogin() {
           </div>
 
           <div>
-            <label className="block text-quaternary text-[12px] mb-2">Password</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-quaternary text-[12px]">Password</label>
+              <Link
+                href="/login/forgot-password"
+                className="text-primary hover:text-primary/80 text-[12px] font-medium"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
