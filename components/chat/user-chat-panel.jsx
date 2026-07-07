@@ -41,9 +41,12 @@ export default function UserChatPanel() {
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-h-[calc(100vh-80px)]">
       <div className="shrink-0 px-6 py-4 border-b border-border bg-tertiary">
-        <h1 className="text-xl font-semibold text-white">Support</h1>
+        <h1 className="text-xl font-semibold text-white">Get Support</h1>
         <p className="text-sm text-quaternary mt-0.5">
-          Chat with our team — we typically reply within business hours.
+          Our team is here to support you. Send us a message and we&apos;ll get back to you shortly.
+        </p>
+        <p className="text-sm text-quaternary mt-0.5">
+          Average response time: within 15 minutes.
         </p>
       </div>
 
