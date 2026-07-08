@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase/client";
 
@@ -47,10 +47,12 @@ export default function ForgotPasswordForm() {
         url: `${window.location.origin}/login/reset-password`,
       });
       setSent(true);
+      toast.success("Password reset link has been sent to your email.");
     } catch (err) {
       // Don't reveal whether the account exists.
       if (err?.code === "auth/user-not-found") {
         setSent(true);
+        toast.success("Password reset link has been sent to your email.");
       } else {
         toast.error(mapAuthError(err?.code, err?.message));
       }
@@ -70,16 +72,22 @@ export default function ForgotPasswordForm() {
         </p>
 
         {sent ? (
-          <div className="flex flex-col flex-grow">
-            <p className="text-white text-[12px] text-center">
-              If an account exists for <span className="font-medium">{email.trim()}</span>,
-              a password reset link has been sent.
+          <div className="flex flex-col flex-grow items-center text-center">
+            <div className="mt-2 mb-5 flex size-14 items-center justify-center rounded-full bg-primary/10">
+              <MailCheck className="size-7 text-primary" aria-hidden />
+            </div>
+            <p className="text-white text-[13px] font-medium">
+              Check your email
+            </p>
+            <p className="text-quaternary text-[12px] mt-1.5">
+              We&apos;ve sent a password reset link to{" "}
+              <span className="text-white font-medium">{email.trim()}</span>.
             </p>
             <Link
               href="/login"
-              className="mt-auto text-primary hover:text-primary/80 text-center text-[12px] font-medium"
+              className="mt-auto w-full h-[44px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl text-[12px] transition-colors flex items-center justify-center"
             >
-              Back to login
+              Back to login page
             </Link>
           </div>
         ) : (
