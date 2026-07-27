@@ -30,6 +30,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/invoices')) return 'invoices';
     if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/announcements')) return 'announcements';
+    if (pathname.includes('/create-article')) return 'create-article';
     if (pathname === '/admin' || pathname.startsWith('/admin/dashboard')) return 'dashboard';
     return 'dashboard';
   };
@@ -59,6 +60,8 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/chat');
     } else if (item === 'announcements') {
       router.push('/admin/announcements');
+    } else if (item === 'create-article') {
+      router.push('/admin/create-article');
     }
   };
 

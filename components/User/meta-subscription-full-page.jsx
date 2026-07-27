@@ -52,12 +52,12 @@ const VIP_BENEFITS = [
   "Lowest rejection rates compared to other providers.",
   "Policy compliance checks with 8+ years of expertise.",
   "Ad account delivery within 24-48 hours.",
-  "Best algorithm for GH advertisers",
+  "Best algorithm for VIP advertisers",
   "Ultra-fast replies (10-15 min response time).",
   "Full technical support with a 24/7 expert team.",
   "No ad spend limits, unlimited spend",
   "All time zones supported",
-  "Unlimited GH ad-accounts",
+  "Unlimited VIP ad-accounts",
   "Direct META representative access",
   "10-15mins Top ups, 24/7 availability",
   "ZERO Setup & ZERO Hidden Fees",
@@ -252,12 +252,12 @@ export default function MetaSubscriptionFullPage({ category }) {
         </button>
         <h1 className="text-[32px] font-bold tracking-tight">
           {isVip
-            ? "Meta — VIP platform subscription"
+            ? "VIP META Agency Ad-accounts"
             : "Meta — White Hat platform subscription"}
         </h1>
         <p className="text-quaternary text-[14px] mt-2 max-w-[720px]">
           {isVip
-            ? "Choose your VIP Meta platform subscription tier. After payment and approval, use your plan to request ad accounts."
+            ? "Access the highest-quality VIP Meta ad accounts, built for advertisers who demand reliability, performance, and premium support. Choose the account that best suits your needs and grow with confidence, knowing our team is always by your side."
             : "Choose your White Hat Meta platform subscription tier. After payment and approval, use your plan to request ad accounts."}
         </p>
       </div>
@@ -296,7 +296,7 @@ export default function MetaSubscriptionFullPage({ category }) {
             </div>
             <div>
               <h3 className="text-[#C5A964] text-[15px] font-bold mb-0.5">
-                Advanced Risk Management
+                {isVip ? "VIP Advanced Risk Management" : "Advanced Risk Management"}
               </h3>
               <p className="text-[13px] text-gray-400">
                 We use top-tier Meta Business Managers to ensure stability,

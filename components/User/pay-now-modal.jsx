@@ -7,9 +7,54 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { XIcon, CloudUploadIcon, TrashIcon } from '@/components/icons';
+import {
+  XIcon,
+  CloudUploadIcon,
+  TrashIcon,
+  TikTokIcon,
+  GoogleIcon,
+  TaboolaIcon,
+  PinterestIcon,
+  SnapchatIcon,
+  TwitterXIcon,
+} from '@/components/icons';
 import { uploadPaymentProof } from '@/lib/user/upload-payment-proof';
 import BankDetailsCard from '@/components/payments/bank-details-card';
+
+/**
+ * Non-Meta platform subscriptions show a logo + "Top-Tier Verified … Ad-accounts"
+ * title instead of the plain "Plan:" row. Keyed by the leading name in
+ * subscriptionName (e.g. "Snapchat — Platform subscription").
+ */
+const PLATFORM_PAY_META = {
+  tiktok: { name: 'TikTok', Icon: TikTokIcon },
+  google: { name: 'Google', Icon: GoogleIcon },
+  taboola: { name: 'Taboola', Icon: TaboolaIcon },
+  pinterest: { name: 'Pinterest', Icon: PinterestIcon },
+  snapchat: { name: 'Snapchat', Icon: SnapchatIcon },
+  twitter: { name: 'X', Icon: TwitterXIcon },
+};
+
+/** Resolve the platform key from a "{Name} — Platform subscription" string. */
+function platformKeyFromSubscriptionName(name) {
+  const lead = String(name || '')
+    .split(/—|-/)[0]
+    .trim()
+    .toLowerCase();
+  const aliases = {
+    tiktok: 'tiktok',
+    google: 'google',
+    taboola: 'taboola',
+    pinterest: 'pinterest',
+    snapchat: 'snapchat',
+    x: 'twitter',
+    twitter: 'twitter',
+    'twitter (x)': 'twitter',
+    meta: 'meta',
+    facebook: 'meta',
+  };
+  return aliases[lead] || '';
+}
 
 const PayNowModal = ({
   isOpen,
@@ -115,6 +160,17 @@ const PayNowModal = ({
     ? 'Complete subscription payment'
     : 'Pay for ad account';
 
+  // For non-Meta platform subscriptions, show the platform logo + a
+  // "Top-Tier Verified … Ad-accounts" title instead of the plain "Plan:" row.
+  const platformKey = isPlatformSubscription
+    ? platformKeyFromSubscriptionName(subscriptionName)
+    : '';
+  const brandedPlatform =
+    platformKey && platformKey !== 'meta'
+      ? PLATFORM_PAY_META[platformKey]
+      : null;
+  const BrandIcon = brandedPlatform?.Icon || null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent showCloseButton={false} className="sm:max-w-[500px] max-h-[92vh] bg-[#0E1318] border-none p-0 overflow-hidden rounded-[40px] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -125,7 +181,7 @@ const PayNowModal = ({
           </DialogTitle>
           <button 
             onClick={onClose}
-            className="p-1 hover:bg-white/5 rounded-full transition-colors text-gray-500 absolute right-8 top-8"
+            className="p-1 hover:bg-white/5 rounded-full transition-colors text-gray-500 absolute right-8 top-5"
           >
             <XIcon className="w-6 h-6" />
           </button>
@@ -138,18 +194,38 @@ const PayNowModal = ({
               {isPlatformSubscription ? 'Subscription summary' : 'Ad account checkout'}
             </h3>
             <div className="bg-transparent rounded-[24px] p-7 border border-[#B89C57]/30 space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="text-[#8B9197] text-[16px] font-medium">Plan:</span>
-                <span className="text-white text-[16px] font-semibold text-right max-w-[58%]">{subscriptionName}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#8B9197] text-[16px] font-medium">
-                  {isPlatformSubscription ? 'Includes:' : 'Ad accounts (slots):'}
-                </span>
-                <span className="text-white text-[16px] font-semibold">
-                  {isPlatformSubscription ? 'Platform access' : '05'}
-                </span>
-              </div>
+              {brandedPlatform ? (
+                <div className="flex justify-between items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#212930] flex items-center justify-center shrink-0">
+                    {BrandIcon ? <BrandIcon className="w-8 h-8 text-white" /> : null}
+                  </div>
+                  <span className="text-white text-[16px] font-semibold text-right max-w-[70%]">
+                    Top-Tier Verified {brandedPlatform.name} Ad-accounts
+                  </span>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8B9197] text-[16px] font-medium">Plan:</span>
+                  <span className="text-white text-[16px] font-semibold text-right max-w-[58%]">{subscriptionName}</span>
+                </div>
+              )}
+              {isPlatformSubscription ? (
+                <div className="space-y-2">
+                  <span className="text-[#8B9197] text-[16px] font-medium block">
+                    After payment:
+                  </span>
+                  <p className="text-white text-[14px] leading-relaxed">
+                    Your 24/7 priority service is now being activated. A dedicated team member will contact you within 5–15 minutes with further details and provide ongoing support.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <span className="text-[#8B9197] text-[16px] font-medium">
+                    Ad accounts (slots):
+                  </span>
+                  <span className="text-white text-[16px] font-semibold">05</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-[#8B9197] text-[16px] font-medium">Amount to Pay:</span>
                 <div className="text-right">

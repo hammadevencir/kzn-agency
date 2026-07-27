@@ -80,6 +80,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       label: 'Announcements',
       icon: AnnouncementsIcon,
     },
+    {
+      id: 'create-article',
+      label: 'Create KZN article',
+      icon: HelpIcon,
+    },
   ];
 
   // User navigation items

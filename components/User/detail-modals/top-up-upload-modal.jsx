@@ -144,7 +144,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
     } catch (e) {
       const raw = e instanceof Error ? e.message : "";
       const friendly =
-        raw === "top_up_already_pending"
+        raw === "below_min_top_up"
+          ? `Minimum top-up${typeof minTopUp === "number" ? ` is $${minTopUp.toLocaleString("en-US")}` : ""}.`
+          : raw === "invalid_amount"
+            ? "Enter a valid top-up amount."
+          : raw === "top_up_already_pending"
           ? "This account already has a top-up under review. Wait for admin approval before submitting another."
           : raw === "unsupported_file_type"
             ? "Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF."

@@ -12,6 +12,10 @@ import {
 } from "@/lib/top-ups/constants";
 import { checkAdAccountSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import {
+  minTopUpUsdForPlatform,
+  parseAmountToNumber,
+} from "@/lib/ad-accounts/platform-request-config";
 
 function formatTimestamp(ts) {
   if (!ts) return "—";
@@ -193,6 +197,26 @@ export async function POST(request) {
     adData.flow && typeof adData.flow === "object"
       ? { .../** @type {Record<string, unknown>} */ (adData.flow) }
       : {};
+
+  // Enforce the per-platform minimum top-up (e.g. Meta and the agency
+  // platforms all require at least $350). Skipped for free balance-credit
+  // requests, which carry no payment amount.
+  if (!isFreeBalanceRequest) {
+    const platformKey = String(flow.platformKey || "").toLowerCase();
+    const minUsd = minTopUpUsdForPlatform(platformKey);
+    if (typeof minUsd === "number") {
+      const numeric = parseAmountToNumber(amountStr);
+      if (numeric === null) {
+        return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+      }
+      if (numeric < minUsd) {
+        return NextResponse.json(
+          { error: "below_min_top_up", minTopUpUsd: minUsd },
+          { status: 400 }
+        );
+      }
+    }
+  }
 
   const balanceSnap =
     adData.currentBalance != null ? String(adData.currentBalance) : "—";
