@@ -13,6 +13,9 @@ import { Button } from '@/components/ui/button';
 import SubscriptionRequestModal from '@/components/User/subscription-request-modal';
 import SubscriptionSuccessModal from '@/components/User/subscription-success-modal';
 import { useAgencyAdAccountPersistence } from '@/lib/hooks/useAgencyAdAccountPersistence';
+import { getPlatformRequestConfig } from '@/lib/ad-accounts/platform-request-config';
+
+const cfg = getPlatformRequestConfig('google');
 
 export default function GoogleAgencyAccountPage() {
   const { afterFormSubmit } = useAgencyAdAccountPersistence();
@@ -23,10 +26,14 @@ export default function GoogleAgencyAccountPage() {
     setIsModalOpen(false);
     const checkoutPreview = {
       subscriptionName: `Google - Standard Ad Account`,
-      amount: '€175',
+      amount: cfg.monthlyFee,
     };
     const flow = {
-      pricingSnapshot: { monthlyFee: '€175', topUpFee: '2%' },
+      pricingSnapshot: {
+        monthlyFee: cfg.monthlyFee,
+        topUpFee: cfg.topUpFee,
+        minTopUp: cfg.minTopUp,
+      },
     };
     try {
       await afterFormSubmit({ subscriptionForm, flow, checkoutPreview });
@@ -143,7 +150,7 @@ export default function GoogleAgencyAccountPage() {
                 </div>
                 <div>
                   <h4 className="text-[16px] text-gray-200 mb-2 font-medium">Monthly Fee</h4>
-                  <div className="text-[28px] font-bold">€175</div>
+                  <div className="text-[28px] font-bold">{cfg.monthlyFee}</div>
                 </div>
               </div>
 
@@ -160,9 +167,9 @@ export default function GoogleAgencyAccountPage() {
                 <div>
                   <h4 className="text-[16px] text-gray-200 mb-2 font-medium">Top-Up Fee</h4>
                   <div className="flex items-end gap-4">
-                    <span className="text-[28px] font-bold">2%</span>
+                    <span className="text-[28px] font-bold">{cfg.topUpFee}</span>
                     <div className="text-gray-400 text-[12px] pb-1 leading-tight max-w-[200px]">
-                      2% applies to each recharge.<br/>
+                      {cfg.topUpFee} applies to each recharge.<br/>
                       Top-ups are fast and seamless & no delay.
                     </div>
                   </div>
@@ -170,6 +177,10 @@ export default function GoogleAgencyAccountPage() {
               </div>
 
             </div>
+            <p className="text-gray-400 text-[13px] mt-6">
+              Minimum top-up for a Google ad account is{' '}
+              <span className="text-white font-semibold">{cfg.minTopUp}</span>.
+            </p>
           </div>
 
           {/* Bottom CTA Section */}
@@ -196,6 +207,7 @@ export default function GoogleAgencyAccountPage() {
         onClose={() => setIsModalOpen(false)}
         platform="Google"
         planName="Google Agency Account"
+        fields={cfg.fields}
         onSuccess={handleSubscriptionSuccess}
       />
 

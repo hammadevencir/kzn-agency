@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { XIcon } from '@/components/icons';
 import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
+import { parseAmountToNumber } from '@/lib/ad-accounts/platform-request-config';
 
 const SubscriptionRequestModal = ({
   isOpen,
@@ -17,19 +18,29 @@ const SubscriptionRequestModal = ({
   platform = "Meta",
   planName = "GOLD PLAN",
   type = "Standard",
+  fields = null,
   onSuccess,
 }) => {
   const showReferralField = type !== "White Hat";
+  const isDynamic = Array.isArray(fields) && fields.length > 0;
 
-  const [formData, setFormData] = useState({
-    bmId: '',
-    timezone: '',
-    website: '',
-    confirmHat: '',
-    advertiseDetails: '',
-    supplierName: '',
-    previousProvider: '',
-    referralCode: '',
+  const [formData, setFormData] = useState(() => {
+    if (isDynamic) {
+      /** @type {Record<string, string>} */
+      const base = { referralCode: '' };
+      for (const f of fields) base[f.key] = '';
+      return base;
+    }
+    return {
+      bmId: '',
+      timezone: '',
+      website: '',
+      confirmHat: '',
+      advertiseDetails: '',
+      supplierName: '',
+      previousProvider: '',
+      referralCode: '',
+    };
   });
 
   useEffect(() => {
@@ -50,15 +61,50 @@ const SubscriptionRequestModal = ({
 
   const [errors, setErrors] = useState({});
 
-  const handleSubmit = () => {
+  const clearError = (field) =>
+    setErrors((p) => ({ ...p, [field]: undefined }));
+
+  const validateDynamic = () => {
+    /** @type {Record<string, string>} */
     const e = {};
-    if (!formData.bmId.trim()) e.bmId = 'BM ID is required.';
-    if (!formData.timezone.trim()) e.timezone = 'Timezone is required.';
-    if (!formData.website.trim()) e.website = 'Website link is required.';
-    if (!formData.confirmHat) e.confirmHat = 'Please confirm.';
-    if (!formData.advertiseDetails.trim()) e.advertiseDetails = 'Please describe what you advertise.';
-    setErrors(e);
-    if (Object.keys(e).length > 0) return;
+    for (const f of fields) {
+      const val = String(formData[f.key] ?? '').trim();
+      if (f.required && !val) {
+        e[f.key] = 'This field is required.';
+        continue;
+      }
+      if (!val) continue;
+      if (f.type === 'deposit') {
+        const n = parseAmountToNumber(val);
+        if (n === null) {
+          e[f.key] = 'Enter a valid amount.';
+        } else if (typeof f.min === 'number' && n < f.min) {
+          e[f.key] = `Minimum is $${f.min.toLocaleString('en-US')}.`;
+        }
+      } else if (f.type === 'email') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+          e[f.key] = 'Enter a valid email address.';
+        }
+      }
+    }
+    return e;
+  };
+
+  const handleSubmit = () => {
+    if (isDynamic) {
+      const e = validateDynamic();
+      setErrors(e);
+      if (Object.keys(e).some((k) => e[k])) return;
+    } else {
+      const e = {};
+      if (!formData.bmId.trim()) e.bmId = 'BM ID is required.';
+      if (!formData.timezone.trim()) e.timezone = 'Timezone is required.';
+      if (!formData.website.trim()) e.website = 'Website link is required.';
+      if (!formData.confirmHat) e.confirmHat = 'Please confirm.';
+      if (!formData.advertiseDetails.trim()) e.advertiseDetails = 'Please describe what you advertise.';
+      setErrors(e);
+      if (Object.keys(e).length > 0) return;
+    }
 
     if (onSuccess) {
       onSuccess({ ...formData, platform, planName, type });
@@ -69,9 +115,67 @@ const SubscriptionRequestModal = ({
   const inputStyle = "w-full bg-[#161D26] border-none text-white h-[52px] rounded-2xl px-5 focus:ring-1 focus:ring-[#CBAF69]/30 text-[14px] outline-none transition-all placeholder-[#4E5660]";
   const selectStyle = "w-full bg-[#161D26] border-none text-white h-[52px] rounded-2xl px-5 focus:ring-1 focus:ring-[#CBAF69]/30 text-[14px] outline-none appearance-none cursor-pointer";
 
+  const renderDynamicField = (f) => {
+    const err = errors[f.key];
+    const errRing = err ? 'ring-1 ring-red-500' : '';
+    const onChange = (value) => {
+      handleInputChange(f.key, value);
+      clearError(f.key);
+    };
+
+    return (
+      <div key={f.key}>
+        <label className={labelStyle}>{f.label}</label>
+        {f.type === 'select' ? (
+          <div className="relative">
+            <select
+              className={`${selectStyle} ${errRing}`}
+              value={formData[f.key]}
+              onChange={(e) => onChange(e.target.value)}
+            >
+              <option value="">Select</option>
+              {(f.options || []).map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        ) : f.type === 'textarea' ? (
+          <textarea
+            placeholder={f.placeholder || 'Answer here'}
+            className={`${inputStyle} min-h-[52px] py-4 resize-none ${errRing}`}
+            value={formData[f.key]}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        ) : (
+          <input
+            type={f.type === 'email' ? 'email' : 'text'}
+            inputMode={f.type === 'deposit' ? 'decimal' : undefined}
+            placeholder={f.placeholder || 'Answer here'}
+            className={`${inputStyle} ${errRing}`}
+            value={formData[f.key]}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        )}
+        {f.note ? (
+          <p className="text-[12px] text-[#4E5660] mt-2 leading-relaxed break-words">
+            {f.note}
+          </p>
+        ) : null}
+        {err ? <p className="text-red-400 text-[11px] mt-1.5 ml-1">{err}</p> : null}
+      </div>
+    );
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
+      <SheetContent
         side="right"
         showCloseButton={false}
         className="w-full sm:max-w-[480px] bg-[#111821] border-none p-0 flex flex-col rounded-l-[32px] overflow-hidden shadow-2xl"
@@ -81,7 +185,7 @@ const SubscriptionRequestModal = ({
           <SheetTitle className="text-[20px] font-bold text-white tracking-tight uppercase">
             {platform === 'Meta' ? type : platform} - {planName?.replace(/ PLAN$/i, '')}
           </SheetTitle>
-          <button 
+          <button
             onClick={onClose}
             className="p-1 hover:bg-white/5 rounded-full transition-colors text-gray-400"
           >
@@ -98,9 +202,9 @@ const SubscriptionRequestModal = ({
             {showReferralField ? (
             <div>
               <label className={labelStyle}>Referral code (optional)</label>
-              <input 
+              <input
                 type="text"
-                placeholder="e.g. KZN-ABCD1234" 
+                placeholder="e.g. KZN-ABCD1234"
                 className={`${inputStyle} uppercase`}
                 value={formData.referralCode}
                 onChange={(e) =>
@@ -116,12 +220,16 @@ const SubscriptionRequestModal = ({
             </div>
             ) : null}
 
+            {isDynamic ? (
+              fields.map((f) => renderDynamicField(f))
+            ) : (
+            <>
             {/* BM ID */}
             <div>
               <label className={labelStyle}>BM ID where we can share the ad-account</label>
-              <input 
+              <input
                 type="text"
-                placeholder="This is |" 
+                placeholder="This is |"
                 className={`${inputStyle} ${errors.bmId ? 'ring-1 ring-red-500' : ''}`}
                 value={formData.bmId}
                 onChange={(e) => { handleInputChange('bmId', e.target.value); setErrors((p) => ({ ...p, bmId: undefined })); }}
@@ -132,9 +240,9 @@ const SubscriptionRequestModal = ({
             {/* Timezone */}
             <div>
               <label className={labelStyle}>Your preferred Timezone</label>
-              <input 
+              <input
                 type="text"
-                placeholder="Answer here" 
+                placeholder="Answer here"
                 className={`${inputStyle} ${errors.timezone ? 'ring-1 ring-red-500' : ''}`}
                 value={formData.timezone}
                 onChange={(e) => { handleInputChange('timezone', e.target.value); setErrors((p) => ({ ...p, timezone: undefined })); }}
@@ -145,9 +253,9 @@ const SubscriptionRequestModal = ({
             {/* Website */}
             <div>
               <label className={labelStyle}>Your Website link</label>
-              <input 
+              <input
                 type="text"
-                placeholder="Answer here" 
+                placeholder="Answer here"
                 className={`${inputStyle} ${errors.website ? 'ring-1 ring-red-500' : ''}`}
                 value={formData.website}
                 onChange={(e) => { handleInputChange('website', e.target.value); setErrors((p) => ({ ...p, website: undefined })); }}
@@ -178,7 +286,7 @@ const SubscriptionRequestModal = ({
             <div>
               <label className={labelStyle}>{type === 'VIP' ? 'You are gonna advertise Gray-hat only so not Black-hat, can you confirm' : `You are gonna advertise ${type || 'White-hat'} only, can you confirm`}</label>
               <div className="relative">
-                <select 
+                <select
                   className={`${selectStyle} ${errors.confirmHat ? 'ring-1 ring-red-500' : ''}`}
                   onChange={(e) => { handleInputChange('confirmHat', e.target.value); setErrors((p) => ({ ...p, confirmHat: undefined })); }}
                   value={formData.confirmHat}
@@ -199,8 +307,8 @@ const SubscriptionRequestModal = ({
             {/* Advertise Details */}
             <div>
               <label className={labelStyle}>Can you tell me more about what you advertise?</label>
-              <textarea 
-                placeholder="Answer here" 
+              <textarea
+                placeholder="Answer here"
                 className={`${inputStyle} min-h-[52px] py-4 resize-none ${errors.advertiseDetails ? 'ring-1 ring-red-500' : ''}`}
                 value={formData.advertiseDetails}
                 onChange={(e) => { handleInputChange('advertiseDetails', e.target.value); setErrors((p) => ({ ...p, advertiseDetails: undefined })); }}
@@ -211,9 +319,9 @@ const SubscriptionRequestModal = ({
             {/* Supplier Name */}
             <div>
               <label className={labelStyle}>What is the company name of your supplier who is fulfilling your goods?</label>
-              <input 
+              <input
                 type="text"
-                placeholder="Answer here" 
+                placeholder="Answer here"
                 className={inputStyle}
                 value={formData.supplierName}
                 onChange={(e) => handleInputChange('supplierName', e.target.value)}
@@ -223,14 +331,16 @@ const SubscriptionRequestModal = ({
             {/* Previous Provider */}
             <div>
               <label className={labelStyle}>Where did you get your agency ad-accounts previously, or are we the first provider you'll be using?</label>
-              <input 
+              <input
                 type="text"
-                placeholder="Answer here" 
+                placeholder="Answer here"
                 className={inputStyle}
                 value={formData.previousProvider}
                 onChange={(e) => handleInputChange('previousProvider', e.target.value)}
               />
             </div>
+            </>
+            )}
           </div>
         </div>
 

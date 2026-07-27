@@ -21,6 +21,10 @@ import {
 } from "@/components/icons";
 import { createTopUpRequest } from "@/lib/user/top-ups-client";
 import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
+import {
+  minTopUpUsdForPlatform,
+  parseAmountToNumber,
+} from "@/lib/ad-accounts/platform-request-config";
 import toast from "react-hot-toast";
 import BankDetailsCard from "@/components/payments/bank-details-card";
 
@@ -84,6 +88,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const pk = String(data.platformKey || "").toLowerCase();
   const Icon = PLATFORM_ICONS[pk] || TikTokIcon;
   const isPending = data.topUpInReview === true;
+  const minTopUp = minTopUpUsdForPlatform(pk);
 
   const proofFileName = proofFile?.name || "";
   const isImageProof =
@@ -106,6 +111,19 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
     if (!trimmed) {
       toast.error("Enter the top-up amount.");
       return;
+    }
+    if (typeof minTopUp === "number") {
+      const numeric = parseAmountToNumber(trimmed);
+      if (numeric === null) {
+        toast.error("Enter a valid top-up amount.");
+        return;
+      }
+      if (numeric < minTopUp) {
+        toast.error(
+          `Minimum top-up for ${data.platform} is $${minTopUp.toLocaleString("en-US")}.`
+        );
+        return;
+      }
     }
     if (!proofFile) {
       setProofError("Please upload proof of payment before submitting.");
@@ -231,6 +249,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               placeholder="e.g. 500 or $500"
               className="w-full h-12 rounded-xl bg-[#151E25] border border-white/10 px-4 text-white text-[15px] placeholder:text-quaternary focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50"
             />
+            {typeof minTopUp === "number" ? (
+              <p className="text-[12px] text-quaternary">
+                Minimum top-up: ${minTopUp.toLocaleString("en-US")}
+              </p>
+            ) : null}
           </div>
 
           <BankDetailsCard compact showTitle />
