@@ -87,11 +87,13 @@ export default function BankDetailsCard({
 
         <div className={`${compact ? "space-y-3" : "space-y-4"} pt-2`}>
           {BANK_DETAILS_FIELDS.map(({ label, value }) => (
-            <div key={label} className={`flex items-start ${rowText}`}>
+            <div key={label} className={`flex items-start gap-4 ${rowText}`}>
               <span className={`${labelClass} ${labelWidth} shrink-0`}>
                 {label}
               </span>
-              <span className={`${valueClass} break-words`}>{value}</span>
+              <span className={`${valueClass} break-words min-w-0 flex-1`}>
+                {value}
+              </span>
             </div>
           ))}
         </div>

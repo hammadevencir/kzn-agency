@@ -65,6 +65,18 @@ const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
     { label: "Last Updated:", value: displayLastUpdated },
   ];
 
+  const packageFields = [
+    {
+      label: "Package",
+      value: data.packageName || data.subscription || "—",
+    },
+    { label: "Monthly fee:", value: data.monthlyFee || "—" },
+    { label: "Top-up fee:", value: data.topUpFee || "—" },
+  ];
+  const hasPackageInfo = packageFields.some(
+    (f) => f.value && f.value !== "—"
+  );
+
   const handleSave = async () => {
     const parsed = toNumber(balanceInput);
     if (!Number.isFinite(parsed) || parsed < 0) {
@@ -131,6 +143,32 @@ const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
                 </div>
               ))}
             </div>
+
+            {hasPackageInfo ? (
+              <div className="space-y-3">
+                <h3 className="text-[15px] font-medium text-white">
+                  Package details
+                </h3>
+                <div className="flex flex-col gap-y-4 text-[14px] p-5 rounded-2xl bg-[#151E25] border border-[#C5A964]/20">
+                  {packageFields.map((field) => (
+                    <div
+                      key={field.label}
+                      className="flex justify-between items-center w-full"
+                    >
+                      <span className="text-quaternary font-light">
+                        {field.label}
+                      </span>
+                      <span className="text-white text-right">
+                        {field.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[12px] text-quaternary font-light">
+                  Use the package tier to decide the top-up fee for this client.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-4">

@@ -355,11 +355,6 @@ export default function MetaSubscriptionFullPage({ category }) {
                   {isVip && "subtext" in plan && plan.subtext ? (
                     <p className="text-[12px] text-[#8B9197] mt-2">{plan.subtext}</p>
                   ) : null}
-                  {isVip && "prepayment" in plan && plan.prepayment ? (
-                    <p className="text-[12px] text-[#C5A964] mt-2 font-medium">
-                      {plan.prepayment}
-                    </p>
-                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-4 shrink-0 min-w-[180px]">

@@ -60,11 +60,24 @@ function initialsFromName(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/** Dummy top-10 leaderboard (no real user data). Spent shown as ranges. */
+const DUMMY_LEADERBOARD = [
+  { rank: 1, name: 'Aliza Khan', spentDisplay: '$900k–$1M' },
+  { rank: 2, name: 'Marcus Tan', spentDisplay: '$700k–$800k' },
+  { rank: 3, name: 'Sofia Rossi', spentDisplay: '$600k–$700k' },
+  { rank: 4, name: 'Daniel Vega', spentDisplay: '$500k–$600k' },
+  { rank: 5, name: 'Priya Sharma', spentDisplay: '$400k–$500k' },
+  { rank: 6, name: 'Liam Obrien', spentDisplay: '$300k–$400k' },
+  { rank: 7, name: 'Emma Wright', spentDisplay: '$200k–$300k' },
+  { rank: 8, name: 'Noah Becker', spentDisplay: '$150k–$200k' },
+  { rank: 9, name: 'Olivia Mendez', spentDisplay: '$100k–$150k' },
+  { rank: 10, name: 'Ethan Cole', spentDisplay: '$50k–$100k' },
+];
+
 function LeaderboardRow({ entry, highlight }) {
   const rank = entry.rank;
   const name = entry.name || 'User';
-  const email = entry.emailMasked || '';
-  const spent = formatSpent(Number(entry.totalSpent) || 0);
+  const spent = entry.spentDisplay || formatSpent(Number(entry.totalSpent) || 0);
   const rankPill =
     rank === 1
       ? 'bg-[#C5A964] text-black'
@@ -96,24 +109,12 @@ function LeaderboardRow({ entry, highlight }) {
         )}
       </div>
 
-      <div className="w-10 h-10 rounded-full bg-[#232A33] overflow-hidden shrink-0 flex items-center justify-center text-[13px] font-semibold text-white">
-        {entry.photoURL ? (
-          <img
-            src={entry.photoURL}
-            alt={name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span>{initialsFromName(name)}</span>
-        )}
+      <div className="w-10 h-10 rounded-full bg-[#232A33] shrink-0 flex items-center justify-center text-[13px] font-semibold text-white">
+        <span>{initialsFromName(name)}</span>
       </div>
 
       <div className="flex-1 min-w-0">
         <p className="text-white text-[14px] font-semibold truncate">{name}</p>
-        {email ? (
-          <p className="text-[#8B9197] text-[12px] truncate">{email}</p>
-        ) : null}
       </div>
 
       <div className="text-right shrink-0">
@@ -128,22 +129,9 @@ function LeaderboardRow({ entry, highlight }) {
   );
 }
 
-function LeaderboardPanel({ data, loading }) {
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-3 flex-1">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-[72px] rounded-2xl bg-[#161D26] border border-white/5 animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  const top = Array.isArray(data?.top) ? data.top : [];
-  const me = data?.me || null;
+function LeaderboardPanel() {
+  const top = DUMMY_LEADERBOARD;
+  const me = null;
 
   if (top.length === 0) {
     return (
@@ -718,12 +706,9 @@ function DashboardContent() {
 
             <div className="w-full xl:w-[420px] bg-[#11191F] rounded-[32px] p-8 flex flex-col shrink-0 shadow-2xl">
               <h2 className="text-white text-[20px] font-semibold mb-1 tracking-wide">Leaderboard</h2>
-              <p className="text-[#8B9197] text-[14px] mb-8 font-medium">Top 3 most spending users</p>
+              <p className="text-[#8B9197] text-[14px] mb-8 font-medium">Top 10 most spending users</p>
 
-              <LeaderboardPanel
-                data={leaderboard}
-                loading={leaderboardLoading}
-              />
+              <LeaderboardPanel />
             </div>
           </div>
 

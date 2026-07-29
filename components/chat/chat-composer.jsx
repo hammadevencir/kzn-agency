@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Paperclip, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,21 @@ export default function ChatComposer({ conversationUserId, disabled = false }) {
   const [pendingFile, setPendingFile] = useState(/** @type {File | null} */ (null));
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
+
+  // Pre-fill the composer when the user arrives from a "I want to buy it"
+  // (or similar) action that stashed a draft message in sessionStorage.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const draft = window.sessionStorage.getItem("kzn_chat_prefill");
+      if (draft) {
+        setText((prev) => prev || draft.slice(0, CHAT_MAX_TEXT_LENGTH));
+        window.sessionStorage.removeItem("kzn_chat_prefill");
+      }
+    } catch {
+      /* sessionStorage unavailable — ignore */
+    }
+  }, []);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];

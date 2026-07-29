@@ -90,6 +90,22 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const isPending = data.topUpInReview === true;
   const minTopUp = minTopUpUsdForPlatform(pk);
 
+  // Top-up fee → show the total the user must actually transfer.
+  const feePctRaw = Number.parseFloat(
+    String(data.topUpFee || "").replace(/[^0-9.]/g, "")
+  );
+  const feePct = Number.isFinite(feePctRaw) ? feePctRaw : null;
+  const enteredAmount = parseAmountToNumber(amount);
+  const totalToSend =
+    feePct != null && enteredAmount != null
+      ? enteredAmount * (1 + feePct / 100)
+      : null;
+  const formatUsd = (n) =>
+    `$${n.toLocaleString("en-US", {
+      minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+
   const proofFileName = proofFile?.name || "";
   const isImageProof =
     !!proofFile && proofFile.type.startsWith("image/");
@@ -257,6 +273,16 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               <p className="text-[12px] text-quaternary">
                 Minimum top-up: ${minTopUp.toLocaleString("en-US")}
               </p>
+            ) : null}
+            {totalToSend != null ? (
+              <div className="rounded-xl bg-[#151E25] border border-[#C5A964]/20 px-4 py-3">
+                <p className="text-[12px] text-quaternary">
+                  With the {data.topUpFee} top-up fee, you should send:
+                </p>
+                <p className="text-[18px] font-semibold text-[#C5A964]">
+                  {formatUsd(totalToSend)}
+                </p>
+              </div>
             ) : null}
           </div>
 
