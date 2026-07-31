@@ -181,7 +181,7 @@ const PayNowModal = ({
           </DialogTitle>
           <button 
             onClick={onClose}
-            className="p-1 hover:bg-white/5 rounded-full transition-colors text-gray-500 absolute right-8 top-5"
+            className="p-1 hover:bg-white/5 rounded-full transition-colors text-gray-500 absolute right-3 top-3"
           >
             <XIcon className="w-6 h-6" />
           </button>

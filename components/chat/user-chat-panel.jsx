@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { CHAT_SENDER_ROLE } from "@/lib/chat/constants";
 import { useChatMessages } from "@/lib/hooks/useChatMessages";
 import ChatMessageList from "@/components/chat/chat-message-list";
 import ChatComposer from "@/components/chat/chat-composer";
+
+const SOCIAL_LINKS = [
+  { name: "Instagram", icon: "/social/instagram.svg", href: "#" },
+  { name: "TikTok", icon: "/platforms/tiktok.svg", href: "#" },
+];
 
 export default function UserChatPanel() {
   const [uid, setUid] = useState(/** @type {string | null} */ (null));
@@ -40,14 +46,35 @@ export default function UserChatPanel() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-h-[calc(100vh-80px)]">
-      <div className="shrink-0 px-6 py-4 border-b border-border bg-tertiary">
-        <h1 className="text-xl font-semibold text-white">Get Support</h1>
-        <p className="text-sm text-quaternary mt-0.5">
-          Our team is here to support you. Send us a message and we&apos;ll get back to you shortly.
-        </p>
-        <p className="text-sm text-quaternary mt-0.5">
-          Average response time: within 15 minutes.
-        </p>
+      <div className="shrink-0 px-6 py-4 border-b border-border bg-tertiary flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-white">Get Support</h1>
+          <p className="text-sm text-quaternary mt-0.5">
+            Our team is here to support you. Send us a message and we&apos;ll get back to you shortly.
+          </p>
+          <p className="text-sm text-quaternary mt-0.5">
+            Average response time: within 15 minutes.
+          </p>
+        </div>
+
+        <div className="shrink-0 flex flex-col items-center gap-3">
+          <span className="text-sm text-quaternary hidden sm:inline">Follow us on</span>
+          <div className="flex items-center gap-2">
+            {SOCIAL_LINKS.map(({ name, icon, href }) => (
+              <a
+                key={name}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={name}
+                title={name}
+                className="opacity-90 hover:opacity-100 transition-opacity"
+              >
+                <Image src={icon} alt={name} width={28} height={28} className="w-7 h-7" />
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
 
       {error ? (

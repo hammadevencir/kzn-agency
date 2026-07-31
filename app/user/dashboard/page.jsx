@@ -155,7 +155,7 @@ function LeaderboardPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 flex-1">
+    <div className="flex flex-col max-h-full overflow-y-auto gap-3 flex-1">
       {top.map((entry) => (
         <LeaderboardRow
           key={entry.uid || `rank-${entry.rank}`}
@@ -648,10 +648,10 @@ function DashboardContent() {
 
           <div className="flex flex-col xl:flex-row gap-6 mb-12 w-full">
             <div
-              className="flex-1 w-full rounded-[32px] p-8 md:p-10 relative overflow-hidden shadow-2xl bg-cover bg-center"
+              className="flex-1 w-full h-fit rounded-[32px] p-8 md:p-10 relative overflow-hidden shadow-2xl bg-cover bg-center"
               style={{ backgroundImage: "url('/overview-bg.png')" }}
             >
-              <div className="relative z-10 h-full flex flex-col justify-between">
+              <div className="relative z-10 h-fit gap-5 flex flex-col justify-between">
                 <div>
                   <h2 className="text-[#1A1713] text-[28px] font-semibold tracking-tight mb-2">Overview</h2>
                   <p className="text-[#686049] text-[14px] max-w-[400px]">
@@ -704,7 +704,7 @@ function DashboardContent() {
               </div>
             </div>
 
-            <div className="w-full xl:w-[420px] bg-[#11191F] rounded-[32px] p-8 flex flex-col shrink-0 shadow-2xl">
+            <div className="w-full xl:w-[420px] bg-[#11191F] max-h-[360px] rounded-[32px] p-8 flex flex-col shrink-0 shadow-2xl">
               <h2 className="text-white text-[20px] font-semibold mb-1 tracking-wide">Leaderboard</h2>
               <p className="text-[#8B9197] text-[14px] mb-8 font-medium">Top 10 most spending users</p>
 

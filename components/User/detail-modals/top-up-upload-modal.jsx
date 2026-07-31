@@ -24,6 +24,8 @@ import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
 import {
   minTopUpUsdForPlatform,
   parseAmountToNumber,
+  topUpFeePctFromLabel,
+  formatTopUpFeePct,
 } from "@/lib/ad-accounts/platform-request-config";
 import toast from "react-hot-toast";
 import BankDetailsCard from "@/components/payments/bank-details-card";
@@ -91,14 +93,17 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const minTopUp = minTopUpUsdForPlatform(pk);
 
   // Top-up fee → show the total the user must actually transfer.
-  const feePctRaw = Number.parseFloat(
-    String(data.topUpFee || "").replace(/[^0-9.]/g, "")
-  );
-  const feePct = Number.isFinite(feePctRaw) ? feePctRaw : null;
+  // Accounts without a stored pricing snapshot fall back to the standard fee.
+  const feePct = topUpFeePctFromLabel(data.topUpFee);
+  const feeLabel = formatTopUpFeePct(feePct);
   const enteredAmount = parseAmountToNumber(amount);
+  const feeAmount =
+    enteredAmount != null && enteredAmount > 0
+      ? enteredAmount * (feePct / 100)
+      : null;
   const totalToSend =
-    feePct != null && enteredAmount != null
-      ? enteredAmount * (1 + feePct / 100)
+    enteredAmount != null && enteredAmount > 0
+      ? enteredAmount + (feeAmount ?? 0)
       : null;
   const formatUsd = (n) =>
     `$${n.toLocaleString("en-US", {
@@ -275,13 +280,31 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               </p>
             ) : null}
             {totalToSend != null ? (
-              <div className="rounded-xl bg-[#151E25] border border-[#C5A964]/20 px-4 py-3">
-                <p className="text-[12px] text-quaternary">
-                  With the {data.topUpFee} top-up fee, you should send:
-                </p>
-                <p className="text-[18px] font-semibold text-[#C5A964]">
-                  {formatUsd(totalToSend)}
-                </p>
+              <div className="rounded-xl bg-[#151E25] border border-[#C5A964]/20 px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] text-quaternary">
+                    Top-up amount
+                  </span>
+                  <span className="text-[13px] text-white font-medium">
+                    {formatUsd(enteredAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] text-quaternary">
+                    Top-up fee ({feeLabel})
+                  </span>
+                  <span className="text-[13px] text-white font-medium">
+                    {formatUsd(feeAmount ?? 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
+                  <span className="text-[12px] text-quaternary">
+                    You should send
+                  </span>
+                  <span className="text-[18px] font-semibold text-[#C5A964]">
+                    {formatUsd(totalToSend)}
+                  </span>
+                </div>
               </div>
             ) : null}
           </div>
