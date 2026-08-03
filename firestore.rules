@@ -59,6 +59,11 @@ service cloud.firestore {
     match /announcements/{announcementId} {
       allow read, create, update, delete: if false;
     }
+
+    // Help Center articles (admin-authored; client reads/writes via Admin SDK only)
+    match /articles/{articleId} {
+      allow read, create, update, delete: if false;
+    }
   }
 }
 

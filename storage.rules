@@ -35,5 +35,11 @@ service firebase.storage {
       allow read: if request.auth != null;
       allow write: if false;
     }
+
+    // Help Center article PDFs (admin-uploaded via Admin SDK only)
+    match /help-articles/{articleId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }

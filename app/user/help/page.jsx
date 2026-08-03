@@ -1,11 +1,5 @@
-import React from 'react'
+import HelpCenter from "@/components/User/help/help-center";
 
-const HelpCenterPage = () => {
-  return (
-    <div className="flex items-center justify-center h-screen">
-        Coming Soon
-    </div>
-  )
+export default function HelpCenterPage() {
+  return <HelpCenter />;
 }
-
-export default HelpCenterPage
