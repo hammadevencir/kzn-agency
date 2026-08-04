@@ -379,7 +379,63 @@ export async function POST(request) {
     return NextResponse.json({ id: upgradeSubscriptionId });
   }
 
-  const docRef = db.collection(SUBSCRIPTIONS_COLLECTION).doc();
+  // Enforce one live subscription per platform (Meta allows one per category:
+  // VIP and White Hat are separate products). "Live" = an existing APPROVED
+  // (and unexpired) subscription blocks a brand-new purchase outright; an
+  // existing PENDING_PAYMENT / PAYMENT_SUBMITTED doc for the same platform
+  // (e.g. left behind from a previous abandoned or in-review attempt) is
+  // reused/overwritten instead of creating a duplicate.
+  const existingForPlatformSnap = await db
+    .collection(SUBSCRIPTIONS_COLLECTION)
+    .where("userId", "==", user.uid)
+    .get();
+  /** @type {{ id: string, ms: number } | null} */
+  let reusableDoc = null;
+  for (const d of existingForPlatformSnap.docs) {
+    const ed = d.data();
+    const edPlatform =
+      typeof ed.platformId === "string" ? ed.platformId.toLowerCase() : "";
+    if (edPlatform !== platformId) continue;
+
+    if (platformId === "meta") {
+      const efl = ed.flow && typeof ed.flow === "object" ? ed.flow : {};
+      const edCat =
+        efl.accountCategory === "vip" || efl.accountCategory === "white_hat"
+          ? efl.accountCategory
+          : null;
+      if (edCat !== requestedMetaCategory) continue;
+    }
+
+    if (ed.status === SUBSCRIPTION_STATUS.APPROVED || ed.status === "active") {
+      if (isSubscriptionActive(ed)) {
+        return NextResponse.json(
+          { error: "subscription_already_active" },
+          { status: 409 }
+        );
+      }
+      continue;
+    }
+
+    if (
+      ed.status === SUBSCRIPTION_STATUS.PENDING_PAYMENT ||
+      ed.status === SUBSCRIPTION_STATUS.PAYMENT_SUBMITTED
+    ) {
+      const ms =
+        (ed.updatedAt && typeof ed.updatedAt.toMillis === "function"
+          ? ed.updatedAt.toMillis()
+          : 0) ||
+        (ed.createdAt && typeof ed.createdAt.toMillis === "function"
+          ? ed.createdAt.toMillis()
+          : 0);
+      if (!reusableDoc || ms > reusableDoc.ms) {
+        reusableDoc = { id: d.id, ms };
+      }
+    }
+  }
+
+  const docRef = reusableDoc
+    ? db.collection(SUBSCRIPTIONS_COLLECTION).doc(reusableDoc.id)
+    : db.collection(SUBSCRIPTIONS_COLLECTION).doc();
 
   const payload = {
     userId: user.uid,

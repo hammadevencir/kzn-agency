@@ -16,6 +16,7 @@ import TopUpSuccessModal from '@/components/User/detail-modals/top-up-success-mo
 import { useUserAdAccountsCount } from '@/lib/hooks/useUserAdAccountsCount';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
 import { useSubscriptionCheckoutPersistence } from '@/lib/hooks/useSubscriptionCheckoutPersistence';
+import { describeSubscriptionRequestError } from '@/lib/user/subscriptions-client';
 import { getPlatformSubscriptionCheckout } from '@/lib/subscriptions/platform-subscription-pricing';
 import { portalRowToTopUpModalData } from '@/lib/user/portal-row-to-top-up-modal';
 import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
@@ -534,8 +535,8 @@ function DashboardContent() {
       await afterPayDone(subPayData, paymentProof);
       void refetchSubscriptions();
       void loadDashboardData();
-    } catch {
-      toast.error('Could not confirm payment. Please try again.');
+    } catch (err) {
+      toast.error(describeSubscriptionRequestError(err));
       return;
     }
     setIsSubPayOpen(false);

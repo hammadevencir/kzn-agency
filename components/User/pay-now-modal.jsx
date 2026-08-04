@@ -35,6 +35,73 @@ const PLATFORM_PAY_META = {
   twitter: { name: 'X', Icon: TwitterXIcon },
 };
 
+/**
+ * Platform-specific plan copy shown on the subscription payment modal.
+ * Add an entry per platform key as copy is finalized for that ad account.
+ */
+const PLATFORM_PLAN_DETAILS = {
+  tiktok: {
+    heading: 'Monthly subscription plan',
+    price: '€199/month',
+    planName: 'Premium TikTok Ad Account',
+    description:
+      'Access a stable, high-performing TikTok ad account managed under a clean, high-trust Business Center. Built for serious advertisers who prioritize performance, safety, and support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 2% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+  snapchat: {
+    heading: 'Monthly subscription plan',
+    price: '€175/month',
+    planName: 'Premium Snapchat Ad Account',
+    description:
+      'Access a stable, high-performing Snapchat ad account managed under a clean, high-trust Business Manager. Built for serious advertisers who prioritize performance, compliance, and dedicated support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 3% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+  google: {
+    heading: 'Monthly subscription plan',
+    price: '€175/month',
+    planName: 'Premium Google Ad Account',
+    description:
+      'Access a stable, high-performing Google ad account managed under a clean, high-trust Manager Accounts. Built for serious advertisers who prioritize performance, safety, and support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 3% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+  taboola: {
+    heading: 'Monthly subscription plan',
+    price: '€175/month',
+    planName: 'Premium Taboola Ad Account',
+    description:
+      'Access a stable, high-performing Taboola ad account managed under a clean, high-trust Advertiser Account. Built for serious advertisers who prioritize performance, safety, and support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 2% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+  twitter: {
+    heading: 'Monthly subscription plan',
+    price: '€175/month',
+    planName: 'Premium Twitter Ad Account',
+    description:
+      'Access a stable, high-performing Twitter ad account managed under a clean, high-trust environment. Built for serious advertisers who prioritize performance, compliance, and reliable support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 3% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+  pinterest: {
+    heading: 'Monthly subscription plan',
+    price: '€175/month',
+    planName: 'Premium Pinterest Ad Account',
+    description:
+      'Access a stable, high-performing Pinterest ad account managed under a clean, high-trust environment. Built for serious advertisers who prioritize performance, compliance, and reliable support.',
+    topUpFeeLabel: 'Top-Up Fee:',
+    topUpFeeText:
+      'A standard 3% top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.',
+  },
+};
+
 /** Resolve the platform key from a "{Name} — Platform subscription" string. */
 function platformKeyFromSubscriptionName(name) {
   const lead = String(name || '')
@@ -170,6 +237,9 @@ const PayNowModal = ({
       ? PLATFORM_PAY_META[platformKey]
       : null;
   const BrandIcon = brandedPlatform?.Icon || null;
+  const planDetails = isPlatformSubscription
+    ? PLATFORM_PLAN_DETAILS[platformKey]
+    : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -188,6 +258,33 @@ const PayNowModal = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 pt-4 custom-scrollbar space-y-10 text-left">
+          {/* Platform-specific plan details */}
+          {planDetails ? (
+            <div className="space-y-5">
+              <h3 className="text-[18px] font-bold text-white tracking-wide">
+                {planDetails.heading}
+              </h3>
+              <div className="bg-transparent rounded-[24px] p-7 border border-[#B89C57]/30 space-y-5">
+                <div className="space-y-2">
+                  <p className="text-[#C5A964] text-[15px] font-bold">
+                    ✅ {planDetails.price} – {planDetails.planName}
+                  </p>
+                  <p className="text-[#8B9197] text-[14px] leading-relaxed">
+                    {planDetails.description}
+                  </p>
+                </div>
+                <div className="space-y-2 pt-4 border-t border-white/5">
+                  <p className="text-white text-[15px] font-bold">
+                    💳 {planDetails.topUpFeeLabel}
+                  </p>
+                  <p className="text-[#8B9197] text-[14px] leading-relaxed">
+                    {planDetails.topUpFeeText}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* Subscription Details */}
           <div className="space-y-5">
             <h3 className="text-[18px] font-bold text-white tracking-wide">
@@ -200,7 +297,9 @@ const PayNowModal = ({
                     {BrandIcon ? <BrandIcon className="w-8 h-8 text-white" /> : null}
                   </div>
                   <span className="text-white text-[16px] font-semibold text-right max-w-[70%]">
-                    Top-Tier Verified {brandedPlatform.name} Ad-accounts
+                    {planDetails
+                      ? planDetails.planName
+                      : `Top-Tier Verified ${brandedPlatform.name} Ad-accounts`}
                   </span>
                 </div>
               ) : (

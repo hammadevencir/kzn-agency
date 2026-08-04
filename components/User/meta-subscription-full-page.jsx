@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import PayNowModal from "@/components/User/pay-now-modal";
 import SubscriptionSuccessModal from "@/components/User/subscription-success-modal";
 import { useSubscriptionCheckoutPersistence } from "@/lib/hooks/useSubscriptionCheckoutPersistence";
+import { describeSubscriptionRequestError } from "@/lib/user/subscriptions-client";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import {
   findMetaPlan,
@@ -218,8 +219,8 @@ export default function MetaSubscriptionFullPage({ category }) {
     try {
       await afterPayDone(subPayData, paymentProof);
       void refetchSubscriptions();
-    } catch {
-      toast.error("Could not confirm payment. Please try again.");
+    } catch (err) {
+      toast.error(describeSubscriptionRequestError(err));
       return;
     }
     setIsSubPayOpen(false);
