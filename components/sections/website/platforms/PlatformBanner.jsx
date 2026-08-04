@@ -18,7 +18,7 @@ const PlatformBanner = () => {
   return (
     <div 
       ref={ref}
-      className="gradient-bg flex flex-col w-full min-h-[600px] relative px-36 py-60 self-center"
+      className="gradient-bg flex flex-col w-full min-h-[600px] relative px-6 xl:px-16 py-30 md:py-52 2xl:px-36 2xl:py-60 self-center"
     >
       <motion.div 
         className="flex flex-col gap-3 static z-10"
@@ -86,7 +86,7 @@ const PlatformBanner = () => {
         className="md:opacity-100"
       >
         <Image
-          src="/bg-cards.svg"
+          src="/bg-cards-new.svg"
           width={469}
           height={559}
           alt="bg cards"
