@@ -1,16 +1,9 @@
 import { redirect } from "next/navigation";
 import DashboardCard from "@/components/Admin/dashboard/dashboard-card";
-import DataTable from "@/components/common-admin-manager/data-table";
+import NewRegistrationsTable from "@/components/Admin/dashboard/new-registrations-table";
 import { loadAdminDashboardData } from "@/lib/admin/load-admin-dashboard";
 
 export const dynamic = "force-dynamic";
-
-const newRegistrationsHeaders = [
-  "Customer Name",
-  "Joined Date",
-  "Subscriptions",
-  "Ad Accounts",
-];
 
 function formatStat(n) {
   if (typeof n !== "number" || !Number.isFinite(n)) return "0";
@@ -67,28 +60,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="bg-tertiary p-6 rounded-lg border border-border">
-        <div className="mb-6">
-          <h2 className="text-[21px] font-medium text-white mb-2">
-            New Registrations
-          </h2>
-          <p className="text-quaternary text-[13px]">
-            Most recently joined customers (end-user accounts).
-          </p>
-        </div>
-
-        {recentRegistrations.length === 0 ? (
-          <p className="text-sm text-quaternary py-8">
-            No customer registrations yet.
-          </p>
-        ) : (
-          <DataTable
-            headers={newRegistrationsHeaders}
-            data={recentRegistrations}
-            type="admin-registrations"
-          />
-        )}
-      </div>
+      <NewRegistrationsTable data={recentRegistrations} />
     </div>
   );
 }

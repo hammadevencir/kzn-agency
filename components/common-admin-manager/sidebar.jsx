@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { 
-  TopUpsIcon, 
-  AdAccountsIcon, 
-  AffiliatesIcon, 
+import {
+  TopUpsIcon,
+  AdAccountsIcon,
+  AffiliatesIcon,
   SubscriptionsIcon,
-  SettingsIcon, 
+  SettingsIcon,
   LogoutIcon,
   DashboardIcon,
   UserManagementIcon,
@@ -16,7 +16,8 @@ import {
   InvoicesIcon,
   HelpIcon,
   MessageIcon,
-  AnnouncementsIcon
+  AnnouncementsIcon,
+  MailIcon
 } from '@/components/icons';
 
 const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose, role = 'admin', chatUnreadCount = 0 }) => {
@@ -69,6 +70,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       id: 'balance-requests',
       label: 'Balance Requests',
       icon: BalanceRequestsIcon,
+    },
+    {
+      id: 'contact-requests',
+      label: 'Contact Requests',
+      icon: MailIcon,
     },
     {
       id: 'chat',

@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import DataTable from '../data-table';
+import DataTable, { rowMatchesQuery } from '../data-table';
 import Pagination from '../pagination';
+import TableSearch from '../table-search';
 import { GoBackIcon } from '@/components/icons';
 
 export default function ReferralsOverview({ onGoBack, affiliate }) {
   const [pageSize, setPageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const referralsHeaders = [
     'Referral Name',
@@ -30,9 +32,14 @@ export default function ReferralsOverview({ onGoBack, affiliate }) {
     }));
   }, [affiliate]);
 
-  const totalPages = Math.max(1, Math.ceil(referralsData.length / pageSize));
+  const filteredReferralsData = useMemo(() => {
+    if (!searchQuery.trim()) return referralsData;
+    return referralsData.filter((row) => rowMatchesQuery(row, searchQuery));
+  }, [referralsData, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReferralsData.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
-  const paginatedData = referralsData.slice(
+  const paginatedData = filteredReferralsData.slice(
     (safePage - 1) * pageSize,
     safePage * pageSize
   );
@@ -56,12 +63,26 @@ export default function ReferralsOverview({ onGoBack, affiliate }) {
       </h1>
 
       <div className="bg-tertiary rounded-2xl p-3 md:p-4">
-        <h2 className="text-[18px] md:text-[21px] font-bold text-white mb-2">
-          Referrals
-        </h2>
-        <p className="text-quaternary text-[11px] md:text-[12px] mb-4 md:mb-8">
-          A summary of {affiliateName}&apos;s referrals
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 md:mb-8">
+          <div>
+            <h2 className="text-[18px] md:text-[21px] font-bold text-white mb-2">
+              Referrals
+            </h2>
+            <p className="text-quaternary text-[11px] md:text-[12px]">
+              A summary of {affiliateName}&apos;s referrals
+            </p>
+          </div>
+          {referralsData.length > 0 ? (
+            <TableSearch
+              value={searchQuery}
+              onChange={(value) => {
+                setSearchQuery(value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search referrals..."
+            />
+          ) : null}
+        </div>
 
         {referralsData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -76,13 +97,14 @@ export default function ReferralsOverview({ onGoBack, affiliate }) {
               data={paginatedData}
               type="referrals"
               internalPagination={false}
+              searchable={false}
             />
 
             <Pagination
               currentPage={safePage}
               totalPages={totalPages}
               pageSize={pageSize}
-              totalItems={referralsData.length}
+              totalItems={filteredReferralsData.length}
               onPageChange={setCurrentPage}
               onPageSizeChange={(val) => {
                 setPageSize(val);

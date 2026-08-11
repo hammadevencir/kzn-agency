@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import DataTable from '@/components/common-admin-manager/data-table';
+import DataTable, { rowMatchesQuery } from '@/components/common-admin-manager/data-table';
 import Pagination from '@/components/common-admin-manager/pagination';
+import TableSearch from '@/components/common-admin-manager/table-search';
 import DepositDetailsModal from '../detail-modals/deposit-subscription-details';
 import SuccessModal from '@/components/ui/success-modal';
 import RejectionModal from '@/components/ui/rejection-modal';
@@ -30,6 +31,7 @@ function Susbsciption() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [approveSuccessContext, setApproveSuccessContext] = useState(null);
@@ -65,7 +67,7 @@ function Susbsciption() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, searchQuery]);
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
 
@@ -159,10 +161,13 @@ function Susbsciption() {
     ];
   };
 
-  const totalItems = items.length;
+  const filteredItems = searchQuery.trim()
+    ? items.filter((item) => rowMatchesQuery(item, searchQuery))
+    : items;
+  const totalItems = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = items.slice(startIndex, startIndex + pageSize);
+  const paginatedData = filteredItems.slice(startIndex, startIndex + pageSize);
 
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
@@ -197,8 +202,13 @@ function Susbsciption() {
 
   return (
     <div className="flex-1 p-12">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-4">Subscriptions</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold text-white mb-0 sm:mb-4">Subscriptions</h1>
+        <TableSearch
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search subscriptions..."
+        />
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto">
@@ -242,6 +252,7 @@ function Susbsciption() {
               type="subscriptions"
               onViewDetails={handleViewDetails}
               internalPagination={false}
+              searchable={false}
             />
 
             <Pagination

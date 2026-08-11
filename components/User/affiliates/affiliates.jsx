@@ -16,6 +16,8 @@ import {
   AFFILIATE_MIN_CLAIM_BALANCE_CENTS,
 } from '@/lib/affiliates/constants';
 import Pagination from '@/components/common-admin-manager/pagination';
+import TableSearch from '@/components/common-admin-manager/table-search';
+import { rowMatchesQuery } from '@/components/common-admin-manager/data-table';
 
 const CLAIM_APPROVED_SEEN_KEY = 'kzn_affiliate_claim_approved_banner_seen_v1';
 const CLAIM_REJECTED_SEEN_KEY = 'kzn_affiliate_claim_rejected_banner_seen_v1';
@@ -90,6 +92,7 @@ const Affiliates = () => {
   const [refPageSize, setRefPageSize] = useState(10);
   const [claimsPage, setClaimsPage] = useState(1);
   const [claimsPageSize, setClaimsPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [clientReady, setClientReady] = useState(false);
   const [claimApprovedBannerSeenVersion, setClaimApprovedBannerSeenVersion] = useState(0);
@@ -99,25 +102,35 @@ const Affiliates = () => {
     setClientReady(true);
   }, []);
 
-  useEffect(() => {
-    const tp = Math.max(1, Math.ceil(referrals.length / refPageSize));
-    setRefPage((p) => Math.min(Math.max(1, p), tp));
-  }, [referrals.length, refPageSize]);
+  const filteredReferrals = useMemo(() => {
+    if (!searchQuery.trim()) return referrals;
+    return referrals.filter((row) => rowMatchesQuery(row, searchQuery));
+  }, [referrals, searchQuery]);
+
+  const filteredRewardClaims = useMemo(() => {
+    if (!searchQuery.trim()) return rewardClaims;
+    return rewardClaims.filter((row) => rowMatchesQuery(row, searchQuery));
+  }, [rewardClaims, searchQuery]);
 
   useEffect(() => {
-    const tp = Math.max(1, Math.ceil(rewardClaims.length / claimsPageSize));
+    const tp = Math.max(1, Math.ceil(filteredReferrals.length / refPageSize));
+    setRefPage((p) => Math.min(Math.max(1, p), tp));
+  }, [filteredReferrals.length, refPageSize]);
+
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(filteredRewardClaims.length / claimsPageSize));
     setClaimsPage((p) => Math.min(Math.max(1, p), tp));
-  }, [rewardClaims.length, claimsPageSize]);
+  }, [filteredRewardClaims.length, claimsPageSize]);
 
   const referralsPage = useMemo(() => {
     const start = (refPage - 1) * refPageSize;
-    return referrals.slice(start, start + refPageSize);
-  }, [referrals, refPage, refPageSize]);
+    return filteredReferrals.slice(start, start + refPageSize);
+  }, [filteredReferrals, refPage, refPageSize]);
 
   const claimsPageSlice = useMemo(() => {
     const start = (claimsPage - 1) * claimsPageSize;
-    return rewardClaims.slice(start, start + claimsPageSize);
-  }, [rewardClaims, claimsPage, claimsPageSize]);
+    return filteredRewardClaims.slice(start, start + claimsPageSize);
+  }, [filteredRewardClaims, claimsPage, claimsPageSize]);
 
   const unseenApprovedClaimIds = useMemo(() => {
     if (!clientReady || loading) return [];
@@ -383,31 +396,47 @@ const Affiliates = () => {
             : 'Status of your reward redemption requests submitted from My Balance.'}
         </p>
         
-        <div className="flex items-center gap-8 mb-8 border-b border-white/5">
-          <button 
-            type="button"
-            onClick={() => setActiveTab('overview')}
-            className={`pb-4 text-[15px] font-semibold transition-all relative ${
-              activeTab === 'overview' ? 'text-[#CBAF69]' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Overview
-            {activeTab === 'overview' && (
-              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#CBAF69]" />
-            )}
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('claims')}
-            className={`pb-4 text-[15px] font-semibold transition-all relative ${
-              activeTab === 'claims' ? 'text-[#CBAF69]' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            My Claims
-            {activeTab === 'claims' && (
-              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#CBAF69]" />
-            )}
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 border-b border-white/5">
+          <div className="flex items-center gap-8">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('overview');
+                setSearchQuery('');
+              }}
+              className={`pb-4 text-[15px] font-semibold transition-all relative ${
+                activeTab === 'overview' ? 'text-[#CBAF69]' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Overview
+              {activeTab === 'overview' && (
+                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#CBAF69]" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('claims');
+                setSearchQuery('');
+              }}
+              className={`pb-4 text-[15px] font-semibold transition-all relative ${
+                activeTab === 'claims' ? 'text-[#CBAF69]' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              My Claims
+              {activeTab === 'claims' && (
+                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#CBAF69]" />
+              )}
+            </button>
+          </div>
+          {!loading && (referrals.length > 0 || rewardClaims.length > 0) ? (
+            <TableSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={activeTab === 'overview' ? 'Search referrals...' : 'Search claims...'}
+              className="mb-3 sm:mb-4"
+            />
+          ) : null}
         </div>
 
         {activeTab === 'overview' ? (
@@ -451,9 +480,9 @@ const Affiliates = () => {
             {!loading && referrals.length > 0 ? (
               <Pagination
                 currentPage={refPage}
-                totalPages={Math.max(1, Math.ceil(referrals.length / refPageSize))}
+                totalPages={Math.max(1, Math.ceil(filteredReferrals.length / refPageSize))}
                 pageSize={refPageSize}
-                totalItems={referrals.length}
+                totalItems={filteredReferrals.length}
                 onPageChange={setRefPage}
                 onPageSizeChange={(size) => {
                   setRefPageSize(size);
@@ -543,10 +572,10 @@ const Affiliates = () => {
                 currentPage={claimsPage}
                 totalPages={Math.max(
                   1,
-                  Math.ceil(rewardClaims.length / claimsPageSize),
+                  Math.ceil(filteredRewardClaims.length / claimsPageSize),
                 )}
                 pageSize={claimsPageSize}
-                totalItems={rewardClaims.length}
+                totalItems={filteredRewardClaims.length}
                 onPageChange={setClaimsPage}
                 onPageSizeChange={(size) => {
                   setClaimsPageSize(size);

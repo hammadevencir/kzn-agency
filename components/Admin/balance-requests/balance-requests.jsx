@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Header from '@/components/common-admin-manager/header';
 import DataTable from '@/components/common-admin-manager/data-table';
+import TableSearch from '@/components/common-admin-manager/table-search';
 import BalanceRequestDetailsSheet from '@/components/Admin/detail-modals/balance-request-details-sheet';
 
 const TAB_TO_PARAM = {
@@ -23,6 +24,7 @@ export default function BalanceRequests() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -100,24 +102,35 @@ export default function BalanceRequests() {
           Balance Requests
         </h1>
 
-        <div className="flex gap-8 mb-8 border-b border-white/5 px-2">
-          {['New Requests', 'Updated'].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`pb-4 px-2 text-sm font-light transition-all relative ${
-                activeTab === tab
-                  ? 'text-white'
-                  : 'text-quaternary hover:text-white'
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
-              )}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 border-b border-white/5 px-2">
+          <div className="flex gap-8">
+            {['New Requests', 'Updated'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab);
+                  setSearchQuery('');
+                }}
+                className={`pb-4 px-2 text-sm font-light transition-all relative ${
+                  activeTab === tab
+                    ? 'text-white'
+                    : 'text-quaternary hover:text-white'
+                }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
+                )}
+              </button>
+            ))}
+          </div>
+          <TableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search balance requests..."
+            className="mb-3 sm:mb-4"
+          />
         </div>
 
         <div className="bg-[#151E25] rounded-3xl p-6 md:p-8">
@@ -149,6 +162,9 @@ export default function BalanceRequests() {
               data={items}
               type="balance-requests"
               onViewDetails={handleViewDetails}
+              searchable={false}
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
             />
           ) : null}
         </div>

@@ -79,7 +79,7 @@ export default function UserChatPanel() {
 
       {error ? (
         <div className="px-4 py-2 text-sm text-[#FA3C67] bg-[#FA3C67]/10">
-          Could not load messages. Deploy Firestore rules if you haven&apos;t yet.
+          Could not load messages. Please try again later.
         </div>
       ) : null}
 

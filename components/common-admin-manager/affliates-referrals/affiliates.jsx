@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Header from '../header';
-import DataTable from '../data-table';
+import DataTable, { rowMatchesQuery } from '../data-table';
+import TableSearch from '../table-search';
 import ReferralsOverview from './referrals-overview';
 import RewardClaimDetailsModal from '@/components/Admin/detail-modals/reward-claim-details';
 import RejectionModal from '@/components/ui/rejection-modal';
@@ -20,6 +21,7 @@ export default function Affiliates() {
   const [activeTab, setActiveTab] = useState('Affiliates');
   const [loading, setLoading] = useState(true);
   const [affiliates, setAffiliates] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +168,12 @@ export default function Affiliates() {
   ];
 
   const currentData = activeTab === 'Affiliates' ? affiliatesData : rewardsData;
+  const filteredAffiliatesData = searchQuery.trim()
+    ? affiliatesData.filter((row) => rowMatchesQuery(row, searchQuery))
+    : affiliatesData;
+  const filteredRewardsData = searchQuery.trim()
+    ? rewardsData.filter((row) => rowMatchesQuery(row, searchQuery))
+    : rewardsData;
 
   return (
     <div className="w-full max-w-full flex-1 flex flex-col rounded-lg overflow-hidden">
@@ -182,23 +190,34 @@ export default function Affiliates() {
             Affiliates &amp; Referrals
           </h1>
 
-          <div className="flex gap-8 mb-8 border-b border-white/5 px-2">
-            {['Affiliates', 'Rewards Requests'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-4 px-2 text-sm font-light transition-all relative ${
-                  activeTab === tab
-                    ? 'text-white'
-                    : 'text-quaternary hover:text-white'
-                }`}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
-                )}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 border-b border-white/5 px-2">
+            <div className="flex gap-8">
+              {['Affiliates', 'Rewards Requests'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setSearchQuery('');
+                  }}
+                  className={`pb-4 px-2 text-sm font-light transition-all relative ${
+                    activeTab === tab
+                      ? 'text-white'
+                      : 'text-quaternary hover:text-white'
+                  }`}
+                >
+                  {tab}
+                  {activeTab === tab && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <TableSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={activeTab === 'Affiliates' ? 'Search affiliates...' : 'Search rewards requests...'}
+              className="mb-3 sm:mb-4"
+            />
           </div>
 
           <div className="bg-[#151E25] rounded-3xl p-6 md:p-8">
@@ -215,16 +234,18 @@ export default function Affiliates() {
             ) : activeTab === 'Affiliates' ? (
               <DataTable
                 headers={tableHeaders}
-                data={affiliatesData}
+                data={filteredAffiliatesData}
                 type="affiliates"
                 onViewDetails={handleViewDetails}
+                searchable={false}
               />
             ) : (
               <DataTable
                 headers={rewardsHeaders}
-                data={rewardsData}
+                data={filteredRewardsData}
                 type="rewards-requests"
                 onViewDetails={handleRewardViewDetails}
+                searchable={false}
               />
             )}
           </div>

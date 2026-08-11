@@ -5,6 +5,7 @@ import Header from '../header';
 import AdAccountDetail from '../../Manager/detail-modals/adaccount-detail';
 import RequestDetailsModal from '../../Manager/detail-modals/request-details';
 import DataTable from '../data-table';
+import TableSearch from '../table-search';
 import DeleteConfirmationModal from '@/components/ui/delete-confirmation-modal';
 import SuccessModal from '@/components/ui/success-modal';
 import AdAccountCreatedModal from '@/components/ui/ad-account-created-modal';
@@ -38,6 +39,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
   const [isUpdateBalanceOpen, setIsUpdateBalanceOpen] = useState(false);
   const [updateBalanceAccount, setUpdateBalanceAccount] = useState(null);
   const [balanceUpdateSuccess, setBalanceUpdateSuccess] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
 
@@ -226,14 +228,26 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         <h1 className="text-3xl font-bold text-white p-5">Ad Account</h1>
 
         <div className="bg-tertiary rounded-2xl ml-5 p-3 md:p-6">
-          <h2 className="text-lg font-semibold text-white mb-2">Overview</h2>
-          <p className="text-quaternary text-[11px] md:text-[12px] mb-4 md:mb-8">
-            A table displaying detailed data for Ad account requests
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 md:mb-8">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-2">Overview</h2>
+              <p className="text-quaternary text-[11px] md:text-[12px]">
+                A table displaying detailed data for Ad account requests
+              </p>
+            </div>
+            <TableSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search ad accounts..."
+            />
+          </div>
 
           <div className="flex border-b border-primary/20 mb-6">
             <button
-              onClick={() => setActiveTab('all')}
+              onClick={() => {
+                setActiveTab('all');
+                setSearchQuery('');
+              }}
               className={`px-4 py-2 text-[14px] md:text-[16px] font-medium transition-colors ${
                 activeTab === 'all'
                   ? 'text-white border-b-2 border-primary'
@@ -243,7 +257,10 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
               All Ad Accounts
             </button>
             <button
-              onClick={() => setActiveTab('new')}
+              onClick={() => {
+                setActiveTab('new');
+                setSearchQuery('');
+              }}
               className={`px-4 py-2 text-[14px] md:text-[16px] font-medium transition-colors ${
                 activeTab === 'new'
                   ? 'text-white border-b-2 border-primary'
@@ -284,6 +301,9 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
               onDelete={activeTab === 'all' ? handleDelete : undefined}
               onTopUp={activeTab === 'all' ? handleTopUp : undefined}
               showTopUpIcon={showTopUpIcon}
+              searchable={false}
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
             />
           )}
         </div>

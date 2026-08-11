@@ -1305,6 +1305,32 @@ export const HelpIcon = ({ className, width = 24, height = 24 }) => (
   </svg>
 );
 
+export const MailIcon = ({ className, width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M22 6L12 13L2 6"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const MessageIcon = ({ className, width = 24, height = 24 }) => (
   <svg
     width={width}
@@ -1518,6 +1544,25 @@ export const WalletIcon = ({ className, width = 24, height = 24 }) => (
       strokeWidth="1.25"
       strokeLinecap="round"
       strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const SearchIcon = ({ className, width = 20, height = 20 }) => (
+  <svg
+    width={width}
+    height={height}
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    className={className}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
     />
   </svg>
 );

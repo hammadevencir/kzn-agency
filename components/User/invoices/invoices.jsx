@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import Pagination from "@/components/common-admin-manager/pagination";
+import TableSearch from "@/components/common-admin-manager/table-search";
+import { rowMatchesQuery } from "@/components/common-admin-manager/data-table";
 
 /** Design: YYYY-MM-DD (local calendar date) */
 function formatDateYmd(iso) {
@@ -366,6 +368,7 @@ const UserInvoices = ({ apiUrl = "/api/invoices", adminMode = false }) => {
   const [fetchError, setFetchError] = useState(/** @type {string | null} */ (null));
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const load = useCallback(async () => {
     setFetchError(null);
@@ -425,37 +428,50 @@ const UserInvoices = ({ apiUrl = "/api/invoices", adminMode = false }) => {
     [items, activeTab]
   );
 
+  const searchedItems = useMemo(() => {
+    if (!searchQuery.trim()) return filtered;
+    return filtered.filter((row) => rowMatchesQuery(row, searchQuery));
+  }, [filtered, searchQuery]);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, filtered.length]);
+  }, [activeTab, searchQuery, filtered.length]);
 
   return (
     <div className="flex-1 flex flex-col p-6 md:p-10 space-y-8">
       <h1 className="text-3xl font-semibold text-white">Invoices</h1>
 
       <div className="space-y-6">
-        <div className="flex gap-6 md:gap-8 border-b border-white/5 flex-wrap">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 text-[15px] relative transition-colors ${
-                activeTab === tab.id
-                  ? "text-white"
-                  : "text-quaternary hover:text-white"
-              }`}
-            >
-              {tab.label}
-              {activeTab === tab.id ? (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
-              ) : null}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 flex-wrap">
+          <div className="flex gap-6 md:gap-8 flex-wrap">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-3 text-[15px] relative transition-colors ${
+                  activeTab === tab.id
+                    ? "text-white"
+                    : "text-quaternary hover:text-white"
+                }`}
+              >
+                {tab.label}
+                {activeTab === tab.id ? (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#C5A964]" />
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <TableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search invoices..."
+            className="mb-3"
+          />
         </div>
 
         <InvoicesTable
-          items={filtered}
+          items={searchedItems}
           loading={loading}
           error={fetchError}
           pageSize={pageSize}

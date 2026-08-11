@@ -12,8 +12,11 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const ContactDialog = ({ isOpen, onClose }) => {
+  const router = useRouter();
+
   const contactOptions = [
     {
       name: "Discord",
@@ -21,6 +24,7 @@ const ContactDialog = ({ isOpen, onClose }) => {
       icon: "/social/discord.svg",
       href: "https://discord.gg/kazansolutions",
       bgColor: "bg-[#5865F2]",
+      external: true,
     },
     {
       name: "WhatsApp",
@@ -28,6 +32,7 @@ const ContactDialog = ({ isOpen, onClose }) => {
       icon: "/social/whatsapp.svg",
       href: "https://wa.me/31402291682",
       bgColor: "bg-[#25D366]",
+      external: true,
     },
     {
       name: "Telegram",
@@ -35,18 +40,25 @@ const ContactDialog = ({ isOpen, onClose }) => {
       icon: "/social/telegram.svg",
       href: "https://t.me/kazansolutions",
       bgColor: "bg-[#0088CC]",
+      external: true,
     },
     {
       name: "Website",
       handle: "www.kazansolutions.com",
       icon: "/social/website.svg", // Using instagram as globe icon
-      href: "https://www.kazansolutions.com",
+      href: "/contact",
       bgColor: "bg-[#1DA1F2]",
+      external: false,
     },
   ];
 
-  const handleContactClick = (href) => {
-    window.open(href, "_blank", "noopener,noreferrer");
+  const handleContactClick = (option) => {
+    if (option.external) {
+      window.open(option.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    onClose?.();
+    router.push(option.href);
   };
 
   return (
@@ -93,7 +105,7 @@ const ContactDialog = ({ isOpen, onClose }) => {
               <Button
                 variant="outline"
                 className="w-full h-16 rounded-lg border-gray-800/50 hover:border-gray-700/50 hover:bg-gray-700/50 cursor-pointer max-w-md self-center transition-all duration-300"
-                onClick={() => handleContactClick(option.href)}
+                onClick={() => handleContactClick(option)}
               >
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-4">

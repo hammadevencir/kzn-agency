@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import DataTable from "@/components/common-admin-manager/data-table";
+import TableSearch from "@/components/common-admin-manager/table-search";
 
 const EMPTY_MESSAGE = "No Users Yet";
 
@@ -9,6 +10,7 @@ const UserManagement = ({ onViewDetails }) => {
   const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(/** @type {string | null} */ (null));
+  const [searchQuery, setSearchQuery] = useState("");
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -48,11 +50,18 @@ const UserManagement = ({ onViewDetails }) => {
   return (
     <div className="flex-1 p-8">
       <div className="bg-tertiary p-8 rounded-2xl border border-border">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white mb-1">Overview</h2>
-          <p className="text-quaternary text-sm">
-            Portal users (from Firestore) with ad account and subscription counts.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-1">Overview</h2>
+            <p className="text-quaternary text-sm">
+              Portal users with ad account and subscription counts.
+            </p>
+          </div>
+          <TableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search users..."
+          />
         </div>
 
         {loadError ? (
@@ -73,6 +82,9 @@ const UserManagement = ({ onViewDetails }) => {
             data={userData}
             type="user-management"
             onViewDetails={onViewDetails}
+            searchable={false}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         )}
       </div>

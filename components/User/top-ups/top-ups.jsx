@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import DataTable from "@/components/common-admin-manager/data-table";
+import TableSearch from "@/components/common-admin-manager/table-search";
 import TopUpUploadModal from "../detail-modals/top-up-upload-modal";
 import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
 import PayNowModal from "../pay-now-modal";
@@ -34,6 +35,7 @@ const UserTopUps = () => {
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { expiredPlatformIds, subscriptionDocsByPlatform } =
     useUserSubscribedPlatforms();
@@ -176,7 +178,16 @@ const UserTopUps = () => {
 
   return (
     <div className="flex-1 flex flex-col p-6 md:p-10">
-      <h1 className="text-3xl font-semibold text-white mb-8">Top-up</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-semibold text-white mb-0">Top-up</h1>
+        {!loading && rows.length > 0 ? (
+          <TableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search ad accounts..."
+          />
+        ) : null}
+      </div>
 
       <div className="bg-[#151E25] rounded-3xl p-6 md:p-8">
         {fetchError ? (
@@ -197,6 +208,9 @@ const UserTopUps = () => {
             data={rows}
             type="user-top-ups"
             onTopUp={handleTopUp}
+            searchable={false}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         )}
       </div>

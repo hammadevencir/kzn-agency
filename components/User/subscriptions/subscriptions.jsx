@@ -6,6 +6,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
 import DataTable from "@/components/common-admin-manager/data-table";
+import TableSearch from "@/components/common-admin-manager/table-search";
 import SubscriptionDetailSheet from "../detail-modals/subscription-detail-sheet";
 import { countApprovedAdAccountsByPlatform } from "@/lib/user/count-approved-ad-accounts-by-platform";
 import { mapUserSubscriptionRow } from "@/lib/user/map-user-subscription-row";
@@ -89,6 +90,7 @@ const UserSubscriptions = () => {
   );
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let unsubAds = () => {};
@@ -186,7 +188,16 @@ const UserSubscriptions = () => {
 
   return (
     <div className="flex-1 flex flex-col p-6 md:p-10">
-      <h1 className="text-3xl font-semibold text-white mb-8">Subscriptions</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-semibold text-white mb-0">Subscriptions</h1>
+        {!subsLoading && tableRows.length > 0 ? (
+          <TableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search subscriptions..."
+          />
+        ) : null}
+      </div>
 
       <div className="bg-[#151E25] rounded-3xl p-6 md:p-8">
         {subsLoading ? (
@@ -202,6 +213,9 @@ const UserSubscriptions = () => {
             data={tableRows}
             type="user-subscriptions"
             onViewDetails={handleViewDetails}
+            searchable={false}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         )}
       </div>

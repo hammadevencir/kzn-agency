@@ -1,37 +1,38 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Toaster } from 'react-hot-toast';
 import Header from '../header';
-import TopUpDetails from '../../Admin/detail-modals/topup-details';
+import ContactRequestDetails from '../../Admin/detail-modals/contact-request-details';
 import DataTable from '../data-table';
 import TableSearch from '../table-search';
 
 const STATUS_BY_TAB = {
-  pending: 'payment_submitted',
-  approved: 'approved',
-  rejected: 'rejected',
+  new: 'new',
+  in_progress: 'in_progress',
+  resolved: 'resolved',
 };
 
 const EMPTY_MESSAGE_BY_TAB = {
-  pending: 'No Pending Requests',
-  approved: 'No Approved Requests',
-  rejected: 'No Rejected Requests',
+  new: 'No New Requests',
+  in_progress: 'No Requests In Progress',
+  resolved: 'No Resolved Requests',
 };
 
-export default function TopUp() {
-  const searchParams = useSearchParams();
-  const filterUserId = (searchParams.get('userId') || '').trim();
-
+export default function ContactRequests() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('new');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const loadItems = useCallback(async () => {
     const status = STATUS_BY_TAB[activeTab];
@@ -39,25 +40,23 @@ export default function TopUp() {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch(`/api/admin/top-ups?status=${status}`);
+      const res = await fetch(`/api/admin/contact-requests?status=${status}`, {
+        credentials: 'include',
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFetchError(data?.error || 'failed_to_load');
         setItems([]);
         return;
       }
-      let list = Array.isArray(data.items) ? data.items : [];
-      if (filterUserId) {
-        list = list.filter((row) => row.userId === filterUserId);
-      }
-      setItems(list);
+      setItems(Array.isArray(data.items) ? data.items : []);
     } catch {
       setFetchError('network_error');
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, filterUserId]);
+  }, [activeTab]);
 
   useEffect(() => {
     void loadItems();
@@ -81,52 +80,34 @@ export default function TopUp() {
   };
 
   const tabs = [
-    { id: 'pending', label: 'Pending Requests' },
-    { id: 'approved', label: 'Approved' },
-    { id: 'rejected', label: 'Rejected' },
+    { id: 'new', label: 'New' },
+    { id: 'in_progress', label: 'In Progress' },
+    { id: 'resolved', label: 'Resolved' },
   ];
 
-  const tableHeaders = [
-    'Request ID',
-    'Name',
-    'Ad Account ID',
-    'Date Requested',
-    'Subscriptions',
-    'Actions',
-  ];
+  const tableHeaders = ['Name', 'Email', 'Message', 'Date', 'Status', 'Actions'];
 
   return (
     <div className="w-full max-w-full flex-1 flex flex-col rounded-lg overflow-hidden">
+      {isClient ? <Toaster position="top-right" /> : null}
       <Header />
 
       <div className="flex-1 p-4 md:p-6 rounded-2xl overflow-y-auto">
-        <h1 className="text-3xl font-bold text-white p-6">Top Ups</h1>
+        <h1 className="text-3xl font-bold text-white p-6">Contact Requests</h1>
         <div className="bg-tertiary rounded-2xl ml-5 p-3 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 md:mb-6">
             <div>
               <h2 className="text-lg font-semibold text-white mb-2">Overview</h2>
               <p className="text-quaternary text-[11px] md:text-[12px]">
-                User top-up requests sent for wire transfer verification
+                Messages submitted through the public Contact Us form
               </p>
             </div>
             <TableSearch
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search top-ups..."
+              placeholder="Search contact requests..."
             />
           </div>
-
-          {filterUserId ? (
-            <p className="text-[12px] text-quaternary mb-4">
-              Showing top-ups for one user.{' '}
-              <Link
-                href="/admin/top-ups"
-                className="text-[#C5A964] font-medium hover:text-[#C5A964]/80"
-              >
-                Show all users
-              </Link>
-            </p>
-          ) : null}
 
           <div className="flex gap-6 mb-6 border-b border-border">
             {tabs.map((tab) => (
@@ -135,9 +116,7 @@ export default function TopUp() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`pb-3 text-sm font-medium transition-colors relative ${
-                  activeTab === tab.id
-                    ? 'text-white'
-                    : 'text-quaternary hover:text-white'
+                  activeTab === tab.id ? 'text-white' : 'text-quaternary hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -150,26 +129,22 @@ export default function TopUp() {
 
           {fetchError ? (
             <p className="text-sm text-red-400 mb-4">
-              Could not load top-ups ({fetchError}).
+              Could not load contact requests ({fetchError}).
             </p>
           ) : null}
-          {loading ? (
-            <p className="text-sm text-quaternary mb-4">Loading…</p>
-          ) : null}
+          {loading ? <p className="text-sm text-quaternary mb-4">Loading…</p> : null}
 
           {!loading && !fetchError && items.length === 0 ? (
             <div className="rounded-xl border border-border/60 py-14 px-4 text-center">
               <p className="text-sm text-quaternary">
-                {filterUserId
-                  ? 'No top-ups for this user in this tab.'
-                  : EMPTY_MESSAGE_BY_TAB[activeTab] ?? 'No requests'}
+                {EMPTY_MESSAGE_BY_TAB[activeTab] ?? 'No requests'}
               </p>
             </div>
           ) : (
             <DataTable
               headers={tableHeaders}
               data={items}
-              type="dashboard"
+              type="contact-requests"
               onViewDetails={handleViewDetails}
               searchable={false}
               searchValue={searchQuery}
@@ -179,13 +154,11 @@ export default function TopUp() {
         </div>
       </div>
 
-      <TopUpDetails
+      <ContactRequestDetails
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         requestData={selectedRequest}
-        showPendingActions={activeTab === 'pending'}
-        onApproved={bumpRefresh}
-        onRejected={bumpRefresh}
+        onStatusChanged={bumpRefresh}
       />
     </div>
   );

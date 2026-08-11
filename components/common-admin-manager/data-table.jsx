@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Pagination from "./pagination";
+import TableSearch from "./table-search";
 import {
   Table,
   TableBody,
@@ -63,6 +64,21 @@ function tableRowKey(row, fallbackIndex) {
   return `row-${fallbackIndex}`;
 }
 
+export function rowMatchesQuery(row, query) {
+  if (!query) return true;
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  if (!row || typeof row !== "object") {
+    return String(row).toLowerCase().includes(needle);
+  }
+  return Object.values(row).some((value) => {
+    if (value == null || typeof value === "object" || typeof value === "function") {
+      return false;
+    }
+    return String(value).toLowerCase().includes(needle);
+  });
+}
+
 const DataTable = ({
   headers,
   data = [],
@@ -74,24 +90,50 @@ const DataTable = ({
   showTopUpIcon = false, // Show TopUp icon when true
   /** When false, parent passes pre-sliced `data` and renders {@link Pagination} below. */
   internalPagination = true,
+  /** Render the search input above the table. Set to false when a parent renders {@link TableSearch} itself (e.g. next to a heading) — filtering still happens here as long as `internalPagination` is true. */
+  searchable = true,
+  searchPlaceholder = "Search...",
+  /** Pass to control the search value externally (e.g. to render the box next to a heading, or when `internalPagination` is false and the parent filters `data` before slicing it). */
+  searchValue,
+  onSearchChange,
 }) => {
   const rows = Array.isArray(data) ? data : [];
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+
+  const isSearchControlled = searchValue !== undefined;
+  const searchQuery = isSearchControlled ? searchValue : internalSearchQuery;
+
+  const handleSearchChange = (value) => {
+    if (isSearchControlled) {
+      onSearchChange?.(value);
+    } else {
+      setInternalSearchQuery(value);
+    }
+    if (internalPagination) setPage(1);
+  };
+
+  const filteredRows = useMemo(() => {
+    // When `internalPagination` is false, the parent owns filtering + slicing of `data`.
+    if (!internalPagination) return rows;
+    if (!searchQuery.trim()) return rows;
+    return rows.filter((row) => rowMatchesQuery(row, searchQuery));
+  }, [rows, searchQuery, internalPagination]);
 
   useEffect(() => {
     if (!internalPagination) return;
-    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     setPage((p) => Math.min(Math.max(1, p), totalPages));
-  }, [rows.length, pageSize, internalPagination]);
+  }, [filteredRows.length, pageSize, internalPagination]);
 
   const paginatedRows = useMemo(() => {
-    if (!internalPagination) return rows;
+    if (!internalPagination) return filteredRows;
     const start = (page - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, page, pageSize, internalPagination]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize, internalPagination]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
   const renderCell = (row, header, index) => {
     const cellClassName =
@@ -130,6 +172,8 @@ const DataTable = ({
         return renderUserSubscriptionsCell(row, header, index, cellClassName);
       case "user-top-ups":
         return renderUserTopUpsCell(row, header, index, cellClassName);
+      case "contact-requests":
+        return renderContactRequestsCell(row, header, index, cellClassName);
       default:
         return null;
     }
@@ -890,8 +934,63 @@ const DataTable = ({
     }
   };
 
+  const renderContactRequestsCell = (row, header, index, cellClassName) => {
+    switch (header) {
+      case "Name":
+        return <span key="name" className="font-light text-white">{row.name}</span>;
+      case "Email":
+        return <span key="email" className="font-light text-quaternary">{row.email}</span>;
+      case "Phone":
+        return <span key="phone" className="font-light text-quaternary">{row.phone}</span>;
+      case "Message":
+        return (
+          <span key="message" className="font-light text-quaternary truncate max-w-[220px] inline-block">
+            {row.message}
+          </span>
+        );
+      case "Date":
+      case "Date Created":
+        return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
+      case "Status": {
+        const s = (row.status || "new").toLowerCase();
+        const stClass =
+          s === "resolved" ? "bg-[#39CB7F]" : s === "in_progress" ? "bg-[#C5A964]" : "bg-secondary";
+        const label = s === "in_progress" ? "In Progress" : s === "resolved" ? "Resolved" : "New";
+        return (
+          <span
+            key="status"
+            className={`inline-flex px-3 py-1 rounded-full text-white text-[12px] font-medium ${stClass}`}
+          >
+            {label}
+          </span>
+        );
+      }
+      case "Actions":
+        return (
+          <button
+            key="actions"
+            onClick={() => onViewDetails?.(row)}
+            className="text-primary hover:text-primary/80 flex items-center gap-1 text-[11px] md:text-[14px]"
+          >
+            <span className="hidden sm:inline">View Details</span>
+            <span className="sm:hidden">View</span>
+            <ArrowRightIcon width={18} height={18} />
+          </button>
+        );
+      default:
+        return row[header.toLowerCase().replace(/\s+/g, "")] || "";
+    }
+  };
+
   return (
     <div className="w-full">
+      {searchable ? (
+        <TableSearch
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder={searchPlaceholder}
+        />
+      ) : null}
       <div className="overflow-x-auto -mx-3 md:-mx-4 px-6 md:px-4">
         <Table className="min-w-[700px]">
           <TableHeader>
@@ -935,7 +1034,7 @@ const DataTable = ({
           currentPage={page}
           totalPages={totalPages}
           pageSize={pageSize}
-          totalItems={rows.length}
+          totalItems={filteredRows.length}
           onPageChange={setPage}
           onPageSizeChange={(size) => {
             setPageSize(size);
