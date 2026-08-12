@@ -5,12 +5,14 @@ import { requireAdminSession } from "@/lib/auth/require-user-session";
 import {
   AD_ACCOUNTS_COLLECTION,
   AD_ACCOUNT_STATUS,
+  ACCOUNT_PAUSE_REASON,
 } from "@/lib/ad-accounts/constants";
 import {
   TOP_UPS_COLLECTION,
   TOP_UP_STATUS,
 } from "@/lib/top-ups/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
+import { pauseUserAccount, reactivateUserAccount } from "@/lib/accounts/pause";
 
 export async function PATCH(request, context) {
   const admin = await requireAdminSession();
@@ -32,7 +34,8 @@ export async function PATCH(request, context) {
   }
 
   const action = body?.action;
-  if (action !== "approve" && action !== "reject" && action !== "update-balance") {
+  const VALID_ACTIONS = ["approve", "reject", "update-balance", "pause", "reactivate", "restore"];
+  if (!VALID_ACTIONS.includes(action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
@@ -112,6 +115,39 @@ export async function PATCH(request, context) {
     });
   }
 
+  if (action === "pause" || action === "reactivate") {
+    const uid = typeof data?.userId === "string" ? data.userId : "";
+    if (!uid) {
+      return NextResponse.json({ error: "missing_user" }, { status: 400 });
+    }
+
+    if (action === "pause") {
+      const reason = body?.reason;
+      if (!Object.values(ACCOUNT_PAUSE_REASON).includes(reason)) {
+        return NextResponse.json({ error: "invalid_pause_reason" }, { status: 400 });
+      }
+      await pauseUserAccount(db, { uid, adAccountId: id, reason, adminUid: admin.uid });
+    } else {
+      await reactivateUserAccount(db, { uid, adminUid: admin.uid, adAccountId: id });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "restore") {
+    await ref.set(
+      {
+        deleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        restoredAt: FieldValue.serverTimestamp(),
+        restoredBy: admin.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({ ok: true });
+  }
+
   if (data?.status !== AD_ACCOUNT_STATUS.PAYMENT_SUBMITTED) {
     return NextResponse.json({ error: "not_pending_review" }, { status: 409 });
   }
@@ -171,6 +207,14 @@ export async function DELETE(_request, context) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  await ref.delete();
+  await ref.set(
+    {
+      deleted: true,
+      deletedAt: FieldValue.serverTimestamp(),
+      deletedBy: admin.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
   return NextResponse.json({ ok: true });
 }

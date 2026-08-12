@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { motion, useInView } from "motion/react";
 import { toast } from "react-hot-toast";
+import AffiliateRequestForm from "./AffiliateRequestForm";
 
 const AffiliatesBanner = () => {
   const [copied, setCopied] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const referralCode = "0xF8aB4562c567d987F089a9C2";
   const ref = useRef(null);
   const isInView = useInView(ref, {
@@ -97,7 +99,9 @@ const AffiliatesBanner = () => {
               ease: [0.25, 0.46, 0.45, 0.94],
             }}
           >
-            <Button className="w-fit">Become an Affiliate</Button>
+            <Button className="w-fit" onClick={() => setIsFormOpen(true)}>
+              Become an Affiliate
+            </Button>
           </motion.div>
         </motion.div>
         <div className="grid sm:grid-cols-2 gap-3 w-full relative">
@@ -211,6 +215,8 @@ const AffiliatesBanner = () => {
           </motion.div>
         </div>
       </div>
+
+      <AffiliateRequestForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
     </div>
   );
 };

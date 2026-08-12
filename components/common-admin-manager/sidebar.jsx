@@ -77,6 +77,11 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
       icon: MailIcon,
     },
     {
+      id: 'affiliate-requests',
+      label: 'Affiliate Requests',
+      icon: AffiliatesIcon,
+    },
+    {
       id: 'chat',
       label: 'Messages',
       icon: MessageIcon,

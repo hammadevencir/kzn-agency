@@ -19,6 +19,9 @@ import {
   TopUpIcon,
   AdAccountMoneyIcon,
   UpgradeIcon,
+  PauseIcon,
+  PlayIcon,
+  RestoreIcon,
 } from "@/components/icons";
 
 function avatarAltText(label) {
@@ -87,6 +90,9 @@ const DataTable = ({
   onDelete,
   onDeleteReferral,
   onTopUp,
+  onPause,
+  onReactivate,
+  onRestore,
   showTopUpIcon = false, // Show TopUp icon when true
   /** When false, parent passes pre-sliced `data` and renders {@link Pagination} below. */
   internalPagination = true,
@@ -174,6 +180,8 @@ const DataTable = ({
         return renderUserTopUpsCell(row, header, index, cellClassName);
       case "contact-requests":
         return renderContactRequestsCell(row, header, index, cellClassName);
+      case "affiliate-requests":
+        return renderAffiliateRequestsCell(row, header, index, cellClassName);
       default:
         return null;
     }
@@ -189,7 +197,20 @@ const DataTable = ({
           </div>
         );
       case "Ad Account Name":
-        return <span className="font-light">{row.adAccountName}</span>;
+        return (
+          <span className="font-light inline-flex items-center gap-2">
+            {row.adAccountName}
+            {row.deleted ? (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-white bg-white/20 rounded-full px-2 py-0.5">
+                Deleted
+              </span>
+            ) : row.paused ? (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-white bg-red-500/80 rounded-full px-2 py-0.5">
+                Paused
+              </span>
+            ) : null}
+          </span>
+        );
       case "Account ID":
         return <span className="font-light">{row.accountId}</span>;
       case "Current Balance":
@@ -206,20 +227,49 @@ const DataTable = ({
             >
               <EyeIcon width={20} height={20} />
             </button>
-            <button
-              onClick={() => onTopUp?.(row)}
-              className="text-[#39CB7F] hover:text-[#39CB7F]/80 transition-colors"
-              title="Top Up"
-            >
-              <AdAccountMoneyIcon width={20} height={20} />
-            </button>
-            <button
-              onClick={() => onDelete?.(row)}
-              className="text-[#EA4335] hover:text-[#EA4335]/80 transition-colors"
-              title="Delete"
-            >
-              <TrashIcon width={20} height={20} />
-            </button>
+            {row.deleted ? (
+              <button
+                onClick={() => onRestore?.(row)}
+                className="text-[#39CB7F] hover:text-[#39CB7F]/80 transition-colors"
+                title="Restore"
+              >
+                <RestoreIcon width={20} height={20} />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => onTopUp?.(row)}
+                  className="text-[#39CB7F] hover:text-[#39CB7F]/80 transition-colors"
+                  title="Top Up"
+                >
+                  <AdAccountMoneyIcon width={20} height={20} />
+                </button>
+                {row.paused ? (
+                  <button
+                    onClick={() => onReactivate?.(row)}
+                    className="text-[#39CB7F] hover:text-[#39CB7F]/80 transition-colors"
+                    title="Reactivate"
+                  >
+                    <PlayIcon width={20} height={20} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onPause?.(row)}
+                    className="text-[#F5A524] hover:text-[#F5A524]/80 transition-colors"
+                    title="Pause"
+                  >
+                    <PauseIcon width={20} height={20} />
+                  </button>
+                )}
+                <button
+                  onClick={() => onDelete?.(row)}
+                  className="text-[#EA4335] hover:text-[#EA4335]/80 transition-colors"
+                  title="Delete"
+                >
+                  <TrashIcon width={20} height={20} />
+                </button>
+              </>
+            )}
           </div>
         );
       default:
@@ -952,6 +1002,54 @@ const DataTable = ({
         return (
           <span key="request" className="font-light text-quaternary">
             {row.platform && row.platform !== "—" ? `${row.requestType} · ${row.platform}` : row.requestType}
+          </span>
+        );
+      case "Date":
+      case "Date Created":
+        return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
+      case "Status": {
+        const s = (row.status || "new").toLowerCase();
+        const stClass =
+          s === "resolved" ? "bg-[#39CB7F]" : s === "in_progress" ? "bg-[#C5A964]" : "bg-secondary";
+        const label = s === "in_progress" ? "In Progress" : s === "resolved" ? "Resolved" : "New";
+        return (
+          <span
+            key="status"
+            className={`inline-flex px-3 py-1 rounded-full text-white text-[12px] font-medium ${stClass}`}
+          >
+            {label}
+          </span>
+        );
+      }
+      case "Actions":
+        return (
+          <button
+            key="actions"
+            onClick={() => onViewDetails?.(row)}
+            className="text-primary hover:text-primary/80 flex items-center gap-1 text-[11px] md:text-[14px]"
+          >
+            <span className="hidden sm:inline">View Details</span>
+            <span className="sm:hidden">View</span>
+            <ArrowRightIcon width={18} height={18} />
+          </button>
+        );
+      default:
+        return row[header.toLowerCase().replace(/\s+/g, "")] || "";
+    }
+  };
+
+  const renderAffiliateRequestsCell = (row, header, index, cellClassName) => {
+    switch (header) {
+      case "Name":
+        return <span key="name" className="font-light text-white">{row.name}</span>;
+      case "Phone":
+        return <span key="phone" className="font-light text-quaternary">{row.phone}</span>;
+      case "Focus":
+        return <span key="focus" className="font-light text-quaternary">{row.communityFocus}</span>;
+      case "Platforms":
+        return (
+          <span key="platforms" className="font-light text-quaternary truncate max-w-[220px] inline-block">
+            {row.platforms}
           </span>
         );
       case "Date":

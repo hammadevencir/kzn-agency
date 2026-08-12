@@ -28,6 +28,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/top-ups')) return 'top-ups';
     if (pathname.includes('/balance-requests')) return 'balance-requests';
     if (pathname.includes('/contact-requests')) return 'contact-requests';
+    if (pathname.includes('/affiliate-requests')) return 'affiliate-requests';
     if (pathname.includes('/invoices')) return 'invoices';
     if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/announcements')) return 'announcements';
@@ -57,6 +58,8 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/balance-requests');
     } else if (item === 'contact-requests') {
       router.push('/admin/contact-requests');
+    } else if (item === 'affiliate-requests') {
+      router.push('/admin/affiliate-requests');
     } else if (item === 'invoices') {
       router.push('/admin/invoices');
     } else if (item === 'chat') {
@@ -78,7 +81,7 @@ const AdminLayout = ({ children }) => {
   };
 
   // Check if current page needs header (all pages except login and pages using manager components)
-  const pagesWithBuiltInHeaders = ['/admin/ad-accounts', '/admin/top-ups', '/admin/affiliates', '/admin/balance-requests', '/admin/contact-requests'];
+  const pagesWithBuiltInHeaders = ['/admin/ad-accounts', '/admin/top-ups', '/admin/affiliates', '/admin/balance-requests', '/admin/contact-requests', '/admin/affiliate-requests'];
   const hasBuiltInHeader = pagesWithBuiltInHeaders.some(page => pathname.includes(page));
   const needsHeader = !pathname.includes('/login') && !hasBuiltInHeader;
   

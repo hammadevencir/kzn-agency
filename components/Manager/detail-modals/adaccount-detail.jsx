@@ -59,6 +59,7 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
     { label: "Ad Account ID", value: adAccountId },
     { label: "Current Balance", value: currentBalance },
     { label: "Last Updated", value: balanceLastUpdated },
+    ...(data.paused ? [{ label: "Status", value: data.pauseReasonLabel || "Paused" }] : []),
   ];
 
   const depositRows = Array.isArray(data.deposits) ? data.deposits : [];

@@ -11,11 +11,15 @@ import SuccessModal from '@/components/ui/success-modal';
 import AdAccountCreatedModal from '@/components/ui/ad-account-created-modal';
 import RejectionModal from '@/components/ui/rejection-modal';
 import UpdateBalanceSheet from '@/components/Admin/detail-modals/update-balance-sheet';
+import PauseAdAccountModal from '@/components/Admin/detail-modals/pause-ad-account-modal';
+import { ACCOUNT_PAUSE_REASON_LABEL } from '@/lib/ad-accounts/constants';
 import toast from 'react-hot-toast';
 
 const EMPTY_MESSAGE_BY_TAB = {
   all: 'No Ad Accounts',
   new: 'No New Requests',
+  paused: 'No Paused Accounts',
+  deleted: 'No Deleted Accounts',
 };
 
 export default function AdAccount({ onLogout, showTopUpIcon = false }) {
@@ -40,15 +44,20 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
   const [updateBalanceAccount, setUpdateBalanceAccount] = useState(null);
   const [balanceUpdateSuccess, setBalanceUpdateSuccess] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
+  const [pauseTargetAccount, setPauseTargetAccount] = useState(null);
+  const [pauseSuccess, setPauseSuccess] = useState(null);
+  const [reactivateSuccess, setReactivateSuccess] = useState(null);
+  const [restoreSuccess, setRestoreSuccess] = useState(null);
+  const [tabCounts, setTabCounts] = useState({ all: 0, new: 0, paused: 0, deleted: 0 });
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
 
   const loadRows = useCallback(async () => {
-    const tab = activeTab === 'all' ? 'all' : 'new';
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch(`/api/admin/ad-accounts?tab=${tab}`);
+      const res = await fetch(`/api/admin/ad-accounts?tab=${activeTab}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFetchError(data?.error || 'failed_to_load');
@@ -56,6 +65,14 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         return;
       }
       setRows(Array.isArray(data.items) ? data.items : []);
+      if (data.counts && typeof data.counts === 'object') {
+        setTabCounts({
+          all: data.counts.all ?? 0,
+          new: data.counts.new ?? 0,
+          paused: data.counts.paused ?? 0,
+          deleted: data.counts.deleted ?? 0,
+        });
+      }
     } catch {
       setFetchError('network_error');
       setRows([]);
@@ -202,6 +219,78 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
     }
   };
 
+  const handlePauseOpen = (account) => {
+    setPauseTargetAccount(account);
+    setIsPauseModalOpen(true);
+  };
+
+  const handlePauseConfirm = async (reason) => {
+    const id = pauseTargetAccount?.firestoreId;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/ad-accounts/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'pause', reason }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error || 'Could not pause this account.');
+        return;
+      }
+      setPauseTargetAccount(null);
+      setPauseSuccess({ reasonLabel: ACCOUNT_PAUSE_REASON_LABEL[reason] });
+      bumpRefresh();
+    } catch {
+      toast.error('Could not pause this account.');
+    }
+  };
+
+  const handleReactivate = async (account) => {
+    const id = account?.firestoreId;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/ad-accounts/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reactivate' }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error || 'Could not reactivate this account.');
+        return;
+      }
+      setReactivateSuccess(true);
+      bumpRefresh();
+    } catch {
+      toast.error('Could not reactivate this account.');
+    }
+  };
+
+  const handleRestore = async (account) => {
+    const id = account?.firestoreId;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/ad-accounts/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'restore' }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error || 'Could not restore this account.');
+        return;
+      }
+      setRestoreSuccess(true);
+      bumpRefresh();
+    } catch {
+      toast.error('Could not restore this account.');
+    }
+  };
+
   const adAccountsHeaders = [
     'User Name',
     'Ad Account Name',
@@ -243,32 +332,27 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
           </div>
 
           <div className="flex border-b border-primary/20 mb-6">
-            <button
-              onClick={() => {
-                setActiveTab('all');
-                setSearchQuery('');
-              }}
-              className={`px-4 py-2 text-[14px] md:text-[16px] font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'text-white border-b-2 border-primary'
-                  : 'text-quaternary hover:text-white'
-              }`}
-            >
-              All Ad Accounts
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('new');
-                setSearchQuery('');
-              }}
-              className={`px-4 py-2 text-[14px] md:text-[16px] font-medium transition-colors ${
-                activeTab === 'new'
-                  ? 'text-white border-b-2 border-primary'
-                  : 'text-quaternary hover:text-white'
-              }`}
-            >
-              New Requests
-            </button>
+            {[
+              { id: 'all', label: 'All Ad Accounts' },
+              { id: 'new', label: 'New Requests' },
+              { id: 'paused', label: 'Paused Accounts' },
+              { id: 'deleted', label: 'Deleted Accounts' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchQuery('');
+                }}
+                className={`px-4 py-2 text-[14px] md:text-[16px] font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-white border-b-2 border-primary'
+                    : 'text-quaternary hover:text-white'
+                }`}
+              >
+                {tab.label} ({tabCounts[tab.id] ?? 0})
+              </button>
+            ))}
           </div>
 
           {fetchError ? (
@@ -289,17 +373,20 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
           ) : (
             <DataTable
               headers={
-                activeTab === 'all' ? adAccountsHeaders : dashboardHeaders
+                activeTab === 'new' ? dashboardHeaders : adAccountsHeaders
               }
               data={rows}
-              type={activeTab === 'all' ? 'ad-accounts' : 'dashboard'}
+              type={activeTab === 'new' ? 'dashboard' : 'ad-accounts'}
               onViewDetails={
-                activeTab === 'all'
-                  ? handleViewDetails
-                  : handleViewAdAccountDetails
+                activeTab === 'new'
+                  ? handleViewAdAccountDetails
+                  : handleViewDetails
               }
-              onDelete={activeTab === 'all' ? handleDelete : undefined}
-              onTopUp={activeTab === 'all' ? handleTopUp : undefined}
+              onDelete={activeTab !== 'new' ? handleDelete : undefined}
+              onTopUp={activeTab !== 'new' ? handleTopUp : undefined}
+              onPause={activeTab !== 'new' ? handlePauseOpen : undefined}
+              onReactivate={activeTab !== 'new' ? handleReactivate : undefined}
+              onRestore={activeTab === 'deleted' ? handleRestore : undefined}
               showTopUpIcon={showTopUpIcon}
               searchable={false}
               searchValue={searchQuery}
@@ -332,7 +419,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         onClose={handleCloseDeleteModal}
         onConfirm={handleConfirmDelete}
         title="Delete Ad Account?"
-        message="Are you sure you want to delete the Ad Account {itemId}. All data will be deleted."
+        message="Are you sure you want to delete the Ad Account {itemId}? It will move to Deleted Accounts and can be restored later."
         confirmText="Yes, Delete"
         cancelText="Cancel"
         itemId={itemToDelete?.accountId || itemToDelete?.adAccountId || ''}
@@ -342,7 +429,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         isOpen={isDeleteSuccessModalOpen}
         onClose={() => setIsDeleteSuccessModalOpen(false)}
         title="Ad Account Deleted"
-        message="The Ad account has been successfully deleted."
+        message="The Ad account has been moved to Deleted Accounts. You can restore it anytime."
         buttonText="Close"
       />
 
@@ -389,6 +476,42 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         }}
         requestData={updateBalanceAccount}
         onSave={(newBalance) => void handleBalanceSave(newBalance)}
+      />
+
+      <PauseAdAccountModal
+        isOpen={isPauseModalOpen}
+        onClose={() => {
+          setIsPauseModalOpen(false);
+          setPauseTargetAccount(null);
+        }}
+        onConfirm={(reason) => void handlePauseConfirm(reason)}
+      />
+
+      <SuccessModal
+        isOpen={Boolean(pauseSuccess)}
+        onClose={() => setPauseSuccess(null)}
+        onButtonClick={() => setPauseSuccess(null)}
+        title="Account Paused"
+        message={`${pauseSuccess?.reasonLabel || 'Account paused'}. The customer's dashboard is now frozen until this is reactivated.`}
+        buttonText="Close"
+      />
+
+      <SuccessModal
+        isOpen={Boolean(reactivateSuccess)}
+        onClose={() => setReactivateSuccess(false)}
+        onButtonClick={() => setReactivateSuccess(false)}
+        title="Account Reactivated"
+        message="The customer can now access their dashboard again."
+        buttonText="Close"
+      />
+
+      <SuccessModal
+        isOpen={Boolean(restoreSuccess)}
+        onClose={() => setRestoreSuccess(false)}
+        onButtonClick={() => setRestoreSuccess(false)}
+        title="Account Restored"
+        message="The ad account has been moved back to All Ad Accounts."
+        buttonText="Close"
       />
     </div>
   );

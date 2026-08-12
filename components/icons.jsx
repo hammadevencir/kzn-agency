@@ -1592,6 +1592,99 @@ export const PlusIcon = ({ className, width = 24, height = 24 }) => (
   </svg>
 );
 
+export const BankIcon = ({ className, width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M2 9L12 3L22 9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4 9V19M9 9V19M15 9V19M20 9V19"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 19H22"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 22H22"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const PauseIcon = ({ className, width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" />
+    <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" />
+  </svg>
+);
+
+export const PlayIcon = ({ className, width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M6 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 6 4.5Z" fill="currentColor" />
+  </svg>
+);
+
+export const RestoreIcon = ({ className, width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M3 12a9 9 0 1 0 2.64-6.36L3 8"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 3v5h5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const TickBadgeIcon = ({ className }) => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M12.661 12.6666H12.6673H12.661ZM12.661 12.6666C12.2458 13.0783 11.4935 12.9757 10.9659 12.9757C10.3183 12.9757 10.0065 13.1024 9.54425 13.5646C9.15072 13.9582 8.62312 14.6666 8.00065 14.6666C7.37818 14.6666 6.85058 13.9582 6.45703 13.5646C5.99484 13.1024 5.68298 12.9757 5.03536 12.9757C4.50777 12.9757 3.75544 13.0783 3.34031 12.6666C2.92186 12.2517 3.02484 11.4962 3.02484 10.9652C3.02484 10.2942 2.87809 9.98565 2.40024 9.50778C1.68941 8.79698 1.334 8.44152 1.33398 7.99992C1.33399 7.55825 1.6894 7.20285 2.40022 6.49203C2.82678 6.06546 3.02484 5.64277 3.02484 5.03463C3.02484 4.50702 2.92231 3.75468 3.33398 3.33955C3.74894 2.92111 4.50438 3.02409 5.03537 3.02409C5.6435 3.02409 6.0662 2.82605 6.49275 2.3995C7.20358 1.68867 7.55898 1.33325 8.00065 1.33325C8.44232 1.33325 8.79772 1.68867 9.50852 2.3995C9.93498 2.82597 10.3577 3.02409 10.9659 3.02409C11.4935 3.02409 12.2459 2.92157 12.6611 3.33325C13.0795 3.74821 12.9764 4.50365 12.9764 5.03463C12.9764 5.70564 13.1233 6.01416 13.6011 6.49203C14.3119 7.20285 14.6673 7.55825 14.6673 7.99992C14.6673 8.44152 14.3119 8.79698 13.6011 9.50778C13.1232 9.98565 12.9764 10.2942 12.9764 10.9652C12.9764 11.4962 13.0794 12.2517 12.661 12.6666Z" fill="#C5A964"/>

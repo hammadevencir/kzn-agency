@@ -7,6 +7,7 @@ import {
   BANK_DETAILS_HELPER_TEXT,
   BANK_DETAILS_COMPACT_HELPER_TEXT,
 } from "@/lib/payments/bank-details";
+import { BankIcon } from "@/components/icons";
 
 /**
  * @param {{
@@ -42,9 +43,6 @@ export default function BankDetailsCard({
     ? "text-[12px] text-quaternary leading-relaxed px-4"
     : "text-[14px] text-[#8B9197] leading-relaxed max-w-[340px] font-medium";
 
-  const circleSize = compact ? "w-8 h-8" : "w-10 h-10";
-  const circleOverlap = compact ? "-mr-3" : "-space-x-3";
-
   return (
     <div className={className}>
       {showTitle ? (
@@ -70,17 +68,8 @@ export default function BankDetailsCard({
             compact ? "space-y-4" : "gap-4"
           }`}
         >
-          <div
-            className={`flex items-center justify-center ${
-              compact ? "" : circleOverlap
-            }`}
-          >
-            <div className={`${circleSize} rounded-full bg-[#EB001B] ${compact ? "-mr-3" : ""}`} />
-            <div
-              className={`${circleSize} rounded-full bg-[#F79E1B] ${
-                compact ? "opacity-80" : "mix-blend-screen opacity-90"
-              }`}
-            />
+          <div className="flex items-center justify-center rounded-2xl bg-primary/10 border border-primary/40 p-3">
+            <BankIcon className="text-primary" width={compact ? 28 : 32} height={compact ? 28 : 32} />
           </div>
           <p className={helperClass}>{message}</p>
         </div>

@@ -8,6 +8,31 @@ import {
 } from "@/lib/subscriptions/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
 import { computeNextExpiresAtMs, tsToMillis } from "@/lib/subscriptions/expiry";
+import { ACCOUNT_PAUSE_REASON } from "@/lib/ad-accounts/constants";
+import { reactivateUserAccount } from "@/lib/accounts/pause";
+
+/**
+ * If this user's dashboard was paused for an overdue monthly payment, an
+ * approved subscription payment lifts the freeze automatically.
+ * @param {import("firebase-admin/firestore").Firestore} db
+ * @param {string} uid
+ * @param {string} adminUid
+ */
+async function reactivateIfPausedForPayment(db, uid, adminUid) {
+  if (!uid) return;
+  const userSnap = await db.collection("users").doc(uid).get();
+  const userData = userSnap.data();
+  if (
+    userData?.accountPaused === true &&
+    userData?.pauseReason === ACCOUNT_PAUSE_REASON.MONTHLY_PAYMENT
+  ) {
+    await reactivateUserAccount(db, {
+      uid,
+      adminUid,
+      adAccountId: typeof userData?.pauseAdAccountId === "string" ? userData.pauseAdAccountId : null,
+    });
+  }
+}
 
 export async function PATCH(request, context) {
   const admin = await requireAdminSession();
@@ -105,6 +130,7 @@ export async function PATCH(request, context) {
         },
         { merge: true }
       );
+      await reactivateIfPausedForPayment(db, String(data?.userId || ""), admin.uid);
       return NextResponse.json({ ok: true });
     }
 
@@ -133,6 +159,7 @@ export async function PATCH(request, context) {
       },
       { merge: true }
     );
+    await reactivateIfPausedForPayment(db, String(data?.userId || ""), admin.uid);
     return NextResponse.json({ ok: true });
   }
 

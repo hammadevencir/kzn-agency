@@ -64,6 +64,7 @@ export default function UserSignup() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [pending, setPending] = useState(false);
   const [pendingGoogle, setPendingGoogle] = useState(false);
   const [errors, setErrors] = useState({});
@@ -83,6 +84,7 @@ export default function UserSignup() {
     const e = {};
     if (!name.trim()) e.name = "Name is required.";
     if (!email.trim()) e.email = "Email is required.";
+    if (!phone.trim()) e.phone = "Phone number is required.";
     if (!password) e.password = "Password is required.";
     else if (password.length < 6) e.password = "Password must be at least 6 characters.";
     setErrors(e);
@@ -104,6 +106,16 @@ export default function UserSignup() {
       }
       await cred.user.getIdToken(true);
       const role = await establishSession(cred.user, ROLE.USER);
+      if (phone.trim()) {
+        try {
+          await fetch("/api/user/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ phone: phone.trim() }),
+          });
+        } catch { /* best-effort — user can add it later in settings */ }
+      }
       toast.success("Account created!");
       navigateAfterSession(role);
     } catch (err) {
