@@ -85,7 +85,7 @@ export default function ContactRequests() {
     { id: 'resolved', label: 'Resolved' },
   ];
 
-  const tableHeaders = ['Name', 'Email', 'Message', 'Date', 'Status', 'Actions'];
+  const tableHeaders = ['Name', 'Phone', 'Request', 'Date', 'Status', 'Actions'];
 
   return (
     <div className="w-full max-w-full flex-1 flex flex-col rounded-lg overflow-hidden">

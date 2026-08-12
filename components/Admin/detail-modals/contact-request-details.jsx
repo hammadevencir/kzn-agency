@@ -18,8 +18,13 @@ const ContactRequestDetails = ({ isOpen, onClose, requestData, onStatusChanged }
     firestoreId: "",
     id: "—",
     name: "—",
-    email: "—",
+    email: "",
     phone: "—",
+    country: "—",
+    gender: "—",
+    discordOrTelegram: "—",
+    requestType: "—",
+    platform: "—",
     message: "",
     dateCreated: "—",
     status: "new",
@@ -53,8 +58,11 @@ const ContactRequestDetails = ({ isOpen, onClose, requestData, onStatusChanged }
 
   const fields = [
     { label: "Request ID:", value: data.id },
-    { label: "Email:", value: data.email },
     { label: "Phone:", value: data.phone },
+    { label: "Country:", value: data.country },
+    { label: "Gender:", value: data.gender },
+    { label: "Discord/Telegram:", value: data.discordOrTelegram },
+    { label: "Request type:", value: data.platform && data.platform !== "—" ? `${data.requestType} (${data.platform})` : data.requestType },
     { label: "Date received:", value: data.dateCreated },
   ];
 
@@ -135,13 +143,15 @@ const ContactRequestDetails = ({ isOpen, onClose, requestData, onStatusChanged }
               Mark as Resolved
             </Button>
           ) : null}
-          <Button
-            asChild
-            variant="outline"
-            className="w-full py-3 rounded-full border border-quaternary/30 bg-transparent text-white hover:bg-white/5 text-sm font-medium"
-          >
-            <a href={`mailto:${data.email}`}>Reply via email</a>
-          </Button>
+          {data.email ? (
+            <Button
+              asChild
+              variant="outline"
+              className="w-full py-3 rounded-full border border-quaternary/30 bg-transparent text-white hover:bg-white/5 text-sm font-medium"
+            >
+              <a href={`mailto:${data.email}`}>Reply via email</a>
+            </Button>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

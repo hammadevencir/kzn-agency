@@ -948,6 +948,12 @@ const DataTable = ({
             {row.message}
           </span>
         );
+      case "Request":
+        return (
+          <span key="request" className="font-light text-quaternary">
+            {row.platform && row.platform !== "—" ? `${row.requestType} · ${row.platform}` : row.requestType}
+          </span>
+        );
       case "Date":
       case "Date Created":
         return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
