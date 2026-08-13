@@ -66,6 +66,7 @@ export default function BalanceRequests() {
   const newRequestsHeaders = [
     'User Id',
     'User Name',
+    'Phone',
     'Date Requested',
     'Account ID',
     'Current Balance',
@@ -76,6 +77,7 @@ export default function BalanceRequests() {
   const updatedHeaders = [
     'User Id',
     'User Name',
+    'Phone',
     'Date Requested',
     'Account ID',
     'Current Balance',

@@ -5,7 +5,7 @@ import { AFFILIATE_REQUESTS_COLLECTION } from "@/lib/affiliate-requests/constant
 import { mapAffiliateRequestAdminRow } from "@/lib/admin/map-affiliate-request-admin-row";
 
 /**
- * ?status=new|in_progress|resolved (optional — omit for all)
+ * ?status=new|resolved (optional — omit for all)
  */
 export async function GET(request) {
   const admin = await requireAdminSession();

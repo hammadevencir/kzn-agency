@@ -8,6 +8,7 @@
 const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 
 const SUBSCRIPTIONS_COLLECTION = "subscriptions";
+const AD_ACCOUNTS_COLLECTION = "ad-accounts";
 
 const SUBSCRIPTION_STATUS = {
   PENDING_PAYMENT: "pending_payment",
@@ -16,6 +17,10 @@ const SUBSCRIPTION_STATUS = {
   REJECTED: "rejected",
   EXPIRED: "expired",
 };
+
+const ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED = "subscription_expired";
+const ACCOUNT_PAUSE_REASON_LABEL_SUBSCRIPTION_EXPIRED =
+  "AD ACCOUNT PAUSED — SUBSCRIPTION EXPIRED (30 DAYS)";
 
 const EXPIRY_WARNING_STAGE = {
   NONE: null,
@@ -51,6 +56,64 @@ function tsToMillis(ts) {
 function expiryMsFromCreatedAt(createdMs) {
   if (!createdMs) return 0;
   return createdMs + SUBSCRIPTION_DURATION_DAYS * DAY_MS;
+}
+
+/** Mirrors lib/subscriptions/require-active-subscription.js#subscriptionPlatformKey. */
+function subscriptionPlatformKey(data) {
+  if (!data) return "";
+  const fromTop =
+    typeof data.platformId === "string" ? data.platformId.toLowerCase() : "";
+  const flow = data.flow && typeof data.flow === "object" ? data.flow : {};
+  const fromFlow =
+    typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
+  return fromTop || fromFlow;
+}
+
+/**
+ * Mirrors lib/subscriptions/expiry-worker.js#pauseAdAccountsForExpiredSubscription.
+ * Auto-pauses every non-deleted, non-paused ad account under the expired
+ * subscription's platform for that user — the 30-day "finished" cutoff.
+ */
+async function pauseAdAccountsForExpiredSubscription(db, subscriptionData) {
+  const uid =
+    typeof subscriptionData.userId === "string" ? subscriptionData.userId : "";
+  const platformKey = subscriptionPlatformKey(subscriptionData);
+  if (!uid || !platformKey) return 0;
+
+  const snap = await db
+    .collection(AD_ACCOUNTS_COLLECTION)
+    .where("userId", "==", uid)
+    .get();
+
+  let paused = 0;
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    if (data.paused === true || data.deleted === true) continue;
+    const flow = data.flow && typeof data.flow === "object" ? data.flow : {};
+    const k =
+      typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
+    if (k !== platformKey) continue;
+
+    const at = new Date().toISOString();
+    await doc.ref.set(
+      {
+        paused: true,
+        pauseReason: ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED,
+        pausedAt: FieldValue.serverTimestamp(),
+        pausedBy: "system",
+        pauseHistory: FieldValue.arrayUnion({
+          label: ACCOUNT_PAUSE_REASON_LABEL_SUBSCRIPTION_EXPIRED,
+          reason: ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED,
+          at,
+          by: "system",
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    paused++;
+  }
+  return paused;
 }
 
 function warningStageFromMsLeft(msLeft) {
@@ -118,6 +181,7 @@ async function sweepSubscriptionExpiries(db) {
   let expired = 0;
   let warned = 0;
   let touched = 0;
+  let pausedAdAccounts = 0;
   let batch = db.batch();
   let pending = 0;
 
@@ -145,6 +209,7 @@ async function sweepSubscriptionExpiries(db) {
       expired++;
       touched++;
       pending++;
+      pausedAdAccounts += await pauseAdAccountsForExpiredSubscription(db, data);
     } else if (nextStage && nextStage !== currentStage) {
       batch.set(
         d.ref,
@@ -168,7 +233,7 @@ async function sweepSubscriptionExpiries(db) {
   }
 
   if (pending > 0) await batch.commit();
-  return { total: snap.size, expired, warned, touched };
+  return { total: snap.size, expired, warned, touched, pausedAdAccounts };
 }
 
 module.exports = {

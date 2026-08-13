@@ -23,6 +23,7 @@ const DepositDetailsModal = ({
       : [
           { label: 'Request ID:', value: depositData.requestId },
           { label: 'Email:', value: depositData.email },
+          { label: 'Phone:', value: depositData.phone || '—' },
           { label: 'User Id:', value: depositData.userId },
           {
             label: 'Current Balance:',

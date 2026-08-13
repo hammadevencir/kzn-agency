@@ -105,17 +105,9 @@ export default function UserSignup() {
         await updateProfile(cred.user, { displayName: name.trim() });
       }
       await cred.user.getIdToken(true);
-      const role = await establishSession(cred.user, ROLE.USER);
-      if (phone.trim()) {
-        try {
-          await fetch("/api/user/profile", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({ phone: phone.trim() }),
-          });
-        } catch { /* best-effort — user can add it later in settings */ }
-      }
+      const role = await establishSession(cred.user, ROLE.USER, {
+        phone: phone.trim(),
+      });
       toast.success("Account created!");
       navigateAfterSession(role);
     } catch (err) {

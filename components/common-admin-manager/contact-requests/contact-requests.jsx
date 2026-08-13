@@ -9,13 +9,11 @@ import TableSearch from '../table-search';
 
 const STATUS_BY_TAB = {
   new: 'new',
-  in_progress: 'in_progress',
   resolved: 'resolved',
 };
 
 const EMPTY_MESSAGE_BY_TAB = {
   new: 'No New Requests',
-  in_progress: 'No Requests In Progress',
   resolved: 'No Resolved Requests',
 };
 
@@ -81,7 +79,6 @@ export default function ContactRequests() {
 
   const tabs = [
     { id: 'new', label: 'New' },
-    { id: 'in_progress', label: 'In Progress' },
     { id: 'resolved', label: 'Resolved' },
   ];
 

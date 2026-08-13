@@ -252,15 +252,18 @@ const DataTable = ({
                   >
                     <PlayIcon width={20} height={20} />
                   </button>
-                ) : (
-                  <button
-                    onClick={() => onPause?.(row)}
-                    className="text-[#F5A524] hover:text-[#F5A524]/80 transition-colors"
-                    title="Pause"
-                  >
-                    <PauseIcon width={20} height={20} />
-                  </button>
-                )}
+                ) : null /* Manual pause is disabled for now — ad accounts auto-pause
+                     after 30 days (subscription expiry) via lib/subscriptions/expiry-worker.js,
+                     or can still be paused by an admin through the API. We might need this
+                     button again later; uncomment to re-enable it:
+                <button
+                  onClick={() => onPause?.(row)}
+                  className="text-[#F5A524] hover:text-[#F5A524]/80 transition-colors"
+                  title="Pause"
+                >
+                  <PauseIcon width={20} height={20} />
+                </button>
+                */}
                 <button
                   onClick={() => onDelete?.(row)}
                   className="text-[#EA4335] hover:text-[#EA4335]/80 transition-colors"
@@ -291,6 +294,8 @@ const DataTable = ({
         );
       case "Email":
         return <span className="font-light">{row.email}</span>;
+      case "Phone":
+        return <span className="font-light">{row.phone}</span>;
       case "Ad Account ID":
         return <span className="font-light">{row.adAccountId}</span>;
       case "Current Balance":
@@ -470,6 +475,12 @@ const DataTable = ({
             <AvatarCell photoURL={row.avatarUrl || row.photoURL} name={row.userName} />
             <span className="font-light text-quaternary">{row.userName}</span>
           </div>
+        );
+      case "Phone":
+        return (
+          <span key="phone" className="font-light text-quaternary">
+            {row.phone}
+          </span>
         );
       case "Date Requested":
         return (
@@ -774,6 +785,10 @@ const DataTable = ({
             <span className="font-light text-quaternary">{row.userName}</span>
           </div>
         );
+      case "Phone":
+        return (
+          <span className="font-light text-quaternary">{row.phone}</span>
+        );
       case "Date Submitted":
         return (
           <span className="font-light text-quaternary">
@@ -959,21 +974,25 @@ const DataTable = ({
         );
       }
       case "Actions": {
-        const pending = row.topUpInReview === true;
+        const paused = row.isPaused === true;
+        const pending = !paused && row.topUpInReview === true;
+        const disabled = paused || pending;
         return (
           <button
             key="actions"
             type="button"
-            disabled={pending}
-            onClick={() => !pending && onTopUp?.(row)}
+            disabled={disabled}
+            onClick={() => !disabled && onTopUp?.(row)}
             className={`flex items-center gap-1.5 transition-colors group ${
-              pending
+              disabled
                 ? "text-quaternary cursor-not-allowed"
                 : "text-[#C5A964] hover:text-[#C5A964]/80"
             }`}
           >
-            <span className="text-[14px]">{pending ? "In review" : "Top-up"}</span>
-            {!pending ? (
+            <span className="text-[14px]">
+              {paused ? "Paused" : pending ? "In review" : "Top-up"}
+            </span>
+            {!disabled ? (
               <ArrowRightIcon className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
             ) : null}
           </button>
@@ -1009,9 +1028,8 @@ const DataTable = ({
         return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
       case "Status": {
         const s = (row.status || "new").toLowerCase();
-        const stClass =
-          s === "resolved" ? "bg-[#39CB7F]" : s === "in_progress" ? "bg-[#C5A964]" : "bg-secondary";
-        const label = s === "in_progress" ? "In Progress" : s === "resolved" ? "Resolved" : "New";
+        const stClass = s === "resolved" ? "bg-[#39CB7F]" : "bg-secondary";
+        const label = s === "resolved" ? "Resolved" : "New";
         return (
           <span
             key="status"
@@ -1057,9 +1075,8 @@ const DataTable = ({
         return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
       case "Status": {
         const s = (row.status || "new").toLowerCase();
-        const stClass =
-          s === "resolved" ? "bg-[#39CB7F]" : s === "in_progress" ? "bg-[#C5A964]" : "bg-secondary";
-        const label = s === "in_progress" ? "In Progress" : s === "resolved" ? "Resolved" : "New";
+        const stClass = s === "resolved" ? "bg-[#39CB7F]" : "bg-secondary";
+        const label = s === "resolved" ? "Resolved" : "New";
         return (
           <span
             key="status"

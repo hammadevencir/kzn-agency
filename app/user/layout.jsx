@@ -6,12 +6,10 @@ import Sidebar from '@/components/common-admin-manager/sidebar';
 import Header from '@/components/common-admin-manager/header';
 import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
 import SubscriptionExpiryDialog from '@/components/User/subscription-expiry-dialog';
-import AccountPausedOverlay from '@/components/User/account-paused-overlay';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
-import { useAccountPauseStatus } from '@/lib/hooks/useAccountPauseStatus';
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 
@@ -21,7 +19,6 @@ const UserLayout = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.USER);
-  const { paused, reason: pauseReason } = useAccountPauseStatus();
 
   // Determine active item based on current path
   const getActiveItem = () => {
@@ -86,11 +83,6 @@ const UserLayout = ({ children }) => {
         {children}
       </div>
     );
-  }
-
-  // Account frozen by an admin pause — block everything else in the portal.
-  if (paused) {
-    return <AccountPausedOverlay reason={pauseReason} />;
   }
 
   return (

@@ -8,29 +8,38 @@ import {
 } from "@/lib/subscriptions/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
 import { computeNextExpiresAtMs, tsToMillis } from "@/lib/subscriptions/expiry";
-import { ACCOUNT_PAUSE_REASON } from "@/lib/ad-accounts/constants";
-import { reactivateUserAccount } from "@/lib/accounts/pause";
+import { subscriptionPlatformKey } from "@/lib/subscriptions/require-active-subscription";
+import { AD_ACCOUNTS_COLLECTION, ACCOUNT_PAUSE_REASON } from "@/lib/ad-accounts/constants";
+import { reactivateAdAccount } from "@/lib/accounts/pause";
 
 /**
- * If this user's dashboard was paused for an overdue monthly payment, an
- * approved subscription payment lifts the freeze automatically.
+ * Renewing/approving a subscription lifts the auto-pause it caused: every ad
+ * account under this platform that was paused for `subscription_expired` is
+ * reactivated. Ad accounts paused manually by an admin for another reason are
+ * left untouched.
  * @param {import("firebase-admin/firestore").Firestore} db
- * @param {string} uid
+ * @param {Record<string, unknown>} subscriptionData
  * @param {string} adminUid
  */
-async function reactivateIfPausedForPayment(db, uid, adminUid) {
-  if (!uid) return;
-  const userSnap = await db.collection("users").doc(uid).get();
-  const userData = userSnap.data();
-  if (
-    userData?.accountPaused === true &&
-    userData?.pauseReason === ACCOUNT_PAUSE_REASON.MONTHLY_PAYMENT
-  ) {
-    await reactivateUserAccount(db, {
-      uid,
-      adminUid,
-      adAccountId: typeof userData?.pauseAdAccountId === "string" ? userData.pauseAdAccountId : null,
-    });
+async function reactivateAdAccountsForRenewedSubscription(db, subscriptionData, adminUid) {
+  const uid =
+    typeof subscriptionData?.userId === "string" ? subscriptionData.userId : "";
+  const platformKey = subscriptionPlatformKey(subscriptionData);
+  if (!uid || !platformKey) return;
+
+  const snap = await db
+    .collection(AD_ACCOUNTS_COLLECTION)
+    .where("userId", "==", uid)
+    .where("paused", "==", true)
+    .where("pauseReason", "==", ACCOUNT_PAUSE_REASON.SUBSCRIPTION_EXPIRED)
+    .get();
+
+  for (const doc of snap.docs) {
+    const flow = doc.data()?.flow;
+    const k =
+      flow && typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
+    if (k !== platformKey) continue;
+    await reactivateAdAccount(db, { adAccountId: doc.id, adminUid });
   }
 }
 
@@ -130,7 +139,7 @@ export async function PATCH(request, context) {
         },
         { merge: true }
       );
-      await reactivateIfPausedForPayment(db, String(data?.userId || ""), admin.uid);
+      await reactivateAdAccountsForRenewedSubscription(db, data, admin.uid);
       return NextResponse.json({ ok: true });
     }
 
@@ -159,7 +168,7 @@ export async function PATCH(request, context) {
       },
       { merge: true }
     );
-    await reactivateIfPausedForPayment(db, String(data?.userId || ""), admin.uid);
+    await reactivateAdAccountsForRenewedSubscription(db, data, admin.uid);
     return NextResponse.json({ ok: true });
   }
 

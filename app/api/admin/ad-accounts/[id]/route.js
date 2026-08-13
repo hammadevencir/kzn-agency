@@ -12,7 +12,7 @@ import {
   TOP_UP_STATUS,
 } from "@/lib/top-ups/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
-import { pauseUserAccount, reactivateUserAccount } from "@/lib/accounts/pause";
+import { pauseAdAccount, reactivateAdAccount } from "@/lib/accounts/pause";
 
 export async function PATCH(request, context) {
   const admin = await requireAdminSession();
@@ -116,19 +116,14 @@ export async function PATCH(request, context) {
   }
 
   if (action === "pause" || action === "reactivate") {
-    const uid = typeof data?.userId === "string" ? data.userId : "";
-    if (!uid) {
-      return NextResponse.json({ error: "missing_user" }, { status: 400 });
-    }
-
     if (action === "pause") {
       const reason = body?.reason;
       if (!Object.values(ACCOUNT_PAUSE_REASON).includes(reason)) {
         return NextResponse.json({ error: "invalid_pause_reason" }, { status: 400 });
       }
-      await pauseUserAccount(db, { uid, adAccountId: id, reason, adminUid: admin.uid });
+      await pauseAdAccount(db, { adAccountId: id, reason, adminUid: admin.uid });
     } else {
-      await reactivateUserAccount(db, { uid, adminUid: admin.uid, adAccountId: id });
+      await reactivateAdAccount(db, { adAccountId: id, adminUid: admin.uid });
     }
     return NextResponse.json({ ok: true });
   }

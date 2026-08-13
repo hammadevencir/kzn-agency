@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { mapSubscriptionAdminRow } from "@/lib/admin/map-request-rows";
+import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
 
 /**
  * List subscriptions for admin review.
@@ -103,7 +104,14 @@ export async function GET(request) {
     ms: reviewMs(d.data()),
   }));
   paired.sort((a, b) => b.ms - a.ms);
-  const items = paired.map(({ id, data }) => mapSubscriptionAdminRow(id, data));
+  const phoneMap = await getUserPhoneMap(
+    db,
+    paired.map(({ data }) => data.userId)
+  );
+  const items = paired.map(({ id, data }) => ({
+    ...mapSubscriptionAdminRow(id, data),
+    phone: phoneMap.get(String(data.userId)) || "—",
+  }));
 
   return NextResponse.json({ items });
 }

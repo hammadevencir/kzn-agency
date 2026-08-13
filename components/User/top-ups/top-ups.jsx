@@ -151,6 +151,10 @@ const UserTopUps = () => {
   ];
 
   const handleTopUp = (row) => {
+    if (row.isPaused === true) {
+      toast.error("This ad account is currently paused. Contact support for details.");
+      return;
+    }
     if (row.topUpInReview === true) {
       toast.error("This account already has a top-up under review.");
       return;

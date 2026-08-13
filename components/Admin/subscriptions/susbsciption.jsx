@@ -145,6 +145,7 @@ function Susbsciption() {
       return [
         'User Id',
         'User Name',
+        'Phone',
         'Date Submitted',
         'Subscriptions',
         'Current Balance',
@@ -155,6 +156,7 @@ function Susbsciption() {
     return [
       'User Id',
       'User Name',
+      'Phone',
       'Date Submitted',
       'Subscriptions',
       'Action',
@@ -184,6 +186,7 @@ function Susbsciption() {
     ? {
         requestId: selectedSubscription.id,
         email: selectedSubscription.email,
+        phone: selectedSubscription.phone,
         userId: selectedSubscription.userId,
         userName: selectedSubscription.userName,
         depositAmount: selectedSubscription.amountPaid,

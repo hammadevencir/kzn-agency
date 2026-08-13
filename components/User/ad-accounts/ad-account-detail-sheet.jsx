@@ -41,6 +41,11 @@ const AdAccountDetailSheet = ({
     data && typeof data.firestoreId === "string" ? data.firestoreId : "";
   const statusRaw = String(data?.statusRaw || "");
   const isApproved = statusRaw === AD_ACCOUNT_STATUS.APPROVED;
+  const isPaused = data?.isPaused === true;
+  const pauseReasonLabel =
+    isPaused && typeof data?.pauseReasonLabel === "string"
+      ? data.pauseReasonLabel
+      : null;
   const rejectionReason =
     data && typeof data.rejectionReason === "string" && data.rejectionReason
       ? data.rejectionReason
@@ -83,7 +88,7 @@ const AdAccountDetailSheet = ({
   const balance = data.balance != null ? String(data.balance) : "—";
 
   const handleTopUpClick = () => {
-    if (!isApproved) return;
+    if (!isApproved || isPaused) return;
     if (onTopUp) {
       onTopUp(data);
       return;
@@ -93,7 +98,7 @@ const AdAccountDetailSheet = ({
   };
 
   const handleRequestBalance = () => {
-    if (!isApproved || requestBalanceSending) return;
+    if (!isApproved || isPaused || requestBalanceSending) return;
     if (typeof onRequestBalance === "function") {
       void onRequestBalance(data);
     }
@@ -158,6 +163,17 @@ const AdAccountDetailSheet = ({
                   </p>
                 </div>
               ) : null}
+              {isPaused ? (
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-[#FF4D59] text-[13px] font-medium mb-1">
+                    Paused
+                  </p>
+                  <p className="text-white text-[14px] leading-relaxed">
+                    {pauseReasonLabel ||
+                      "This ad account is paused. Top-ups and balance requests are disabled until it's reactivated."}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -208,7 +224,7 @@ const AdAccountDetailSheet = ({
           <button
             type="button"
             onClick={handleTopUpClick}
-            disabled={!isApproved || requestBalanceSending}
+            disabled={!isApproved || isPaused || requestBalanceSending}
             className="flex-1 h-14 rounded-2xl border border-[#C5A964] text-[#C5A964] text-[15px] font-medium hover:bg-[#C5A964]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Topup
@@ -217,7 +233,7 @@ const AdAccountDetailSheet = ({
             type="button"
             onClick={handleRequestBalance}
             disabled={
-              !isApproved || requestBalanceSending || typeof onRequestBalance !== "function"
+              !isApproved || isPaused || requestBalanceSending || typeof onRequestBalance !== "function"
             }
             className="flex-1 h-14 rounded-2xl bg-[#C5A964] hover:bg-[#b09650] text-[#151E25] text-[15px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >

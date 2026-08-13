@@ -17,6 +17,10 @@ export async function POST(request) {
     const portal =
       typeof body.portal === "string" ? body.portal.trim() : "";
     const autoRole = body.autoRole === true;
+    const phone =
+      typeof body.phone === "string" && body.phone.trim()
+        ? body.phone.trim().slice(0, 40)
+        : null;
 
     if (!idToken || typeof idToken !== "string") {
       return NextResponse.json({ error: "missing_token" }, { status: 400 });
@@ -49,6 +53,7 @@ export async function POST(request) {
           role,
           email,
           displayName: decoded.name ?? null,
+          ...(phone ? { phone } : {}),
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });
@@ -66,6 +71,7 @@ export async function POST(request) {
           role,
           email,
           displayName: decoded.name ?? null,
+          ...(phone ? { phone } : {}),
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });
@@ -90,6 +96,7 @@ export async function POST(request) {
         {
           email,
           displayName: decoded.name ?? data?.displayName ?? null,
+          ...(phone && !data?.phone ? { phone } : {}),
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

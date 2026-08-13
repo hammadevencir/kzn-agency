@@ -358,6 +358,10 @@ const UserAdAccounts = () => {
   }, [loadAccounts]);
 
   const openTopUpModalForRow = (row) => {
+    if (row.isPaused === true) {
+      toast.error("This ad account is currently paused. Contact support for details.");
+      return;
+    }
     if (row.topUpInReview === true) {
       toast.error("This account already has a top-up under review.");
       return;
@@ -381,6 +385,10 @@ const UserAdAccounts = () => {
 
   const handleTopUpFromSheet = (row) => {
     if (!row) return;
+    if (row.isPaused === true) {
+      toast.error("This ad account is currently paused. Contact support for details.");
+      return;
+    }
     if (row.topUpInReview === true) {
       toast.error("This account already has a top-up under review.");
       return;
@@ -392,6 +400,10 @@ const UserAdAccounts = () => {
 
   const handleRequestBalanceFromSheet = async (row) => {
     if (!row || typeof row.firestoreId !== "string") return;
+    if (row.isPaused === true) {
+      toast.error("This ad account is currently paused. Contact support for details.");
+      return;
+    }
     if (row.topUpInReview === true) {
       toast.error("This account already has a balance or top-up request under review.");
       return;
@@ -421,13 +433,15 @@ const UserAdAccounts = () => {
       const msg =
         raw === "top_up_already_pending"
           ? "This account already has a balance or top-up request under review."
-          : raw === "subscription_expired"
-            ? "Your subscription does not cover this platform. Renew to continue."
-            : raw === "forbidden"
-              ? "Could not submit this request."
-              : raw.startsWith("request_failed_")
-                ? "Could not send your balance request. Please try again."
-                : "Could not send your balance request. Please try again.";
+          : raw === "ad_account_paused"
+            ? "This ad account is currently paused. Contact support for details."
+            : raw === "subscription_expired"
+              ? "Your subscription does not cover this platform. Renew to continue."
+              : raw === "forbidden"
+                ? "Could not submit this request."
+                : raw.startsWith("request_failed_")
+                  ? "Could not send your balance request. Please try again."
+                  : "Could not send your balance request. Please try again.";
       toast.error(msg);
     } finally {
       setBalanceRequestSending(false);

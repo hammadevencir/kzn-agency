@@ -5,7 +5,7 @@ import { CONTACT_REQUESTS_COLLECTION } from "@/lib/contact-requests/constants";
 import { mapContactRequestAdminRow } from "@/lib/admin/map-contact-request-admin-row";
 
 /**
- * ?status=new|in_progress|resolved (optional — omit for all)
+ * ?status=new|resolved (optional — omit for all)
  */
 export async function GET(request) {
   const admin = await requireAdminSession();

@@ -171,6 +171,8 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
             ? "Enter a valid top-up amount."
           : raw === "top_up_already_pending"
           ? "This account already has a top-up under review. Wait for admin approval before submitting another."
+          : raw === "ad_account_paused"
+          ? "This ad account is currently paused. Contact support for details."
           : raw === "unsupported_file_type"
             ? "Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF."
             : raw === "file_too_large"

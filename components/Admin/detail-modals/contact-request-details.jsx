@@ -122,17 +122,6 @@ const ContactRequestDetails = ({ isOpen, onClose, requestData, onStatusChanged }
         </div>
 
         <div className="p-4 sm:p-5 md:p-6 flex flex-col gap-3">
-          {data.status !== CONTACT_REQUEST_STATUS.IN_PROGRESS ? (
-            <Button
-              type="button"
-              disabled={busy}
-              onClick={() => handleStatusChange(CONTACT_REQUEST_STATUS.IN_PROGRESS)}
-              variant="outline"
-              className="w-full py-3 rounded-full border border-quaternary/30 bg-transparent text-white hover:bg-white/5 text-sm font-medium"
-            >
-              Mark as In Progress
-            </Button>
-          ) : null}
           {data.status !== CONTACT_REQUEST_STATUS.RESOLVED ? (
             <Button
               type="button"

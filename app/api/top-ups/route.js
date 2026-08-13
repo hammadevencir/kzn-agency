@@ -169,6 +169,12 @@ export async function POST(request) {
       { status: 409 }
     );
   }
+  if (adData?.paused === true) {
+    return NextResponse.json(
+      { error: "ad_account_paused", pauseReason: adData?.pauseReason ?? null },
+      { status: 409 }
+    );
+  }
 
   const subStatus = await checkAdAccountSubscriptionStatus(db, user.uid, adData);
   if (subStatus.status === "expired") {

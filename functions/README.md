@@ -6,7 +6,7 @@ Scheduled + callable Firebase Functions that keep subscription state in sync.
 
 | Name | Trigger | Purpose |
 | --- | --- | --- |
-| `subscriptionExpirySweep` | Scheduled — every 12 hours | Flips approved subscriptions to `expired` when `expiresAt` has passed, and stamps the `expiryWarningStage` (`7d` / `3d` / `24h`) for subscriptions nearing expiry so the user portal can surface the warning dialog. |
+| `subscriptionExpirySweep` | Scheduled — every 12 hours | Flips approved subscriptions to `expired` when `expiresAt` has passed, and stamps the `expiryWarningStage` (`7d` / `3d` / `24h`) for subscriptions nearing expiry so the user portal can surface the warning dialog. When a subscription expires, it also auto-pauses every ad account the user has under that platform (`ad-accounts.paused = true`, `pauseReason: "subscription_expired"`) — this blocks top-up/balance requests for just those ad accounts, not the rest of the user's dashboard. |
 | `subscriptionExpiryBackfill` | Callable (admin only) | One-shot: writes `expiresAt = createdAt + 30 days` on every approved subscription that is missing it. |
 | `subscriptionExpirySweepOnce` | Callable (admin only) | Manual run of the sweep (useful for testing). |
 

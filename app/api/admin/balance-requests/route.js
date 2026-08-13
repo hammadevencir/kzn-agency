@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { mapBalanceRequestRow } from "@/lib/admin/map-balance-request-row";
+import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
 
 /**
  * Balance requests = ad-account top-ups pending review vs completed (same as Deposits).
@@ -40,9 +41,14 @@ export async function GET(request) {
     ms: d.data()?.createdAt?.toMillis?.() ?? 0,
   }));
   paired.sort((a, b) => b.ms - a.ms);
-  const items = paired.map(({ id, data }) =>
-    mapBalanceRequestRow(id, data, variant)
+  const phoneMap = await getUserPhoneMap(
+    db,
+    paired.map(({ data }) => data.userId)
   );
+  const items = paired.map(({ id, data }) => ({
+    ...mapBalanceRequestRow(id, data, variant),
+    phone: phoneMap.get(String(data.userId)) || "—",
+  }));
 
   return NextResponse.json({ items, tab, status });
 }

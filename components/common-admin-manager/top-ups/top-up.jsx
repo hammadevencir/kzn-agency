@@ -89,6 +89,7 @@ export default function TopUp() {
   const tableHeaders = [
     'Request ID',
     'Name',
+    'Phone',
     'Ad Account ID',
     'Date Requested',
     'Subscriptions',

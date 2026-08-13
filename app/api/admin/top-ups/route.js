@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { mapTopUpAdminRow } from "@/lib/admin/map-top-up-admin-row";
+import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
 
 /**
  * ?status=payment_submitted|approved/rejected
@@ -34,7 +35,14 @@ export async function GET(request) {
     ms: d.data()?.createdAt?.toMillis?.() ?? 0,
   }));
   paired.sort((a, b) => b.ms - a.ms);
-  const items = paired.map(({ id, data }) => mapTopUpAdminRow(id, data));
+  const phoneMap = await getUserPhoneMap(
+    db,
+    paired.map(({ data }) => data.userId)
+  );
+  const items = paired.map(({ id, data }) => ({
+    ...mapTopUpAdminRow(id, data),
+    phone: phoneMap.get(String(data.userId)) || "—",
+  }));
 
   return NextResponse.json({ items });
 }
