@@ -61,13 +61,14 @@ export default function Signup({ onSwitchToLogin }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [pending, setPending] = useState(false);
 
   const passwordStrength = getPasswordStrength(password);
 
   const handleRegister = async (e) => {
     e?.preventDefault?.();
-    if (!name.trim() || !email.trim() || !password) {
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -86,7 +87,9 @@ export default function Signup({ onSwitchToLogin }) {
         await updateProfile(cred.user, { displayName: name.trim() });
       }
       await cred.user.getIdToken(true);
-      const role = await establishSession(cred.user, ROLE.MANAGER);
+      const role = await establishSession(cred.user, ROLE.MANAGER, {
+        phone: phone.trim(),
+      });
       toast.success("Account created!");
       navigateAfterSession(role);
     } catch (err) {
@@ -142,6 +145,18 @@ export default function Signup({ onSwitchToLogin }) {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter here"
+              className="w-full h-[52px] bg-secondary text-[12px] text-white placeholder-gray-400 rounded-2xl px-4 border-0 focus:ring-1 focus:ring-quaternary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-quaternary text-[12px] mb-2">Phone number</label>
+            <input
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter here"
               className="w-full h-[52px] bg-secondary text-[12px] text-white placeholder-gray-400 rounded-2xl px-4 border-0 focus:ring-1 focus:ring-quaternary focus:outline-none"
             />

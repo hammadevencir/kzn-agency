@@ -42,6 +42,10 @@ const DepositDetailsModal = ({
             value: depositData.subscription ?? '—',
           },
           { label: 'Method:', value: depositData.method ?? '—' },
+          {
+            label: 'Payment Reference:',
+            value: depositData.paymentReference || '—',
+          },
         ];
 
   const uiStatus =

@@ -12,6 +12,7 @@ import {
 } from "@/lib/top-ups/constants";
 import { checkAdAccountSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import {
   minTopUpUsdForPlatform,
   parseAmountToNumber,
@@ -151,6 +152,13 @@ export async function POST(request) {
       { status: 400 }
     );
   }
+  const paymentReference = sanitizePaymentReference(body?.paymentReference);
+  if (finalize && !paymentReference && !isFreeBalanceRequest) {
+    return NextResponse.json(
+      { error: "missing_payment_reference" },
+      { status: 400 }
+    );
+  }
 
   const db = getAdminDb();
   const adRef = db.collection(AD_ACCOUNTS_COLLECTION).doc(adAccountId);
@@ -264,6 +272,7 @@ export async function POST(request) {
       : null,
     paymentNote: finalize ? paymentNote : null,
     paymentProof: paymentProof || null,
+    paymentReference: finalize ? paymentReference : null,
   };
 
   await docRef.set(payload);

@@ -26,6 +26,7 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
   const displayName =
     data.name || data.userName || data.affiliateName || "—";
   const displayEmail = data.email || "—";
+  const displayPhone = data.phone || "—";
   const displayId = data.id || data.accountId || "—";
   const adAccountName = data.adAccountName || "—";
   const adAccountId = data.adAccountId || data.accountId || "—";
@@ -55,6 +56,7 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
   const adAccountFields = [
     { label: "User", value: displayName },
     { label: "Email", value: displayEmail },
+    { label: "Phone", value: displayPhone },
     { label: "Ad Account Name", value: adAccountName },
     { label: "Ad Account ID", value: adAccountId },
     { label: "Current Balance", value: currentBalance },
@@ -167,6 +169,10 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
                 <div className="flex justify-between items-center">
                   <span className="text-quaternary font-light">Email</span>
                   <span className="text-white font-medium">{displayEmail}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-quaternary font-light">Phone</span>
+                  <span className="text-white font-medium">{displayPhone}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-quaternary font-light">Platform</span>

@@ -307,7 +307,7 @@ const UserAdAccounts = () => {
     });
   };
 
-  const handleExpiredPaySuccess = async (paymentProof) => {
+  const handleExpiredPaySuccess = async (paymentProof, paymentReference) => {
     const ctx = payForExpiredSub;
     setPayForExpiredSub(null);
     if (!ctx?.subscriptionId) return;
@@ -320,7 +320,8 @@ const UserAdAccounts = () => {
           platformId: ctx.platformId,
           renewal: true,
         },
-        paymentProof || null
+        paymentProof || null,
+        paymentReference || null
       );
       toast.success(
         "Payment proof received. We'll review and restore access shortly."

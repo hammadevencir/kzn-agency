@@ -41,6 +41,7 @@ const UserManagement = ({ onViewDetails }) => {
   const headers = [
     "Name",
     "Email",
+    "Phone",
     "Joined Date",
     "Ad Accounts",
     "Subscriptions",

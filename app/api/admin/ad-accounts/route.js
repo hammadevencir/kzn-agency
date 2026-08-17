@@ -11,6 +11,7 @@ import {
   mapAdAccountNewRequestRow,
   mapAdAccountApprovedRow,
 } from "@/lib/admin/map-request-rows";
+import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
 
 /**
  * ?tab=new — pending admin review (payment submitted)
@@ -134,10 +135,24 @@ export async function GET(request) {
     }
   }
 
+  const phoneMap = await getUserPhoneMap(
+    db,
+    paired.map((p) => p.data?.userId)
+  );
+
   const items = paired.map(({ id, data }) =>
     tab === "new"
-      ? mapAdAccountNewRequestRow(id, data, { existingAdByUser, subsByUser })
-      : mapAdAccountApprovedRow(id, data, topUpsByAd.get(id) || [])
+      ? mapAdAccountNewRequestRow(id, data, {
+          existingAdByUser,
+          subsByUser,
+          phoneMap,
+        })
+      : mapAdAccountApprovedRow(
+          id,
+          data,
+          topUpsByAd.get(id) || [],
+          phoneMap.get(String(data.userId)) || "—"
+        )
   );
 
   return NextResponse.json({ items, counts });

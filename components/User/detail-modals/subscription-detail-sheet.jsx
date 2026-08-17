@@ -83,7 +83,7 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
     setIsPayModalOpen(true);
   };
 
-  const handleExtendSuccess = async (paymentProof) => {
+  const handleExtendSuccess = async (paymentProof, paymentReference) => {
     if (!data?.firestoreId) {
       setIsPayModalOpen(false);
       return;
@@ -98,7 +98,8 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
           platformId: data.platformId || null,
           renewal: true,
         },
-        paymentProof || null
+        paymentProof || null,
+        paymentReference || null
       );
       toast.success(
         "Renewal payment submitted. We'll review it and extend your subscription."

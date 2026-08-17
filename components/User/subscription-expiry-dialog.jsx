@@ -171,7 +171,7 @@ export default function SubscriptionExpiryDialog() {
     setIsPayOpen(true);
   };
 
-  const handlePaySuccess = async (paymentProof) => {
+  const handlePaySuccess = async (paymentProof, paymentReference) => {
     try {
       await submitPlatformSubscriptionPayment(
         warning.id,
@@ -181,7 +181,8 @@ export default function SubscriptionExpiryDialog() {
           platformId: warning.doc.platformId || null,
           renewal: true,
         },
-        paymentProof || null
+        paymentProof || null,
+        paymentReference || null
       );
       toast.success(
         "Payment proof received. We'll review it and restore access shortly."

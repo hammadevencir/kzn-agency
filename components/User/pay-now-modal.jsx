@@ -134,6 +134,8 @@ const PayNowModal = ({
   const fileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [proofError, setProofError] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [referenceError, setReferenceError] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const proofImagePreviewUrl = useMemo(() => {
@@ -155,6 +157,8 @@ const PayNowModal = ({
     if (!isOpen) {
       setUploadedFile(null);
       setProofError('');
+      setPaymentReference('');
+      setReferenceError('');
       setUploading(false);
     }
   }, [isOpen]);
@@ -192,12 +196,17 @@ const PayNowModal = ({
       toast.error('Please upload your payment screenshot before continuing.');
       return;
     }
+    if (!paymentReference.trim()) {
+      setReferenceError('Please enter your payment reference / transaction ID.');
+      toast.error('Please enter your payment reference / transaction ID.');
+      return;
+    }
     setUploading(true);
     try {
       const kind =
         flowType === 'platformSubscription' ? 'subscription' : 'ad-account';
       const proof = await uploadPaymentProof(uploadedFile, { kind });
-      await Promise.resolve(onSuccess?.(proof));
+      await Promise.resolve(onSuccess?.(proof, paymentReference.trim()));
     } catch (err) {
       const raw = err instanceof Error ? err.message : '';
       const msg =
@@ -437,6 +446,24 @@ const PayNowModal = ({
             )}
             {proofError ? (
               <p className="text-red-400 text-[12px] mt-1 ml-1">{proofError}</p>
+            ) : null}
+          </div>
+
+          {/* Payment Reference */}
+          <div className="space-y-3">
+            <h3 className="text-[18px] font-bold text-white tracking-wide">Payment Reference</h3>
+            <input
+              type="text"
+              value={paymentReference}
+              onChange={(e) => { setPaymentReference(e.target.value); setReferenceError(''); }}
+              placeholder="Enter the transaction / payment ID from your bank"
+              disabled={uploading}
+              className={`w-full h-[52px] bg-transparent text-[14px] text-white placeholder:text-[#8B9197] rounded-2xl px-5 border focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50 ${
+                referenceError ? 'border-red-500/70' : 'border-[#373D45]'
+              }`}
+            />
+            {referenceError ? (
+              <p className="text-red-400 text-[12px] mt-1 ml-1">{referenceError}</p>
             ) : null}
           </div>
         </div>

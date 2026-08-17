@@ -53,6 +53,9 @@ const UserProfile = ({ user }) => {
         </div>
         <h1 className="text-2xl font-bold text-white mb-1">{user.name}</h1>
         <p className="text-quaternary font-light text-[15px]">{user.email}</p>
+        {user.phone ? (
+          <p className="text-quaternary font-light text-[15px]">{user.phone}</p>
+        ) : null}
       </div>
 
       <div className="bg-[#161D26] p-6 border-white/5 rounded-2xl border">
@@ -60,6 +63,10 @@ const UserProfile = ({ user }) => {
           <div className="flex justify-between items-center">
             <span className="text-quaternary text-lg font-light">Account ID:</span>
             <span className="text-white text-lg font-medium">{user.accountId}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-quaternary text-lg font-light">Phone:</span>
+            <span className="text-white text-lg font-medium">{user.phone || "—"}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-quaternary text-lg font-light">

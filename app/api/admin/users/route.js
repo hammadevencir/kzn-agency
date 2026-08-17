@@ -89,10 +89,12 @@ export async function GET() {
         (typeof data.email === "string" ? data.email.split("@")[0] : null) ||
         "—";
       const email = typeof data.email === "string" ? data.email : "—";
+      const phone = typeof data.phone === "string" && data.phone ? data.phone : "—";
       return {
         id: uid,
         name,
         email,
+        phone,
         joinedDate: formatJoinedDate(data.createdAt),
         adAccounts: String(adCount[uid] ?? 0).padStart(2, "0"),
         subscriptions: String(subCount[uid] ?? 0).padStart(2, "0"),

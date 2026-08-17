@@ -173,6 +173,19 @@ export default function UserSignup() {
           </div>
 
           <div>
+            <label className="block text-quaternary text-[12px] mb-2">Phone number</label>
+            <input
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
+              placeholder="Enter here"
+              className={`w-full h-[52px] bg-secondary text-[12px] text-white placeholder:text-quaternary/80 rounded-xl px-4 border-0 focus:ring-1 focus:ring-primary focus:outline-none ${errors.phone ? 'ring-1 ring-red-500' : ''}`}
+            />
+            {errors.phone && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.phone}</p>}
+          </div>
+
+          <div>
             <label className="block text-quaternary text-[12px] mb-2">
               Create Password
             </label>

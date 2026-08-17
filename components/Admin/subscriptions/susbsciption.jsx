@@ -200,6 +200,7 @@ function Susbsciption() {
           ? `#${String(selectedSubscription.firestoreId).slice(0, 10).toUpperCase()}`
           : '—',
         paymentProof: selectedSubscription.paymentProof || null,
+        paymentReference: selectedSubscription.paymentReference || null,
       }
     : null;
 

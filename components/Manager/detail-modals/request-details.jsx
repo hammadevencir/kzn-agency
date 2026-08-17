@@ -80,6 +80,7 @@ const RequestDetailsModal = ({
     { label: "Request ID:", value: data.id },
     { label: "Name:", value: data.name },
     { label: "Email:", value: data.email },
+    { label: "Phone:", value: data.phone || "—" },
     { label: "Request Date:", value: data.date },
     ...(data.subscription
       ? [{ label: "Plan / subscription:", value: data.subscription }]
@@ -212,6 +213,14 @@ const RequestDetailsModal = ({
                           <span className="text-white text-right capitalize">
                             {dep.status}
                           </span>
+                          {dep.reference ? (
+                            <>
+                              <span className="text-quaternary">Reference</span>
+                              <span className="text-white text-right break-all">
+                                {dep.reference}
+                              </span>
+                            </>
+                          ) : null}
                           {dep.note ? (
                             <>
                               <span className="text-quaternary">Note</span>

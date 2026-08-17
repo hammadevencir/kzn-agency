@@ -63,6 +63,8 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const [submitting, setSubmitting] = useState(false);
   const [proofFile, setProofFile] = useState(null);
   const [proofError, setProofError] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [referenceError, setReferenceError] = useState("");
   const proofInputRef = useRef(null);
 
   const proofImagePreviewUrl = useMemo(() => {
@@ -82,6 +84,8 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       setSubmitting(false);
       setProofFile(null);
       setProofError("");
+      setPaymentReference("");
+      setReferenceError("");
     }
   }, [isOpen]);
 
@@ -151,6 +155,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       toast.error("Please upload proof of payment.");
       return;
     }
+    if (!paymentReference.trim()) {
+      setReferenceError("Please enter your payment reference / transaction ID.");
+      toast.error("Please enter your payment reference / transaction ID.");
+      return;
+    }
     setSubmitting(true);
     try {
       const proof = await uploadPaymentProof(proofFile, { kind: "top-up" });
@@ -159,6 +168,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
         amount: trimmed.startsWith("$") || trimmed.startsWith("€") ? trimmed : `$${trimmed}`,
         finalize: true,
         paymentProof: proof,
+        paymentReference: paymentReference.trim(),
       });
       toast.success("Top-up request submitted for review.");
       onSuccess();
@@ -403,6 +413,21 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               </button>
             )}
             {proofError && <p className="text-red-400 text-[11px] mt-1 ml-1">{proofError}</p>}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-white">Payment Reference</label>
+            <input
+              type="text"
+              value={paymentReference}
+              onChange={(e) => { setPaymentReference(e.target.value); setReferenceError(""); }}
+              disabled={submitting}
+              placeholder="Enter the transaction / payment ID from your bank"
+              className={`w-full h-12 rounded-xl bg-[#151E25] border px-4 text-white text-[15px] placeholder:text-quaternary focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50 ${
+                referenceError ? "border-red-500/50" : "border-white/10"
+              }`}
+            />
+            {referenceError && <p className="text-red-400 text-[11px] mt-1 ml-1">{referenceError}</p>}
           </div>
         </div>
 

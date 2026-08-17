@@ -41,12 +41,13 @@ export default function AccountPausedOverlay({ reason }) {
   const subscriptionName = String(checkout.subscriptionName || flow.displayPlatform || "Subscription plan");
   const amount = checkout.amount != null ? String(checkout.amount) : "—";
 
-  const handlePaySuccess = async (paymentProof) => {
+  const handlePaySuccess = async (paymentProof, paymentReference) => {
     try {
       await submitPlatformSubscriptionPayment(
         target.id,
         { amount: checkout.amount ?? null, subscriptionName, platformId: target.platformId || null, renewal: true },
-        paymentProof || null
+        paymentProof || null,
+        paymentReference || null
       );
       toast.success("Payment proof received. We'll review it and restore access shortly.");
       setSubmitted(true);

@@ -213,6 +213,8 @@ const DataTable = ({
         );
       case "Account ID":
         return <span className="font-light">{row.accountId}</span>;
+      case "Phone":
+        return <span className="font-light">{row.phone}</span>;
       case "Current Balance":
         return <span className="font-light">{row.currentBalance}</span>;
       case "Balance Last Updated":
@@ -554,6 +556,8 @@ const DataTable = ({
         );
       case "Email":
         return <span className="font-light text-quaternary">{row.email}</span>;
+      case "Phone":
+        return <span className="font-light text-quaternary">{row.phone}</span>;
       case "Joined Date":
         return (
           <span className="font-light text-quaternary">{row.joinedDate}</span>

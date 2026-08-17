@@ -529,10 +529,10 @@ function DashboardContent() {
     );
   };
 
-  const handleSubPayDone = async (paymentProof) => {
+  const handleSubPayDone = async (paymentProof, paymentReference) => {
     if (!subPayData) return;
     try {
-      await afterPayDone(subPayData, paymentProof);
+      await afterPayDone(subPayData, paymentProof, paymentReference);
       void refetchSubscriptions();
       void loadDashboardData();
     } catch (err) {

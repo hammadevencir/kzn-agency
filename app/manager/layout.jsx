@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from '@/components/common-admin-manager/sidebar';
 import Header from '@/components/common-admin-manager/header';
 import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
+import PhoneRequiredModal from '@/components/common/phone-required-modal';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 
@@ -99,6 +100,7 @@ const ManagerLayout = ({ children }) => {
         onClose={handleLogoutModalClose}
         onConfirm={handleLogoutConfirm}
       />
+      <PhoneRequiredModal profileEndpoint="/api/manager/profile" />
     </div>
   );
 };

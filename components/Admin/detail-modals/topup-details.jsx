@@ -94,6 +94,7 @@ const TopUpDetails = ({
     { label: "Request ID:", value: displayId },
     { label: "Email:", value: displayEmail },
     { label: "Phone:", value: data.phone || "—" },
+    { label: "Payment Reference:", value: data.paymentReference || "—" },
     { label: "Ad Account ID:", value: displayAdAccountId },
     {
       label: isBalanceCreditRequest ? "Amount (transfer):" : "Top-up amount:",

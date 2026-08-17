@@ -66,12 +66,18 @@ export async function POST(request) {
           { status: 403 }
         );
       } else {
+        if (!phone) {
+          return NextResponse.json(
+            { error: "phone_required", message: "Phone number is required." },
+            { status: 400 }
+          );
+        }
         role = portal;
         await userRef.set({
           role,
           email,
           displayName: decoded.name ?? null,
-          ...(phone ? { phone } : {}),
+          phone,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });

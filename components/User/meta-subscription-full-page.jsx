@@ -214,10 +214,10 @@ export default function MetaSubscriptionFullPage({ category }) {
     setIsSubPayOpen(true);
   };
 
-  const handleSubPayDone = async (paymentProof) => {
+  const handleSubPayDone = async (paymentProof, paymentReference) => {
     if (!subPayData) return;
     try {
-      await afterPayDone(subPayData, paymentProof);
+      await afterPayDone(subPayData, paymentProof, paymentReference);
       void refetchSubscriptions();
     } catch (err) {
       toast.error(describeSubscriptionRequestError(err));

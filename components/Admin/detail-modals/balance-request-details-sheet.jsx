@@ -173,6 +173,7 @@ export default function BalanceRequestDetailsSheet({
   const detailRows = showPendingActions
     ? [
         { label: "Phone", value: data.phone || "—" },
+        { label: "Payment Reference", value: data.paymentReference || "—" },
         { label: "Platform", value: platform },
         { label: "Account ID", value: accountIdDisplay },
         { label: "Date Requested", value: dateRequested },
@@ -182,6 +183,7 @@ export default function BalanceRequestDetailsSheet({
       ]
     : [
         { label: "Phone", value: data.phone || "—" },
+        { label: "Payment Reference", value: data.paymentReference || "—" },
         { label: "Platform", value: platform },
         { label: "Account ID", value: accountIdDisplay },
         { label: "Date Requested", value: dateRequested },

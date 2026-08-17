@@ -222,10 +222,13 @@ export async function GET(_request, context) {
     };
   });
 
+  const phone = typeof fs?.phone === "string" && fs.phone ? fs.phone : "—";
+
   const profile = {
     id: uid,
     name: displayName,
     email,
+    phone,
     photoURL: rec.photoURL || null,
     accountId: `#${uid.slice(0, 8)}`,
     joinedDate: formatJoinedDate(fs?.createdAt ?? null),

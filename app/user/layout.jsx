@@ -6,6 +6,7 @@ import Sidebar from '@/components/common-admin-manager/sidebar';
 import Header from '@/components/common-admin-manager/header';
 import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
 import SubscriptionExpiryDialog from '@/components/User/subscription-expiry-dialog';
+import PhoneRequiredModal from '@/components/common/phone-required-modal';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
@@ -122,6 +123,7 @@ const UserLayout = ({ children }) => {
         onConfirm={handleLogoutConfirm}
       />
       <SubscriptionExpiryDialog />
+      <PhoneRequiredModal profileEndpoint="/api/user/profile" />
       <PushNotificationSetup />
       <Toaster position="top-right" />
     </div>

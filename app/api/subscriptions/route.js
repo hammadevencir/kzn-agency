@@ -19,6 +19,7 @@ import { buildReferralAttachmentForPurchase } from "@/lib/affiliates/server-refe
 import { validateSubscriptionCheckoutReferralDiscount } from "@/lib/affiliates/validate-subscription-checkout";
 import { checkoutPreviewHasReferralDiscount } from "@/lib/affiliates/discount-eligibility";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 
 /**
@@ -95,6 +96,13 @@ export async function POST(request) {
   if (finalize && !paymentProof) {
     return NextResponse.json(
       { error: "missing_payment_proof" },
+      { status: 400 }
+    );
+  }
+  const paymentReference = sanitizePaymentReference(body?.paymentReference);
+  if (finalize && !paymentReference) {
+    return NextResponse.json(
+      { error: "missing_payment_reference" },
       { status: 400 }
     );
   }
@@ -452,6 +460,7 @@ export async function POST(request) {
     updatedAt: FieldValue.serverTimestamp(),
     paymentSubmittedAt: finalize ? FieldValue.serverTimestamp() : null,
     paymentProof: paymentProof || null,
+    paymentReference: finalize ? paymentReference : null,
   };
 
   if (referralBlock.referral) {

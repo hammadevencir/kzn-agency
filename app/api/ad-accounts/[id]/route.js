@@ -7,6 +7,7 @@ import {
   AD_ACCOUNT_STATUS,
 } from "@/lib/ad-accounts/constants";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 
 function checkoutFromBody(checkout) {
   if (!checkout || typeof checkout !== "object") return null;
@@ -55,6 +56,14 @@ export async function PATCH(request, context) {
     );
   }
 
+  const paymentReference = sanitizePaymentReference(body?.paymentReference);
+  if (!paymentReference) {
+    return NextResponse.json(
+      { error: "missing_payment_reference" },
+      { status: 400 }
+    );
+  }
+
   const db = getAdminDb();
   const ref = db.collection(AD_ACCOUNTS_COLLECTION).doc(id);
   const snap = await ref.get();
@@ -79,6 +88,7 @@ export async function PATCH(request, context) {
         ? String(body.paymentNote).slice(0, 500)
         : null,
       paymentProof,
+      paymentReference,
     },
     { merge: true }
   );

@@ -33,6 +33,7 @@ export async function GET() {
     displayName: rec.displayName ?? fs?.displayName ?? "",
     email: rec.email ?? user.email ?? "",
     photoURL: rec.photoURL ?? fs?.photoURL ?? null,
+    phone: fs?.phone ?? "",
     hasPasswordProvider,
   });
 }
@@ -72,6 +73,11 @@ export async function PATCH(request) {
       const t = body.photoURL.trim();
       payload.photoURL = t || null;
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "phone")) {
+    const phone = typeof body.phone === "string" ? body.phone.trim().slice(0, 40) : "";
+    payload.phone = phone || null;
   }
 
   const db = getAdminDb();

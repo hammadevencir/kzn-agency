@@ -62,6 +62,7 @@ function AdminUserProfilePage() {
       ? {
           name: String(profile.name ?? "—"),
           email: String(profile.email ?? "—"),
+          phone: String(profile.phone ?? "—"),
           photoURL: profile.photoURL ?? null,
           accountId: String(profile.accountId ?? "—"),
           totalAdAccounts: String(profile.totalAdAccounts ?? "0"),
