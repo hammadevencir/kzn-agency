@@ -13,6 +13,7 @@ import SubscriptionRequestModal from '@/components/User/subscription-request-mod
 import SubscriptionSuccessModal from '@/components/User/subscription-success-modal';
 import { useAgencyAdAccountPersistence } from '@/lib/hooks/useAgencyAdAccountPersistence';
 import { getPlatformRequestConfig } from '@/lib/ad-accounts/platform-request-config';
+import { humanizeReferralError } from '@/lib/affiliates/humanize-error';
 
 const cfg = getPlatformRequestConfig('tiktok');
 
@@ -37,7 +38,7 @@ export default function TiktokAgencyAccountPage() {
     try {
       await afterFormSubmit({ subscriptionForm, flow, checkoutPreview });
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : 'Could not save your request. Please try again.');
+      toast.error(humanizeReferralError(err));
       return;
     }
     setIsSuccessOpen(true);
