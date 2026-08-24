@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
-import { NotificationIcon, EuroIcon } from '@/components/icons';
+import { NotificationIcon } from '@/components/icons';
 import { X } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
@@ -42,7 +42,6 @@ function detectMarkReadEndpoint(pathname) {
 const Header = ({
   userName: userNameProp = '',
   avatarUrl: avatarUrlProp = '',
-  showEuroButton = false,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -223,14 +222,6 @@ const Header = ({
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-4">
-        {/* Euro button */}
-        {showEuroButton && (
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#CBAF69] text-[#11191F] rounded-full font-bold hover:bg-[#D4BB7D] transition-colors shadow-lg shadow-[#CBAF69]/10">
-            <EuroIcon width={20} height={20} />
-            <span className="text-[14px]">EURO</span>
-          </button>
-        )}
-
         {/* Notification Container */}
         <div className="relative" ref={dropdownRef}>
           <button

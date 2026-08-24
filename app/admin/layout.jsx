@@ -119,7 +119,7 @@ const AdminLayout = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 xl:ml-[254px] w-full max-w-full flex flex-col">
         {/* Header - Show on all pages except login */}
-        {needsHeader && <Header showEuroButton={pathname.includes('/settings')} />}
+        {needsHeader && <Header />}
         
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto">

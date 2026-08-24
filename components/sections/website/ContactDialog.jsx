@@ -44,8 +44,8 @@ const ContactDialog = ({ isOpen, onClose }) => {
     },
     {
       name: "Website",
-      handle: "www.kazansolutions.com",
-      icon: "/social/website.svg", // Using instagram as globe icon
+      handle: "Submit a Contact Request",
+      icon: "/logo.png",
       href: "/contact",
       bgColor: "bg-[#1DA1F2]",
       external: false,

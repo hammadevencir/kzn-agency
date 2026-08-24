@@ -86,7 +86,7 @@ const ManagerLayout = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 xl:ml-[254px] w-full max-w-full flex flex-col">
         {/* Header - Only show on settings page */}
-        {needsHeader && <Header showEuroButton={true} />}
+        {needsHeader && <Header />}
         
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto">
