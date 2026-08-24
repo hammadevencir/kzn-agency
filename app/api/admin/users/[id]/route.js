@@ -65,10 +65,7 @@ function formatBalanceDisplay(raw) {
 
 export async function GET(_request, context) {
   const sessionUser = await getSessionUser();
-  if (
-    !sessionUser ||
-    (sessionUser.role !== ROLE.ADMIN && sessionUser.role !== ROLE.MANAGER)
-  ) {
+  if (!sessionUser || sessionUser.role !== ROLE.ADMIN) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

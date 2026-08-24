@@ -8,24 +8,18 @@ import {
 } from "@/lib/auth/constants";
 
 function isAuthPath(pathname) {
-  return (
-    pathname === "/user/signup" ||
-    pathname === "/manager/login" ||
-    pathname === "/manager/signup"
-  );
+  return pathname === "/user/signup";
 }
 
 function homeForRole(role) {
   if (role === ROLE.ADMIN) return DASHBOARD_PATH[ROLE.ADMIN];
   if (role === ROLE.USER) return DASHBOARD_PATH[ROLE.USER];
-  if (role === ROLE.MANAGER) return DASHBOARD_PATH[ROLE.MANAGER];
   return "/";
 }
 
 function loginForPath(pathname) {
   if (pathname.startsWith("/admin")) return LOGIN_PATH[ROLE.ADMIN];
   if (pathname.startsWith("/user")) return LOGIN_PATH[ROLE.USER];
-  if (pathname.startsWith("/manager")) return LOGIN_PATH[ROLE.MANAGER];
   return LOGIN_PATH[ROLE.USER];
 }
 
@@ -42,11 +36,7 @@ export async function proxy(request) {
       try {
         const decoded = await verifySessionCookieServer(sessionCookie);
         const role = decoded.role;
-        if (
-          role === ROLE.ADMIN ||
-          role === ROLE.USER ||
-          role === ROLE.MANAGER
-        ) {
+        if (role === ROLE.ADMIN || role === ROLE.USER) {
           const url = request.nextUrl.clone();
           url.pathname = homeForRole(role);
           url.search = "";
@@ -67,9 +57,8 @@ export async function proxy(request) {
 
   const isAdminRoute = pathname.startsWith("/admin");
   const isUserRoute = pathname.startsWith("/user");
-  const isManagerRoute = pathname.startsWith("/manager");
 
-  if (!isAdminRoute && !isUserRoute && !isManagerRoute) {
+  if (!isAdminRoute && !isUserRoute) {
     return NextResponse.next();
   }
 
@@ -80,7 +69,7 @@ export async function proxy(request) {
       try {
         const decoded = await verifySessionCookieServer(sessionCookie);
         const role = decoded.role;
-        if (role === ROLE.ADMIN || role === ROLE.USER || role === ROLE.MANAGER) {
+        if (role === ROLE.ADMIN || role === ROLE.USER) {
           const url = request.nextUrl.clone();
           url.pathname = homeForRole(role);
           url.search = "";
@@ -111,7 +100,7 @@ export async function proxy(request) {
   }
 
   const role = decoded.role;
-  if (role !== ROLE.ADMIN && role !== ROLE.USER && role !== ROLE.MANAGER) {
+  if (role !== ROLE.ADMIN && role !== ROLE.USER) {
     const url = request.nextUrl.clone();
     url.pathname = loginForPath(pathname);
     url.search = "";
@@ -132,13 +121,6 @@ export async function proxy(request) {
     return NextResponse.redirect(url);
   }
 
-  if (isManagerRoute && role !== ROLE.MANAGER) {
-    const url = request.nextUrl.clone();
-    url.pathname = homeForRole(role);
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   return NextResponse.next();
 }
 
@@ -149,7 +131,5 @@ export const config = {
     "/admin/:path*",
     "/user",
     "/user/:path*",
-    "/manager",
-    "/manager/:path*",
   ],
 };

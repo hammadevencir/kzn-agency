@@ -25,7 +25,7 @@ function getInitial(name) {
 
 function detectNotificationsEndpoint(pathname) {
   if (!pathname) return '/api/notifications';
-  if (pathname.startsWith('/admin') || pathname.startsWith('/manager')) {
+  if (pathname.startsWith('/admin')) {
     return '/api/admin/notifications';
   }
   return '/api/notifications';
@@ -33,7 +33,7 @@ function detectNotificationsEndpoint(pathname) {
 
 function detectMarkReadEndpoint(pathname) {
   if (!pathname) return '/api/notifications/read';
-  if (pathname.startsWith('/admin') || pathname.startsWith('/manager')) {
+  if (pathname.startsWith('/admin')) {
     return '/api/admin/notifications/read';
   }
   return '/api/notifications/read';

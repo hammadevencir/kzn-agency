@@ -11,6 +11,7 @@ import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 
@@ -20,6 +21,13 @@ const UserLayout = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.USER);
+  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+
+  useVerifySessionOrRedirect({
+    endpoint: '/api/user/profile',
+    loginPath: '/login',
+    enabled: !isAuthPage,
+  });
 
   // Determine active item based on current path
   const getActiveItem = () => {
@@ -71,9 +79,6 @@ const UserLayout = ({ children }) => {
     setIsLogoutModalOpen(false);
   };
 
-  // Check if current page is auth page
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
-  
   // Check if current page needs header (all pages except auth pages)
   const needsHeader = !isAuthPage;
 

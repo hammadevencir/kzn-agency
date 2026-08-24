@@ -34,10 +34,7 @@ function formatDate(ts) {
 
 export async function GET(request) {
   const sessionUser = await getSessionUser();
-  if (
-    !sessionUser ||
-    (sessionUser.role !== ROLE.ADMIN && sessionUser.role !== ROLE.MANAGER)
-  ) {
+  if (!sessionUser || sessionUser.role !== ROLE.ADMIN) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

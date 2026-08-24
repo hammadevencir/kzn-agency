@@ -205,7 +205,17 @@ const DataTable = ({
                 Deleted
               </span>
             ) : row.paused ? (
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-white bg-red-500/80 rounded-full px-2 py-0.5">
+              <span
+                title={[
+                  row.pauseReasonLabel,
+                  row.pauseUntil
+                    ? `Auto-reactivates on ${new Date(row.pauseUntil).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`
+                    : "Paused until manually reactivated",
+                ]
+                  .filter(Boolean)
+                  .join(" — ")}
+                className="text-[10px] font-semibold uppercase tracking-wide text-white bg-red-500/80 rounded-full px-2 py-0.5 cursor-help"
+              >
                 Paused
               </span>
             ) : null}
@@ -250,22 +260,19 @@ const DataTable = ({
                   <button
                     onClick={() => onReactivate?.(row)}
                     className="text-[#39CB7F] hover:text-[#39CB7F]/80 transition-colors"
-                    title="Reactivate"
+                    title="Reactivate (unpause immediately)"
                   >
                     <PlayIcon width={20} height={20} />
                   </button>
-                ) : null /* Manual pause is disabled for now — ad accounts auto-pause
-                     after 30 days (subscription expiry) via lib/subscriptions/expiry-worker.js,
-                     or can still be paused by an admin through the API. We might need this
-                     button again later; uncomment to re-enable it:
-                <button
-                  onClick={() => onPause?.(row)}
-                  className="text-[#F5A524] hover:text-[#F5A524]/80 transition-colors"
-                  title="Pause"
-                >
-                  <PauseIcon width={20} height={20} />
-                </button>
-                */}
+                ) : (
+                  <button
+                    onClick={() => onPause?.(row)}
+                    className="text-[#F5A524] hover:text-[#F5A524]/80 transition-colors"
+                    title="Pause"
+                  >
+                    <PauseIcon width={20} height={20} />
+                  </button>
+                )}
                 <button
                   onClick={() => onDelete?.(row)}
                   className="text-[#EA4335] hover:text-[#EA4335]/80 transition-colors"

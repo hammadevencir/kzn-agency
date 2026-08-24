@@ -8,6 +8,7 @@ import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 
@@ -17,6 +18,13 @@ const AdminLayout = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.ADMIN);
+  const isLoginPage = pathname.includes('/login');
+
+  useVerifySessionOrRedirect({
+    endpoint: '/api/admin/profile',
+    loginPath: '/login',
+    enabled: !isLoginPage,
+  });
 
   // Determine active item based on current path (specific routes before dashboard)
   const getActiveItem = () => {
@@ -80,13 +88,10 @@ const AdminLayout = ({ children }) => {
     setIsLogoutModalOpen(false);
   };
 
-  // Check if current page needs header (all pages except login and pages using manager components)
+  // Check if current page needs header (all pages except login and pages with a built-in header)
   const pagesWithBuiltInHeaders = ['/admin/ad-accounts', '/admin/top-ups', '/admin/affiliates', '/admin/balance-requests', '/admin/contact-requests', '/admin/affiliate-requests'];
   const hasBuiltInHeader = pagesWithBuiltInHeaders.some(page => pathname.includes(page));
   const needsHeader = !pathname.includes('/login') && !hasBuiltInHeader;
-  
-  // Check if current page is login page
-  const isLoginPage = pathname.includes('/login');
 
   // If it's a login page, render without sidebar and header
   if (isLoginPage) {

@@ -68,7 +68,7 @@ const HeaderSheet = () => {
           </div>
           <div className="flex items-center gap-3">
             <SheetClose asChild>
-              <Link href="/manager/signup">
+              <Link href="/user/signup">
                 <Button variant="outline">Sign Up</Button>
               </Link>
             </SheetClose>

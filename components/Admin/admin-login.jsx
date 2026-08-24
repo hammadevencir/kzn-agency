@@ -17,7 +17,7 @@ import { navigateAfterSession } from "@/lib/auth/navigate-after-session";
 function mapAuthError(code, message) {
   switch (code) {
     case "wrong_portal":
-      return "This account is not an admin. Use the user or manager sign-in page.";
+      return "This account is not an admin. Use the user sign-in page.";
     case "no_admin_profile":
       return "No admin access for this account.";
     case "auth/invalid-email":

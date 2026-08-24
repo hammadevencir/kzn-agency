@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Header from '../header';
-import AdAccountDetail from '../../Manager/detail-modals/adaccount-detail';
-import RequestDetailsModal from '../../Manager/detail-modals/request-details';
+import AdAccountDetail from '../../Admin/detail-modals/adaccount-detail';
+import RequestDetailsModal from '../../Admin/detail-modals/request-details';
 import DataTable from '../data-table';
 import TableSearch from '../table-search';
 import DeleteConfirmationModal from '@/components/ui/delete-confirmation-modal';
@@ -224,7 +224,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
     setIsPauseModalOpen(true);
   };
 
-  const handlePauseConfirm = async (reason) => {
+  const handlePauseConfirm = async (reason, pauseUntil) => {
     const id = pauseTargetAccount?.firestoreId;
     if (!id) return;
     try {
@@ -232,7 +232,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'pause', reason }),
+        body: JSON.stringify({ action: 'pause', reason, pauseUntil: pauseUntil || null }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -240,7 +240,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         return;
       }
       setPauseTargetAccount(null);
-      setPauseSuccess({ reasonLabel: ACCOUNT_PAUSE_REASON_LABEL[reason] });
+      setPauseSuccess({ reasonLabel: ACCOUNT_PAUSE_REASON_LABEL[reason], pauseUntil });
       bumpRefresh();
     } catch {
       toast.error('Could not pause this account.');
@@ -486,7 +486,7 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
           setIsPauseModalOpen(false);
           setPauseTargetAccount(null);
         }}
-        onConfirm={(reason) => void handlePauseConfirm(reason)}
+        onConfirm={(reason, pauseUntil) => void handlePauseConfirm(reason, pauseUntil)}
       />
 
       <SuccessModal
@@ -494,7 +494,11 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
         onClose={() => setPauseSuccess(null)}
         onButtonClick={() => setPauseSuccess(null)}
         title="Account Paused"
-        message={`${pauseSuccess?.reasonLabel || 'Account paused'}. The customer's dashboard is now frozen until this is reactivated.`}
+        message={`${pauseSuccess?.reasonLabel || 'Account paused'}. The customer's dashboard is now frozen until this is reactivated${
+          pauseSuccess?.pauseUntil
+            ? ` (auto-reactivates on ${new Date(pauseSuccess.pauseUntil).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`
+            : ''
+        }.`}
         buttonText="Close"
       />
 

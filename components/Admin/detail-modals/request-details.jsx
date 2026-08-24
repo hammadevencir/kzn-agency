@@ -42,7 +42,7 @@ const demoQuestions = [
 ];
 
 /**
- * Ad-account request detail sheet (manager demo + admin review).
+ * Ad-account request detail sheet (admin review).
  * @param {() => void} [onAdminApprove] — when set, skips demo success modal and runs API flow from parent.
  * @param {() => void} [onAdminReject]
  */

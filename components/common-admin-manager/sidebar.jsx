@@ -147,35 +147,8 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
     },
   ];
 
-  const managerNavigationItems = [
-    {
-      id: 'top-ups',
-      label: 'Dashboard',
-      icon: DashboardIcon,
-    },
-    {
-      id: 'ad-accounts',
-      label: 'Ad Accounts',
-      icon: AdAccountsIcon,
-    },
-    {
-      id: 'affiliates',
-      label: 'Affiliates',
-      icon: AffiliatesIcon,
-    },
-    {
-      id: 'subscriptions',
-      label: 'Subscriptions',
-      icon: SubscriptionsIcon,
-    },
-  ];
-
   // Get navigation items based on role
-  const navigationItems = role === 'admin' 
-    ? adminNavigationItems 
-    : role === 'manager' 
-      ? managerNavigationItems
-      : userNavigationItems;
+  const navigationItems = role === 'admin' ? adminNavigationItems : userNavigationItems;
 
   const bottomItems = [
     {

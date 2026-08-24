@@ -15,7 +15,7 @@ service firebase.storage {
 
     // Payment screenshots uploaded at subscription / top-up / ad-account checkout.
     // Only the signed-in user may write to their own folder. Any signed-in user
-    // (including admins/managers reviewing a request) may read, because the
+    // (including admins reviewing a request) may read, because the
     // file lookup happens through the Admin SDK on the server — the client
     // admin panel just follows the `downloadURL` we stored on the Firestore
     // doc. PNG, JPEG, WEBP and PDF are allowed, up to 10 MB.

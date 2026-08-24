@@ -8,7 +8,7 @@ import {
   ROLE,
 } from "@/lib/auth/constants";
 
-const ALLOWED_ROLES = [ROLE.ADMIN, ROLE.USER, ROLE.MANAGER];
+const ALLOWED_ROLES = [ROLE.ADMIN, ROLE.USER];
 
 export async function POST(request) {
   try {

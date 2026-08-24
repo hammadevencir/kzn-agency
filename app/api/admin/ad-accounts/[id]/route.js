@@ -121,7 +121,15 @@ export async function PATCH(request, context) {
       if (!Object.values(ACCOUNT_PAUSE_REASON).includes(reason)) {
         return NextResponse.json({ error: "invalid_pause_reason" }, { status: 400 });
       }
-      await pauseAdAccount(db, { adAccountId: id, reason, adminUid: admin.uid });
+      let pauseUntil = null;
+      if (body?.pauseUntil != null) {
+        const ms = Date.parse(body.pauseUntil);
+        if (!Number.isFinite(ms) || ms <= Date.now()) {
+          return NextResponse.json({ error: "invalid_pause_until" }, { status: 400 });
+        }
+        pauseUntil = new Date(ms).toISOString();
+      }
+      await pauseAdAccount(db, { adAccountId: id, reason, adminUid: admin.uid, pauseUntil });
     } else {
       await reactivateAdAccount(db, { adAccountId: id, adminUid: admin.uid });
     }

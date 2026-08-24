@@ -116,6 +116,48 @@ async function pauseAdAccountsForExpiredSubscription(db, subscriptionData) {
   return paused;
 }
 
+/**
+ * Mirrors lib/accounts/pause.js#reactivateExpiredPausedAdAccounts.
+ * Auto-reactivates every ad account whose manually-set `pauseUntil` has
+ * passed, so an admin-picked pause duration is lifted without further
+ * action.
+ */
+async function reactivateExpiredPausedAdAccounts(db) {
+  const snap = await db
+    .collection(AD_ACCOUNTS_COLLECTION)
+    .where("paused", "==", true)
+    .get();
+
+  const nowMs = Date.now();
+  const at = new Date().toISOString();
+  let reactivated = 0;
+  for (const doc of snap.docs) {
+    const until = doc.data()?.pauseUntil;
+    const untilMs = until && typeof until.toMillis === "function" ? until.toMillis() : null;
+    if (!untilMs || untilMs > nowMs) continue;
+
+    await doc.ref.set(
+      {
+        paused: false,
+        pauseReason: null,
+        pauseUntil: null,
+        reactivatedAt: FieldValue.serverTimestamp(),
+        reactivatedBy: "system",
+        pauseHistory: FieldValue.arrayUnion({
+          label: "ACCOUNT REACTIVATED",
+          reason: null,
+          at,
+          by: "system",
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    reactivated++;
+  }
+  return reactivated;
+}
+
 function warningStageFromMsLeft(msLeft) {
   if (msLeft <= 0) return EXPIRY_WARNING_STAGE.EXPIRED;
   if (msLeft <= DAY_MS) return EXPIRY_WARNING_STAGE.ONE_DAY;
@@ -233,7 +275,10 @@ async function sweepSubscriptionExpiries(db) {
   }
 
   if (pending > 0) await batch.commit();
-  return { total: snap.size, expired, warned, touched, pausedAdAccounts };
+
+  const autoReactivatedAdAccounts = await reactivateExpiredPausedAdAccounts(db);
+
+  return { total: snap.size, expired, warned, touched, pausedAdAccounts, autoReactivatedAdAccounts };
 }
 
 module.exports = {

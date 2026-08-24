@@ -119,7 +119,7 @@ const Header = () => {
             ease: [0.25, 0.46, 0.45, 0.94] 
           }}
         >
-          <Link href="/manager/signup">
+          <Link href="/user/signup">
             <Button variant="outline">Sign Up</Button>
           </Link>
           <Link href="/login">

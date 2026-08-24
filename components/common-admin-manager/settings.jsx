@@ -94,7 +94,7 @@ function mapAuthError(err) {
 }
 
 /**
- * @param {'admin' | 'manager' | 'user'} role
+ * @param {'admin' | 'user'} role
  */
 function getSettingsContext(role) {
   if (role === 'admin') {
@@ -102,13 +102,6 @@ function getSettingsContext(role) {
       profilePath: '/api/admin/profile',
       portal: ROLE.ADMIN,
       loginPath: LOGIN_PATH[ROLE.ADMIN],
-    };
-  }
-  if (role === 'manager') {
-    return {
-      profilePath: '/api/manager/profile',
-      portal: ROLE.MANAGER,
-      loginPath: LOGIN_PATH[ROLE.MANAGER],
     };
   }
   return {
@@ -469,7 +462,7 @@ export default function Settings({ role = 'admin' }) {
       <div className="bg-[#11191F] border border-white/5 rounded-2xl ml-5 p-3 md:p-6 lg:p-8">
         <div className="mb-6">
           <h2 className="text-[18px] md:text-[21px] font-bold text-white mb-2">
-            {role === 'manager' ? 'Manager Profile' : profileText}
+            {profileText}
           </h2>
           <p className="text-quaternary text-[11px] md:text-[12px]">
             Change your profile settings here
