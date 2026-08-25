@@ -132,12 +132,24 @@ const UserSubscriptions = () => {
     [adAccountDocs]
   );
 
+  const pausedPlatformKeys = useMemo(() => {
+    const set = new Set();
+    for (const d of adAccountDocs) {
+      if (d.status !== AD_ACCOUNT_STATUS.APPROVED || d.paused !== true) continue;
+      const flow = d.flow && typeof d.flow === "object" ? d.flow : {};
+      const pk =
+        typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
+      if (pk) set.add(pk);
+    }
+    return set;
+  }, [adAccountDocs]);
+
   const tableRows = useMemo(() => {
     return subscriptionDocs.map((doc) => {
       const { id, ...data } = doc;
-      return mapUserSubscriptionRow(id, data, adCountsByPlatform);
+      return mapUserSubscriptionRow(id, data, adCountsByPlatform, pausedPlatformKeys);
     });
-  }, [subscriptionDocs, adCountsByPlatform]);
+  }, [subscriptionDocs, adCountsByPlatform, pausedPlatformKeys]);
 
   const detailPayload = useMemo(() => {
     if (!selectedSubscription) return null;

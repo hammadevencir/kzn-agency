@@ -10,8 +10,16 @@ import ChatMessageList from "@/components/chat/chat-message-list";
 import ChatComposer from "@/components/chat/chat-composer";
 
 const SOCIAL_LINKS = [
-  { name: "Instagram", icon: "/social/instagram.svg", href: "#" },
-  { name: "TikTok", icon: "/platforms/tiktok.svg", href: "#" },
+  {
+    name: "Instagram",
+    icon: "/social/instagram.svg",
+    href: "https://instagram.com/kazansolutions",
+  },
+  {
+    name: "Telegram",
+    icon: "/social/telegram.svg",
+    href: "https://t.me/kazansolutions",
+  },
 ];
 
 export default function UserChatPanel() {

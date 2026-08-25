@@ -1691,3 +1691,29 @@ export const TickBadgeIcon = ({ className }) => (
     <path d="M6 8.59519C6 8.59519 6.8 9.02972 7.2 9.66659C7.2 9.66659 8.4 7.16659 10 6.33325" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+
+export const DownloadIcon = ({ className, width = 20, height = 20 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M12 3V16M12 16L16.5 11.5M12 16L7.5 11.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4 17V17.8C4 19.5673 5.34315 21 7 21H17C18.6569 21 20 19.5673 20 17.8V17"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

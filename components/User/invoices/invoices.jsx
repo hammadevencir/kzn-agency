@@ -5,6 +5,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Pagination from "@/components/common-admin-manager/pagination";
 import TableSearch from "@/components/common-admin-manager/table-search";
 import { rowMatchesQuery } from "@/components/common-admin-manager/data-table";
+import { DownloadIcon } from "@/components/icons";
+import { downloadInvoicePdf } from "@/lib/invoices/generate-invoice-pdf";
 
 /** Design: YYYY-MM-DD (local calendar date) */
 function formatDateYmd(iso) {
@@ -21,6 +23,26 @@ function formatDateYmd(iso) {
 function getInitial(name) {
   const s = (name || "").trim();
   return s.length > 0 ? s.charAt(0).toUpperCase() : "?";
+}
+
+/** Design: "25 AUG 2026" */
+function formatIssueDateLabel(iso) {
+  if (!iso) return "—";
+  const ms = Date.parse(iso);
+  if (Number.isNaN(ms)) return "—";
+  const d = new Date(ms);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = d
+    .toLocaleString("en-US", { month: "short" })
+    .toUpperCase();
+  return `${day} ${month} ${d.getFullYear()}`;
+}
+
+/** Prefixes "$" unless the amount already carries a currency symbol. */
+function formatAmountDisplay(amount) {
+  const s = (amount ?? "").toString().trim();
+  if (!s || s === "—") return "$0";
+  return /^[^0-9-]/.test(s) ? s : `$${s}`;
 }
 
 /**
@@ -66,6 +88,53 @@ function statusTextClass(status) {
     default:
       return "text-quaternary";
   }
+}
+
+/**
+ * @param {{
+ *   invoice: any,
+ *   txnId: string,
+ *   billToName: string,
+ *   billToAddress: string,
+ *   description: string,
+ * }} props
+ */
+function DownloadInvoiceButton({ invoice, txnId, billToName, billToAddress, description }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleClick = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await downloadInvoicePdf({
+        invoiceNumber: txnId,
+        issueDate: formatIssueDateLabel(
+          invoice.topUpDateCreatedIso ?? invoice.dateIso
+        ),
+        billToName,
+        billToAddress,
+        description,
+        totalDisplay: formatAmountDisplay(invoice.amount),
+        paid: invoice.status === "approved",
+        filename: `${txnId}.pdf`,
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={downloading}
+      aria-label={`Download invoice ${txnId}`}
+      title="Download invoice"
+      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-quaternary hover:text-[#C5A964] hover:bg-white/5 transition-colors disabled:opacity-50"
+    >
+      <DownloadIcon width={18} height={18} />
+    </button>
+  );
 }
 
 function InvoicesTableFooter({
@@ -186,8 +255,11 @@ const InvoicesTable = ({
                 <th className="py-4 text-quaternary font-normal text-[15px] min-w-[200px] pr-4">
                   Subscription
                 </th>
-                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap">
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pr-4">
                   Status
+                </th>
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap">
+                  <span className="sr-only">Download</span>
                 </th>
               </tr>
             </thead>
@@ -201,6 +273,7 @@ const InvoicesTable = ({
                     ? invoice.subscriptionLine
                     : invoice.description;
                 const ru = rowUserForInvoice(invoice);
+                const ruName = rowViewerName(ru);
                 return (
                   <tr
                     key={`${invoice.kind}-${invoice.firestoreId}`}
@@ -212,7 +285,7 @@ const InvoicesTable = ({
                     <td className="py-5 pr-4">
                       <InvoiceUserCell
                         photoURL={ru.photoURL ?? null}
-                        name={rowViewerName(ru)}
+                        name={ruName}
                       />
                     </td>
                     <td className="py-5 text-white font-light text-[15px] pr-4 whitespace-nowrap">
@@ -222,11 +295,20 @@ const InvoicesTable = ({
                       {subLine}
                     </td>
                     <td
-                      className={`py-5 text-[15px] text-right font-light ${statusTextClass(
+                      className={`py-5 text-[15px] text-right font-light pr-4 ${statusTextClass(
                         invoice.status
                       )}`}
                     >
                       {invoice.statusLabel}
+                    </td>
+                    <td className="py-5 text-right">
+                      <DownloadInvoiceButton
+                        invoice={invoice}
+                        txnId={txnId}
+                        billToName={ruName}
+                        billToAddress={ru.email || ""}
+                        description={subLine}
+                      />
                     </td>
                   </tr>
                 );
@@ -274,8 +356,11 @@ const InvoicesTable = ({
                 <th className="py-4 text-quaternary font-normal text-[15px] whitespace-nowrap pr-4">
                   Date Created
                 </th>
-                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pl-2">
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pl-2 pr-4">
                   Status
+                </th>
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap">
+                  <span className="sr-only">Download</span>
                 </th>
               </tr>
             </thead>
@@ -295,6 +380,7 @@ const InvoicesTable = ({
                     : "—";
                 const createdIso = invoice.topUpDateCreatedIso ?? invoice.dateIso;
                 const ru = rowUserForInvoice(invoice);
+                const ruName = rowViewerName(ru);
                 return (
                   <tr
                     key={`${invoice.kind}-${invoice.firestoreId}`}
@@ -307,7 +393,7 @@ const InvoicesTable = ({
                       <td className="py-5 pr-4">
                         <InvoiceUserCell
                           photoURL={ru.photoURL ?? null}
-                          name={rowViewerName(ru)}
+                          name={ruName}
                         />
                       </td>
                     ) : null}
@@ -324,11 +410,24 @@ const InvoicesTable = ({
                       {formatDateYmd(createdIso)}
                     </td>
                     <td
-                      className={`py-5 text-[15px] text-right font-light pl-2 ${statusTextClass(
+                      className={`py-5 text-[15px] text-right font-light pl-2 pr-4 ${statusTextClass(
                         invoice.status
                       )}`}
                     >
                       {invoice.statusLabel}
+                    </td>
+                    <td className="py-5 text-right">
+                      <DownloadInvoiceButton
+                        invoice={invoice}
+                        txnId={txnId}
+                        billToName={ruName}
+                        billToAddress={ru.email || ""}
+                        description={
+                          acctName !== "—"
+                            ? `${invoice.description || "Top up"} — ${acctName}`
+                            : invoice.description || "Top up"
+                        }
+                      />
                     </td>
                   </tr>
                 );

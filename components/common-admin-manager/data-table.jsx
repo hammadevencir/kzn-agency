@@ -868,9 +868,11 @@ const DataTable = ({
             ? "bg-[#39CB7F]"
             : variant === "danger"
               ? "bg-[#FF4D59]"
-              : variant === "warning"
-                ? "bg-[#C5A964]"
-                : "bg-secondary";
+              : variant === "paused"
+                ? "bg-[#F5B301]"
+                : variant === "warning"
+                  ? "bg-[#C5A964]"
+                  : "bg-secondary";
         const label = row.statusLabel || row.status;
         const isPositive = variant === "success";
         return (
@@ -946,15 +948,18 @@ const DataTable = ({
       case "Balance":
         return <span key="balance" className="font-light text-quaternary">{row.balance}</span>;
       case "Status": {
+        const paused = row.isPaused === true;
         const s = row.status?.toLowerCase() || "";
         const isActive =
-          s === "active" || s === "top spending";
-        const isPending = row.topUpInReview === true;
-        const pillClass = isPending
-          ? "bg-[#C5A964]/90"
-          : isActive
-            ? "bg-[#39CB7F]"
-            : "bg-[#FF4D59]";
+          !paused && (s === "active" || s === "top spending");
+        const isPending = !paused && row.topUpInReview === true;
+        const pillClass = paused
+          ? "bg-[#F5B301]"
+          : isPending
+            ? "bg-[#C5A964]/90"
+            : isActive
+              ? "bg-[#39CB7F]"
+              : "bg-[#FF4D59]";
         const label = row.status || "—";
         return (
           <div

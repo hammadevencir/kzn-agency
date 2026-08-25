@@ -342,6 +342,9 @@ const Header = ({
         {/* Avatar — synced from Firebase (same as settings) */}
         <button
           type="button"
+          onClick={() =>
+            router.push(pathname?.startsWith('/admin') ? '/admin/settings' : '/user/settings')
+          }
           className="w-[36px] h-[36px] rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center border border-white/10 ml-2 hover:opacity-80 transition-opacity"
           aria-label={userName ? `Profile: ${userName}` : 'Profile'}
         >
