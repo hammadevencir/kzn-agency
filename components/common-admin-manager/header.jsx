@@ -8,6 +8,12 @@ import { NotificationIcon } from '@/components/icons';
 import { X } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
+import { showNotificationToast } from '@/components/common-admin-manager/notification-toast';
+import {
+  readAnnouncedNotificationIds,
+  writeAnnouncedNotificationIds,
+  wasShownByPush,
+} from '@/lib/notifications/inapp-alerts';
 
 /** Match settings.jsx: name first, then email local-part, else "?". */
 function getProfileInitialLetter(name, email) {
@@ -30,6 +36,15 @@ function detectNotificationsEndpoint(pathname) {
   }
   return '/api/notifications';
 }
+
+/** How often the bell re-checks for decisions made while the page is open. */
+const NOTIFICATIONS_POLL_MS = 45000;
+
+/** Notification kinds that deserve an in-app pop-up, not just a bell badge. */
+const POPUP_ID_PREFIXES = ['topup-', 'ad-', 'sub-'];
+
+/** Most pop-ups to show at once, so a batch of approvals cannot bury the UI. */
+const MAX_POPUPS_PER_CHECK = 3;
 
 function detectMarkReadEndpoint(pathname) {
   if (!pathname) return '/api/notifications/read';
@@ -114,6 +129,7 @@ const Header = ({
 
   const endpoint = detectNotificationsEndpoint(pathname);
   const markReadEndpoint = detectMarkReadEndpoint(pathname);
+  const isAdminArea = Boolean(pathname?.startsWith('/admin'));
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -135,6 +151,28 @@ const Header = ({
 
   useEffect(() => {
     void loadNotifications();
+  }, [loadNotifications]);
+
+  /**
+   * Keep polling while the tab is open: an admin approving a top-up is the whole
+   * point of the pop-up below, and that happens long after the page loaded.
+   */
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === 'hidden') return;
+      void loadNotifications();
+    };
+    const interval = setInterval(tick, NOTIFICATIONS_POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadNotifications();
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loadNotifications]);
 
   useEffect(() => {
@@ -210,6 +248,50 @@ const Header = ({
 
     router.push(msg.href);
   };
+
+  /**
+   * Pop up newly arrived decisions (top-up approved/rejected, ad account and
+   * subscription outcomes) as a clickable toast, so customers find out without
+   * opening the bell. Only for the customer area — admins have their own feed.
+   *
+   * Anything already announced is remembered across reloads, and anything the
+   * browser showed as a native push notification in this session is skipped.
+   */
+  useEffect(() => {
+    if (!loaded || isAdminArea) return;
+
+    const alertable = notifications.filter((n) =>
+      POPUP_ID_PREFIXES.some((prefix) => n.id.startsWith(prefix))
+    );
+    if (alertable.length === 0) return;
+
+    const stored = readAnnouncedNotificationIds();
+
+    // First visit on this device: adopt the existing feed silently instead of
+    // firing a toast for every historical decision.
+    if (!stored) {
+      writeAnnouncedNotificationIds(new Set(alertable.map((n) => n.id)));
+      return;
+    }
+
+    const fresh = alertable.filter((n) => !n.read && !stored.has(n.id));
+    if (fresh.length === 0) return;
+
+    for (const item of fresh) stored.add(item.id);
+    writeAnnouncedNotificationIds(stored);
+
+    let shown = 0;
+    for (const item of fresh) {
+      if (shown >= MAX_POPUPS_PER_CHECK) break;
+      // The notification id doubles as the web-push tag (e.g. `topup-<id>`).
+      if (wasShownByPush(item.id)) continue;
+      shown += 1;
+      showNotificationToast(item, {
+        onOpen: () => void handleNotificationClick(item),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifications, loaded, isAdminArea]);
 
   const unreadCount = loaded
     ? notifications.filter((n) => !n.read).length

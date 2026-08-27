@@ -183,14 +183,24 @@ export async function POST(request) {
     (typeof extraFlow?.platformKey === "string" && extraFlow.platformKey) ||
     "";
   if (platformKey && platformKey !== "meta") {
+    // Requesting an ad account requires a paid, in-date subscription for the
+    // platform — same rule the Meta branch above enforces. Blocking only
+    // `expired` used to let a never-approved (pending / rejected) subscription
+    // through.
     const subStatus = await checkPlatformSubscriptionStatus(
       db,
       user.uid,
       platformKey
     );
-    if (subStatus.status === "expired") {
+    if (subStatus.status !== "active") {
       return NextResponse.json(
-        { error: "subscription_expired" },
+        {
+          error:
+            subStatus.status === "expired"
+              ? "subscription_expired"
+              : "subscription_inactive",
+          subscriptionStatus: subStatus.status,
+        },
         { status: 409 }
       );
     }

@@ -17,6 +17,7 @@ import { attachReadStateToNotificationItems } from "@/lib/notifications/read-sta
 import { relativeTime, tsMs } from "@/lib/notifications/helpers";
 import { buildUserChatNotificationItems } from "@/lib/notifications/chat-notifications";
 import { buildAnnouncementNotificationItems } from "@/lib/announcements/server-announcements";
+import { adAccountDeepLink } from "@/lib/notifications/deep-links";
 
 export async function GET() {
   const user = await requireEndUserSession();
@@ -44,7 +45,7 @@ export async function GET() {
     buildAnnouncementNotificationItems(db, user.uid),
   ]);
 
-  /** @type {{ id: string, title: string, desc: string, timeMs: number, time: string, kind: string }[]} */
+  /** @type {{ id: string, title: string, desc: string, timeMs: number, time: string, kind: string, href?: string }[]} */
   const items = [];
 
   for (const d of adSnap.docs) {
@@ -73,6 +74,7 @@ export async function GET() {
       timeMs: reviewedMs,
       time: relativeTime(reviewedMs),
       kind: status === AD_ACCOUNT_STATUS.APPROVED ? "success" : "danger",
+      href: adAccountDeepLink(d.id),
     });
   }
 
@@ -85,6 +87,8 @@ export async function GET() {
     const reviewedMs = tsMs(data.reviewedAt) || tsMs(data.updatedAt);
     if (!reviewedMs) continue;
     const amount = data.checkout?.amount || "";
+    const topUpAdAccountId =
+      typeof data.adAccountId === "string" ? data.adAccountId : "";
     items.push({
       id: `topup-${d.id}`,
       title:
@@ -100,6 +104,11 @@ export async function GET() {
       timeMs: reviewedMs,
       time: relativeTime(reviewedMs),
       kind: status === TOP_UP_STATUS.APPROVED ? "success" : "danger",
+      // Take the customer to the ad account the top-up belongs to, where the
+      // credited balance and this request's history are visible.
+      href: topUpAdAccountId
+        ? adAccountDeepLink(topUpAdAccountId)
+        : "/user/top-ups",
     });
   }
 
@@ -134,6 +143,7 @@ export async function GET() {
       timeMs: reviewedMs,
       time: relativeTime(reviewedMs),
       kind: status === SUBSCRIPTION_STATUS.APPROVED ? "success" : "danger",
+      href: "/user/subscriptions",
     });
   }
 

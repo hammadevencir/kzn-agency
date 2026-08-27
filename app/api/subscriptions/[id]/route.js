@@ -121,7 +121,16 @@ export async function PATCH(request, context) {
     return NextResponse.json({ ok: true });
   }
 
-  if (data?.status !== SUBSCRIPTION_STATUS.PENDING_PAYMENT) {
+  // A lapsed subscription is renewed by paying on the same doc: the renew
+  // prompt the portal shows on expiry has to lead somewhere, so `expired` is
+  // accepted here alongside a first payment. Approval then starts a fresh cycle
+  // from `paymentSubmittedAt` and lifts the ad-account pause.
+  const isRenewalOfExpired = data?.status === SUBSCRIPTION_STATUS.EXPIRED;
+
+  if (
+    data?.status !== SUBSCRIPTION_STATUS.PENDING_PAYMENT &&
+    !isRenewalOfExpired
+  ) {
     return NextResponse.json({ error: "invalid_subscription_state" }, { status: 409 });
   }
 
@@ -137,6 +146,13 @@ export async function PATCH(request, context) {
         : null,
       paymentProof,
       paymentReference,
+      ...(isRenewalOfExpired
+        ? {
+            isRenewal: true,
+            renewalRequestedAt: FieldValue.serverTimestamp(),
+            rejectionReason: null,
+          }
+        : {}),
    },
     { merge: true }
   );

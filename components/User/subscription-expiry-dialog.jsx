@@ -11,6 +11,7 @@ import { XIcon } from "@/components/icons";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
 import PayNowModal from "./pay-now-modal";
+import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -280,12 +281,7 @@ export default function SubscriptionExpiryDialog() {
         flowType="platformSubscription"
         data={{
           subscriptionName,
-          amount:
-            amount && amount !== "—"
-              ? amount.startsWith("$")
-                ? amount
-                : `$${amount}`
-              : "—",
+          amount: withDisplayCurrency(amount),
           originalAmount:
             checkout.originalAmount != null
               ? String(checkout.originalAmount)

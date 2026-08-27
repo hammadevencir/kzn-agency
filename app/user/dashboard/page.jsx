@@ -15,6 +15,7 @@ import TopUpUploadModal from '@/components/User/detail-modals/top-up-upload-moda
 import TopUpSuccessModal from '@/components/User/detail-modals/top-up-success-modal';
 import { useUserAdAccountsCount } from '@/lib/hooks/useUserAdAccountsCount';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
+import { topUpBlockReason } from '@/lib/user/top-up-gate';
 import { useSubscriptionCheckoutPersistence } from '@/lib/hooks/useSubscriptionCheckoutPersistence';
 import { describeSubscriptionRequestError } from '@/lib/user/subscriptions-client';
 import { getPlatformSubscriptionCheckout } from '@/lib/subscriptions/platform-subscription-pricing';
@@ -257,6 +258,8 @@ function DashboardContent() {
     subscribedPlatformIds,
     activeMetaCategories,
     subscriptionDocs,
+    expiredPlatformIds,
+    unpaidPlatformIds,
     loading: loadingSubs,
     refetch: refetchSubscriptions,
   } = useUserSubscribedPlatforms();
@@ -549,8 +552,18 @@ function DashboardContent() {
   };
 
   const openTopUpModalForRow = (row) => {
-    if (row.topUpInReview === true) {
-      toast.error('This account already has a top-up under review.');
+    // Same rules the Top-up page and the ad-account sheet apply — an expired or
+    // unpaid platform subscription must not be able to start a top-up here
+    // either (the server rejects it regardless).
+    const blocked = topUpBlockReason(row, {
+      expiredPlatformIds,
+      unpaidPlatformIds,
+    });
+    if (blocked) {
+      toast.error(blocked.message);
+      if (blocked.kind === 'expired' || blocked.kind === 'unpaid') {
+        router.push('/user/subscriptions');
+      }
       return;
     }
     setTopUpAccount(portalRowToTopUpModalData(row));

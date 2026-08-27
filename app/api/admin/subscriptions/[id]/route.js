@@ -7,7 +7,11 @@ import {
   SUBSCRIPTION_STATUS,
 } from "@/lib/subscriptions/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
-import { computeNextExpiresAtMs, tsToMillis } from "@/lib/subscriptions/expiry";
+import {
+  computeNextExpiresAtMs,
+  subscriptionPurchaseAtMs,
+  tsToMillis,
+} from "@/lib/subscriptions/expiry";
 import { subscriptionPlatformKey } from "@/lib/subscriptions/require-active-subscription";
 import { AD_ACCOUNTS_COLLECTION, ACCOUNT_PAUSE_REASON } from "@/lib/ad-accounts/constants";
 import { reactivateAdAccount } from "@/lib/accounts/pause";
@@ -100,11 +104,10 @@ export async function PATCH(request, context) {
       });
 
       const nowMs = Date.now();
-      const createdAtMs = tsToMillis(data?.createdAt);
       const currentExpiresAtMs = tsToMillis(data?.expiresAt);
       const nextExpiresMs = computeNextExpiresAtMs({
-        createdAtMs,
         currentExpiresAtMs,
+        purchaseAtMs: subscriptionPurchaseAtMs(data),
         nowMs,
       });
       const expiresAt = new Date(nextExpiresMs);
@@ -146,11 +149,10 @@ export async function PATCH(request, context) {
     await creditReferrerCommissionOnApproval(db, ref, data);
 
     const nowMs = Date.now();
-    const createdAtMs = tsToMillis(data?.createdAt);
     const currentExpiresAtMs = tsToMillis(data?.expiresAt);
     const nextExpiresMs = computeNextExpiresAtMs({
-      createdAtMs,
       currentExpiresAtMs,
+      purchaseAtMs: subscriptionPurchaseAtMs(data),
       nowMs,
     });
     const expiresAt = new Date(nextExpiresMs);

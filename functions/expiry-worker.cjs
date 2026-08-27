@@ -20,7 +20,7 @@ const SUBSCRIPTION_STATUS = {
 
 const ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED = "subscription_expired";
 const ACCOUNT_PAUSE_REASON_LABEL_SUBSCRIPTION_EXPIRED =
-  "AD ACCOUNT PAUSED — SUBSCRIPTION EXPIRED (30 DAYS)";
+  "AD ACCOUNT PAUSED — SUBSCRIPTION EXPIRED (28 DAYS)";
 
 const EXPIRY_WARNING_STAGE = {
   NONE: null,
@@ -30,7 +30,8 @@ const EXPIRY_WARNING_STAGE = {
   EXPIRED: "expired",
 };
 
-const SUBSCRIPTION_DURATION_DAYS = 30;
+/** One subscription cycle: 28 days from the customer's purchase. */
+const SUBSCRIPTION_DURATION_DAYS = 28;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function tsToMillis(ts) {
@@ -53,9 +54,23 @@ function tsToMillis(ts) {
   return 0;
 }
 
-function expiryMsFromCreatedAt(createdMs) {
-  if (!createdMs) return 0;
-  return createdMs + SUBSCRIPTION_DURATION_DAYS * DAY_MS;
+/** Mirrors lib/subscriptions/expiry.js#subscriptionPurchaseAtMs. */
+function subscriptionPurchaseAtMs(data) {
+  if (!data) return 0;
+  return (
+    tsToMillis(data.paymentSubmittedAt) ||
+    tsToMillis(data.reviewedAt) ||
+    tsToMillis(data.createdAt)
+  );
+}
+
+/** Mirrors lib/subscriptions/expiry.js#expiryMsFromPurchase — never in the past. */
+function expiryMsFromPurchase(purchaseMs, nowMs) {
+  const fromPurchase =
+    purchaseMs > 0 ? purchaseMs + SUBSCRIPTION_DURATION_DAYS * DAY_MS : 0;
+  return fromPurchase > nowMs
+    ? fromPurchase
+    : nowMs + SUBSCRIPTION_DURATION_DAYS * DAY_MS;
 }
 
 /** Mirrors lib/subscriptions/require-active-subscription.js#subscriptionPlatformKey. */
@@ -184,12 +199,10 @@ async function backfillSubscriptionExpiries(db) {
       skipped++;
       continue;
     }
-    const createdMs = tsToMillis(data.createdAt);
-    const fromCreation = createdMs ? expiryMsFromCreatedAt(createdMs) : 0;
-    const expiresMs =
-      fromCreation > 0
-        ? fromCreation
-        : nowMs + SUBSCRIPTION_DURATION_DAYS * DAY_MS;
+    const expiresMs = expiryMsFromPurchase(
+      subscriptionPurchaseAtMs(data),
+      nowMs
+    );
 
     batch.set(
       d.ref,

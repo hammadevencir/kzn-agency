@@ -184,10 +184,21 @@ export async function POST(request) {
     );
   }
 
+  // Top-ups are only allowed while the platform subscription is paid for and in
+  // date. `inactive` (payment submitted / pending / rejected) and `none` must be
+  // blocked too, not just `expired` — otherwise an unpaid subscriber can keep
+  // topping up. `unresolved` means the ad account carries no platform key
+  // (legacy doc), so there is nothing to check.
   const subStatus = await checkAdAccountSubscriptionStatus(db, user.uid, adData);
-  if (subStatus.status === "expired") {
+  if (subStatus.status !== "active" && subStatus.status !== "unresolved") {
     return NextResponse.json(
-      { error: "subscription_expired" },
+      {
+        error:
+          subStatus.status === "expired"
+            ? "subscription_expired"
+            : "subscription_inactive",
+        subscriptionStatus: subStatus.status,
+      },
       { status: 409 }
     );
   }

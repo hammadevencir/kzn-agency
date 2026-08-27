@@ -10,6 +10,8 @@ import PayNowModal from "../pay-now-modal";
 import { TOP_UP_STATUS } from "@/lib/top-ups/constants";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
+import { topUpBlockReason } from "@/lib/user/top-up-gate";
+import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
 const STATUS_LABEL = {
   [TOP_UP_STATUS.PENDING_PAYMENT]: "Pending Payment",
@@ -37,7 +39,7 @@ const UserTopUps = () => {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { expiredPlatformIds, subscriptionDocsByPlatform } =
+  const { expiredPlatformIds, unpaidPlatformIds, subscriptionDocsByPlatform } =
     useUserSubscribedPlatforms();
   const [payForExpiredSub, setPayForExpiredSub] = useState(null);
 
@@ -57,12 +59,7 @@ const UserTopUps = () => {
       subscriptionName: String(
         checkout.subscriptionName || `${platform} plan`
       ),
-      amount:
-        amount && amount !== "—"
-          ? amount.startsWith("$")
-            ? amount
-            : `$${amount}`
-          : "—",
+      amount: withDisplayCurrency(amount),
       originalAmount:
         checkout.originalAmount != null
           ? String(checkout.originalAmount)
@@ -152,21 +149,15 @@ const UserTopUps = () => {
   ];
 
   const handleTopUp = (row) => {
-    if (row.isPaused === true) {
-      toast.error("This ad account is currently paused. Contact support for details.");
-      return;
-    }
-    if (row.topUpInReview === true) {
-      toast.error("This account already has a top-up under review.");
-      return;
-    }
-    const k =
-      typeof row.platformKey === "string" ? row.platformKey.toLowerCase() : "";
-    if (k && expiredPlatformIds?.has(k)) {
-      toast.error(
-        "Your subscription has expired. Please renew before topping up this account."
-      );
-      openPayNowForPlatform(k, row.platform);
+    const blocked = topUpBlockReason(row, {
+      expiredPlatformIds,
+      unpaidPlatformIds,
+    });
+    if (blocked) {
+      toast.error(blocked.message);
+      if (blocked.kind === "expired") {
+        openPayNowForPlatform(blocked.platformKey, row.platform);
+      }
       return;
     }
     setSelectedAccount(row);

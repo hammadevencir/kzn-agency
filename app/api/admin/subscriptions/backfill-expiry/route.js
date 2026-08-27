@@ -4,7 +4,7 @@ import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { backfillSubscriptionExpiries } from "@/lib/subscriptions/expiry-worker";
 
 /**
- * One-shot admin utility: stamp `expiresAt = createdAt + 30 days` on any
+ * One-shot admin utility: stamp `expiresAt` one 28-day cycle from purchase on any
  * previously-approved subscription that is missing the field.
  */
 export async function POST() {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlusIcon } from "@/components/icons";
@@ -11,9 +11,12 @@ import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
 import PayNowModal from "../pay-now-modal";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { submitBalanceCreditRequest } from "@/lib/user/top-ups-client";
+import { topUpBlockReason } from "@/lib/user/top-up-gate";
 import { portalRowToTopUpModalData } from "@/lib/user/portal-row-to-top-up-modal";
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
 import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
+import { AD_ACCOUNT_DEEP_LINK_PARAM } from "@/lib/notifications/deep-links";
+import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
 const APPROVAL_BANNER_SEEN_KEY = "kzn_ad_accounts_approval_banner_seen_v1";
 const REJECTION_BANNER_SEEN_KEY = "kzn_ad_accounts_rejection_banner_seen_v1";
@@ -195,6 +198,7 @@ const UserAdAccounts = () => {
     hasActiveSubscription,
     subscribedPlatformIds,
     expiredPlatformIds,
+    unpaidPlatformIds,
     subscriptionDocsByPlatform,
   } = useUserSubscribedPlatforms();
   const subscribedList = Array.from(subscribedPlatformIds);
@@ -215,6 +219,9 @@ const UserAdAccounts = () => {
   const [balanceRequestSending, setBalanceRequestSending] = useState(false);
 
   const [payForExpiredSub, setPayForExpiredSub] = useState(null);
+
+  /** Guards the one-shot `?account=` deep-link open below. */
+  const deepLinkHandledRef = useRef(false);
 
   /** After mount: read localStorage so SSR/hydration match and banner logic is client-only. */
   const [clientReady, setClientReady] = useState(false);
@@ -288,12 +295,7 @@ const UserAdAccounts = () => {
     setPayForExpiredSub({
       subscriptionName:
         String(checkout.subscriptionName || `${platform} plan`),
-      amount:
-        amount && amount !== "—"
-          ? amount.startsWith("$")
-            ? amount
-            : `$${amount}`
-          : "—",
+      amount: withDisplayCurrency(amount),
       originalAmount:
         checkout.originalAmount != null
           ? String(checkout.originalAmount)
@@ -358,21 +360,65 @@ const UserAdAccounts = () => {
     void loadAccounts();
   }, [loadAccounts]);
 
-  const openTopUpModalForRow = (row) => {
-    if (row.isPaused === true) {
-      toast.error("This ad account is currently paused. Contact support for details.");
+  /**
+   * Notification deep link (`/user/ad-accounts?account=<id>`): open that
+   * account's detail sheet as soon as the list has loaded, so a customer
+   * clicking "Top-up approved" lands on the account that was credited.
+   * Read from `window.location` rather than `useSearchParams` to keep this page
+   * statically prerenderable.
+   */
+  useEffect(() => {
+    if (deepLinkHandledRef.current || loading || !accounts.length) return;
+
+    let requested = "";
+    try {
+      requested = (
+        new URLSearchParams(window.location.search).get(
+          AD_ACCOUNT_DEEP_LINK_PARAM
+        ) || ""
+      )
+        .trim()
+        .replace(/^#+\s*/, "");
+    } catch {
       return;
     }
-    if (row.topUpInReview === true) {
-      toast.error("This account already has a top-up under review.");
-      return;
-    }
-    const k = typeof row.platformKey === "string" ? row.platformKey.toLowerCase() : "";
-    if (k && expiredPlatformIds?.has(k)) {
-      toast.error(
-        "Your subscription has expired. Please renew before topping up this account."
+    if (!requested) return;
+
+    deepLinkHandledRef.current = true;
+
+    // Older top-up docs stored a shortened id, so fall back to a prefix match.
+    const match =
+      accounts.find((a) => a.firestoreId === requested) ||
+      accounts.find(
+        (a) =>
+          typeof a.firestoreId === "string" &&
+          a.firestoreId.startsWith(requested)
       );
-      openPayNowForPlatform(k, row.platform);
+
+    try {
+      window.history.replaceState(null, "", window.location.pathname);
+    } catch {
+      /* ignore */
+    }
+
+    if (!match) {
+      toast.error("That ad account is no longer available.");
+      return;
+    }
+    setSelectedAccount(match);
+    setIsDetailSheetOpen(true);
+  }, [accounts, loading]);
+
+  const openTopUpModalForRow = (row) => {
+    const blocked = topUpBlockReason(row, {
+      expiredPlatformIds,
+      unpaidPlatformIds,
+    });
+    if (blocked) {
+      toast.error(blocked.message);
+      if (blocked.kind === "expired") {
+        openPayNowForPlatform(blocked.platformKey, row.platform);
+      }
       return;
     }
     setTopUpAccount(portalRowToTopUpModalData(row));
@@ -386,12 +432,18 @@ const UserAdAccounts = () => {
 
   const handleTopUpFromSheet = (row) => {
     if (!row) return;
-    if (row.isPaused === true) {
-      toast.error("This ad account is currently paused. Contact support for details.");
-      return;
-    }
-    if (row.topUpInReview === true) {
-      toast.error("This account already has a top-up under review.");
+    const blocked = topUpBlockReason(row, {
+      expiredPlatformIds,
+      unpaidPlatformIds,
+    });
+    if (blocked) {
+      toast.error(blocked.message);
+      if (blocked.kind === "expired") {
+        openPayNowForPlatform(
+          blocked.platformKey,
+          row.platform ? String(row.platform) : null
+        );
+      }
       return;
     }
     setIsDetailSheetOpen(false);
@@ -401,23 +453,19 @@ const UserAdAccounts = () => {
 
   const handleRequestBalanceFromSheet = async (row) => {
     if (!row || typeof row.firestoreId !== "string") return;
-    if (row.isPaused === true) {
-      toast.error("This ad account is currently paused. Contact support for details.");
-      return;
-    }
-    if (row.topUpInReview === true) {
-      toast.error("This account already has a balance or top-up request under review.");
-      return;
-    }
-    const pk =
-      typeof row.platformKey === "string"
-        ? row.platformKey.toLowerCase()
-        : "";
-    if (pk && expiredPlatformIds?.has(pk)) {
-      toast.error(
-        "Your subscription has expired. Please renew before requesting balance updates."
-      );
-      openPayNowForPlatform(pk, row.platform ? String(row.platform) : null);
+    const blocked = topUpBlockReason(
+      row,
+      { expiredPlatformIds, unpaidPlatformIds },
+      { action: "balance" }
+    );
+    if (blocked) {
+      toast.error(blocked.message);
+      if (blocked.kind === "expired") {
+        openPayNowForPlatform(
+          blocked.platformKey,
+          row.platform ? String(row.platform) : null
+        );
+      }
       return;
     }
     setBalanceRequestSending(true);
@@ -437,11 +485,11 @@ const UserAdAccounts = () => {
           : raw === "ad_account_paused"
             ? "This ad account is currently paused. Contact support for details."
             : raw === "subscription_expired"
-              ? "Your subscription does not cover this platform. Renew to continue."
-              : raw === "forbidden"
-                ? "Could not submit this request."
-                : raw.startsWith("request_failed_")
-                  ? "Could not send your balance request. Please try again."
+              ? "Your subscription has expired. Renew to continue."
+              : raw === "subscription_inactive"
+                ? "Your subscription for this platform isn't active yet. Balance requests unlock once your subscription payment is approved."
+                : raw === "forbidden"
+                  ? "Could not submit this request."
                   : "Could not send your balance request. Please try again.";
       toast.error(msg);
     } finally {

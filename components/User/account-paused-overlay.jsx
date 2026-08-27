@@ -10,6 +10,7 @@ import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatfor
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 import { signOutEverywhere } from "@/lib/auth/sign-out-client";
+import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
 const COPY = {
   monthly_payment: {
@@ -105,7 +106,7 @@ export default function AccountPausedOverlay({ reason }) {
           isOpen={isPayOpen}
           onClose={() => setIsPayOpen(false)}
           flowType="platformSubscription"
-          data={{ subscriptionName, amount: amount !== "—" && !amount.startsWith("$") ? `$${amount}` : amount }}
+          data={{ subscriptionName, amount: withDisplayCurrency(amount) }}
           onSuccess={handlePaySuccess}
         />
       ) : null}

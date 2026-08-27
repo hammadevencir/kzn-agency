@@ -10,6 +10,7 @@ import {
   TOP_UPS_COLLECTION,
   TOP_UP_STATUS,
 } from "@/lib/top-ups/constants";
+import { sendTopUpDecisionPushNotification } from "@/lib/push/server-push";
 
 /** Top-up docs should store the Firestore ad-account document id; normalize legacy/display values. */
 function normalizeAdAccountDocId(raw) {
@@ -144,6 +145,17 @@ export async function PATCH(request, context) {
       },
       { merge: true }
     );
+
+    void sendTopUpDecisionPushNotification(db, {
+      userId: typeof data?.userId === "string" ? data.userId : "",
+      topUpId: id,
+      adAccountId: normalizeAdAccountDocId(data?.adAccountId),
+      approved: false,
+      rejectionReason: reason,
+    }).catch((err) => {
+      console.error("[top-ups/push]", err);
+    });
+
     return NextResponse.json({ ok: true });
   }
 
@@ -223,6 +235,19 @@ export async function PATCH(request, context) {
     { merge: true }
   );
   await batch.commit();
+
+  void sendTopUpDecisionPushNotification(db, {
+    userId: typeof data?.userId === "string" ? data.userId : "",
+    topUpId: id,
+    adAccountId: canonicalAdId,
+    approved: true,
+    amount:
+      data?.checkout && typeof data.checkout === "object"
+        ? String(data.checkout.amount ?? "")
+        : "",
+  }).catch((err) => {
+    console.error("[top-ups/push]", err);
+  });
 
   return NextResponse.json({ ok: true, currentBalance: newBalance });
 }

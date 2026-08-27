@@ -21,6 +21,7 @@ import {
 } from "@/components/icons";
 import { createTopUpRequest } from "@/lib/user/top-ups-client";
 import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
+import { withDisplayCurrency } from "@/lib/payments/format-amount";
 import {
   minTopUpUsdForPlatform,
   parseAmountToNumber,
@@ -165,7 +166,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       const proof = await uploadPaymentProof(proofFile, { kind: "top-up" });
       await createTopUpRequest({
         adAccountId: data.firestoreId,
-        amount: trimmed.startsWith("$") || trimmed.startsWith("€") ? trimmed : `$${trimmed}`,
+        amount: withDisplayCurrency(trimmed),
         finalize: true,
         paymentProof: proof,
         paymentReference: paymentReference.trim(),
@@ -183,6 +184,12 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
           ? "This account already has a top-up under review. Wait for admin approval before submitting another."
           : raw === "ad_account_paused"
           ? "This ad account is currently paused. Contact support for details."
+          : raw === "subscription_expired"
+          ? "Your subscription has expired. Renew it before topping up this account."
+          : raw === "subscription_inactive"
+          ? "Your subscription for this platform isn't active yet. Top-ups unlock once your subscription payment is approved."
+          : raw === "ad_account_not_approved"
+          ? "This ad account isn't approved yet."
           : raw === "unsupported_file_type"
             ? "Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF."
             : raw === "file_too_large"
