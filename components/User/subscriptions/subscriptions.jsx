@@ -8,8 +8,8 @@ import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
 import DataTable from "@/components/common-admin-manager/data-table";
 import TableSearch from "@/components/common-admin-manager/table-search";
 import SubscriptionDetailSheet from "../detail-modals/subscription-detail-sheet";
-import { countApprovedAdAccountsByPlatform } from "@/lib/user/count-approved-ad-accounts-by-platform";
 import { mapUserSubscriptionRow } from "@/lib/user/map-user-subscription-row";
+import { assignAdAccountsToSubscriptions } from "@/lib/user/plan-scope";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 
 /** @param {unknown} raw */
@@ -56,19 +56,11 @@ function createdAtMs(doc) {
   return 0;
 }
 
-function adAccountToSheetRow(doc, platformKey) {
-  const flow =
-    doc.flow && typeof doc.flow === "object"
-      ? /** @type {Record<string, unknown>} */ (doc.flow)
-      : {};
-  const pk =
-    typeof flow.platformKey === "string" ? flow.platformKey : "";
-  if (!platformKey || pk !== platformKey) return null;
-  const balance = formatBalanceDisplay(doc.currentBalance);
+function adAccountToSheetRow(doc) {
   return {
     accountId: `#${doc.id.slice(0, 8)}`,
     dateCreated: formatFsDate(doc.createdAt),
-    balance,
+    balance: formatBalanceDisplay(doc.currentBalance),
   };
 }
 
@@ -127,10 +119,18 @@ const UserSubscriptions = () => {
     };
   }, [refetchSubscriptions]);
 
-  const adCountsByPlatform = useMemo(
-    () => countApprovedAdAccountsByPlatform(adAccountDocs),
-    [adAccountDocs]
-  );
+  /**
+   * Approved ad accounts, split so each one belongs to exactly one
+   * subscription. Matching on platform alone made both Meta plans (e.g. White
+   * Hat SILVER and VIP PLATINUM) claim every Meta ad account.
+   */
+  const adAccountsBySubscriptionId = useMemo(() => {
+    const approved = adAccountDocs.filter(
+      (d) => d.status === AD_ACCOUNT_STATUS.APPROVED
+    );
+    return assignAdAccountsToSubscriptions(subscriptionDocs, approved)
+      .bySubscriptionId;
+  }, [subscriptionDocs, adAccountDocs]);
 
   const pausedPlatformKeys = useMemo(() => {
     const set = new Set();
@@ -147,13 +147,17 @@ const UserSubscriptions = () => {
   const tableRows = useMemo(() => {
     return subscriptionDocs.map((doc) => {
       const { id, ...data } = doc;
-      return mapUserSubscriptionRow(id, data, adCountsByPlatform, pausedPlatformKeys);
+      return mapUserSubscriptionRow(
+        id,
+        data,
+        (adAccountsBySubscriptionId[id] || []).length,
+        pausedPlatformKeys
+      );
     });
-  }, [subscriptionDocs, adCountsByPlatform, pausedPlatformKeys]);
+  }, [subscriptionDocs, adAccountsBySubscriptionId, pausedPlatformKeys]);
 
   const detailPayload = useMemo(() => {
     if (!selectedSubscription) return null;
-    const platformKey = selectedSubscription.platformId || "";
     const subsHistory = [];
     if (
       selectedSubscription.amountPaid &&
@@ -168,17 +172,16 @@ const UserSubscriptions = () => {
       });
     }
 
-    const approvedRows = adAccountDocs
-      .filter((d) => d.status === AD_ACCOUNT_STATUS.APPROVED)
-      .map((d) => adAccountToSheetRow(d, platformKey))
-      .filter(Boolean);
+    const approvedRows = (
+      adAccountsBySubscriptionId[selectedSubscription.firestoreId] || []
+    ).map(adAccountToSheetRow);
 
     return {
       ...selectedSubscription,
       subscriptionHistory: subsHistory.length ? subsHistory : [],
       adAccountRows: approvedRows,
     };
-  }, [selectedSubscription, adAccountDocs]);
+  }, [selectedSubscription, adAccountsBySubscriptionId]);
 
   const headers = [
     "Platform",

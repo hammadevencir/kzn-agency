@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 import {
   Carousel,
@@ -13,6 +13,7 @@ import { Star } from "lucide-react";
 import { fallingStar, playIcon, verifiedIcon } from "@/components/icons";
 import Image from "next/image";
 import VideoSection from "./VideoSection";
+import { TRUSTPILOT_PROFILE_URL } from "@/lib/reviews/trustpilot";
 
 const ClientReviews = () => {
   const ref = useRef(null);
@@ -22,7 +23,36 @@ const ClientReviews = () => {
     amount: 0.2,
   });
 
-  const baseTestimonials = [
+  /**
+   * Live Trustpilot feed, when the integration is configured server-side
+   * (see /api/reviews/trustpilot). Until then — and if the call fails — the
+   * hand-maintained list below is what renders.
+   */
+  const [liveReviews, setLiveReviews] = useState(null);
+  const [profileUrl, setProfileUrl] = useState(TRUSTPILOT_PROFILE_URL);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/reviews/trustpilot")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        if (typeof data.profileUrl === "string" && data.profileUrl) {
+          setProfileUrl(data.profileUrl);
+        }
+        if (Array.isArray(data.reviews) && data.reviews.length) {
+          setLiveReviews(data.reviews);
+        }
+      })
+      .catch(() => {
+        /* keep the static list */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const staticTestimonials = [
     {
       id: 1,
       type: "text",
@@ -279,7 +309,9 @@ const ClientReviews = () => {
     },
   ];
 
-  // Display the 3 reviews twice
+  const baseTestimonials = liveReviews ?? staticTestimonials;
+
+  // Duplicated so the looping carousel always has enough slides to fill a row.
   const testimonials = [...baseTestimonials, ...baseTestimonials];
 
   const renderStars = (rating) => {
@@ -294,8 +326,12 @@ const ClientReviews = () => {
   };
 
   const TestimonialCard = ({ testimonial, index }) => (
-    <motion.div
-      className="bg-gradient-to-br from-[#0D0D10] to-[#18181D] rounded-xl p-6 flex flex-col gap-4 w-full h-full min-h-[280px]"
+    <motion.a
+      href={testimonial.url || profileUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Read ${testimonial.name}'s review on Trustpilot`}
+      className="bg-gradient-to-br from-[#0D0D10] to-[#18181D] rounded-xl p-6 flex flex-col gap-4 w-full h-full min-h-[280px] cursor-pointer hover:ring-1 hover:ring-[#D4B060]/40 transition-shadow"
       initial={{ y: 60, opacity: 0, scale: 0.9 }}
       animate={
         isInView
@@ -402,7 +438,7 @@ const ClientReviews = () => {
           )}
         </motion.div>
       </div>
-    </motion.div>
+    </motion.a>
   );
 
   return (
@@ -469,6 +505,15 @@ const ClientReviews = () => {
         >
           Read real testimonials and see how Kazan has made a difference.
         </motion.p>
+
+        <a
+          href={profileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#D4B060] text-sm font-medium hover:underline"
+        >
+          Read all reviews on Trustpilot →
+        </a>
       </motion.div>
 
       <VideoSection renderStars={renderStars} />

@@ -20,7 +20,20 @@ import {
   MailIcon
 } from '@/components/icons';
 
-const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose, role = 'admin', chatUnreadCount = 0 }) => {
+const Sidebar = ({
+  activeItem = 'dashboard',
+  onItemClick,
+  isOpen = true,
+  onClose,
+  role = 'admin',
+  chatUnreadCount = 0,
+  /**
+   * User portal only: nav ids to show while the customer has no confirmed
+   * subscription. `null` shows the full list. See UserLayout.
+   * @type {string[] | null}
+   */
+  allowedItemIds = null,
+}) => {
   // Highlight must follow `activeItem` (derived from the URL in layouts). Do not keep a
   // separate selected state that only updates on click — e.g. router.push to Dashboard from
   // a success modal would leave the old item highlighted.
@@ -148,7 +161,10 @@ const Sidebar = ({ activeItem = 'dashboard', onItemClick, isOpen = true, onClose
   ];
 
   // Get navigation items based on role
-  const navigationItems = role === 'admin' ? adminNavigationItems : userNavigationItems;
+  const allItems = role === 'admin' ? adminNavigationItems : userNavigationItems;
+  const navigationItems = allowedItemIds
+    ? allItems.filter((item) => allowedItemIds.includes(item.id))
+    : allItems;
 
   const bottomItems = [
     {

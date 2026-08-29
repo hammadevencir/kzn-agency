@@ -19,6 +19,7 @@ import {
   XIcon
 } from '@/components/icons';
 import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
+import { REFEREE_DISCOUNT_PERCENT } from '@/lib/affiliates/constants';
 
 const platforms = [
   { id: 'meta', name: 'Meta', icon: MetaIcon, hasBadge: true },
@@ -81,7 +82,7 @@ const RequestAdAccountModal = ({
       setSelectedPlatform(null);
       return;
     }
-    // Only show the "referred — 25% off" banner when the user actually has a
+    // Only show the referral-discount banner when the user actually has a
     // saved referral code (captured at signup via `?ref=…`).
     try {
       setHasReferral(Boolean(getSavedReferralCode()));
@@ -132,7 +133,7 @@ const RequestAdAccountModal = ({
                     : 'You got a discount on your first month because you were referred!'}
                 </p>
                 <h3 className="text-[#CBAF69] text-[36px] font-extrabold tracking-tight leading-none">
-                  {isExisting ? '25% off' : '25% off'}
+                  {`${REFEREE_DISCOUNT_PERCENT}% off`}
                 </h3>
               </div>
             ) : null}

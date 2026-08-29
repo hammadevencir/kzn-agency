@@ -84,6 +84,14 @@ const AdAccountDetailSheet = ({
   if (!data) return null;
 
   const platform = String(data.platform || "—");
+  const planLabel =
+    typeof data.planLabel === "string" && data.planLabel.trim()
+      ? data.planLabel.trim()
+      : null;
+  const topUpFee =
+    typeof data.topUpFee === "string" && data.topUpFee.trim()
+      ? data.topUpFee.trim()
+      : null;
   const accountId = String(data.id || "—");
   const balance = data.balance != null ? String(data.balance) : "—";
 
@@ -137,6 +145,26 @@ const AdAccountDetailSheet = ({
                   {platform}
                 </span>
               </div>
+              {planLabel ? (
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-quaternary text-[15px] shrink-0">
+                    Plan:
+                  </span>
+                  <span className="text-white text-[15px] font-medium text-right">
+                    {planLabel}
+                  </span>
+                </div>
+              ) : null}
+              {topUpFee ? (
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-quaternary text-[15px] shrink-0">
+                    Top-up fee:
+                  </span>
+                  <span className="text-white text-[15px] font-medium text-right">
+                    {topUpFee}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex justify-between items-center gap-3">
                 <span className="text-quaternary text-[15px] shrink-0">
                   Account ID:

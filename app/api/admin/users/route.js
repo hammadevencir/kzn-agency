@@ -4,7 +4,10 @@ import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
 import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
 import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
-import { formatJoinedDate } from "@/lib/admin/admin-users-helpers";
+import {
+  formatJoinedDate,
+  formatLastLogin,
+} from "@/lib/admin/admin-users-helpers";
 
 const USERS_COLLECTION = "users";
 
@@ -93,6 +96,7 @@ export async function GET() {
         email,
         phone,
         joinedDate: formatJoinedDate(data.createdAt),
+        lastLogin: formatLastLogin(data.lastLoginAt),
         adAccounts: String(adCount[uid] ?? 0).padStart(2, "0"),
         subscriptions: String(subCount[uid] ?? 0).padStart(2, "0"),
         _sort: createdMs(data.createdAt),

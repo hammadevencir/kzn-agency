@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from '@/components/common-admin-manager/sidebar';
 import Header from '@/components/common-admin-manager/header';
@@ -14,6 +14,30 @@ import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
 import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
+import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
+
+/**
+ * Sections a customer can reach before we've confirmed a subscription payment:
+ * the Dashboard (which carries the "Get a subscription first" purchase screen),
+ * their pending Subscriptions, and Help Center so they can reach us if the
+ * payment goes wrong. The rest of the portal unlocks on approval.
+ */
+const PRE_SUBSCRIPTION_NAV_IDS = [
+  'dashboard',
+  'subscriptions',
+  'help',
+  'settings',
+  'logout',
+];
+
+/** Route prefixes that stay reachable while locked. */
+const PRE_SUBSCRIPTION_PATH_PREFIXES = [
+  '/user/dashboard',
+  '/user/subscriptions',
+  '/user/subscribe',
+  '/user/help',
+  '/user/settings',
+];
 
 const UserLayout = ({ children }) => {
   const router = useRouter();
@@ -28,6 +52,24 @@ const UserLayout = ({ children }) => {
     loginPath: '/login',
     enabled: !isAuthPage,
   });
+
+  const { hasConfirmedSubscription, loading: subsLoading } =
+    useUserSubscribedPlatforms();
+
+  /** Locked until an admin confirms a payment; unknown while still loading. */
+  const isLocked = !isAuthPage && !subsLoading && !hasConfirmedSubscription;
+
+  /**
+   * Deep links and back-navigation must respect the lock too — hiding the nav
+   * item alone would still leave /user/ad-accounts typeable.
+   */
+  useEffect(() => {
+    if (!isLocked) return;
+    const allowed = PRE_SUBSCRIPTION_PATH_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    );
+    if (!allowed) router.replace('/user/dashboard');
+  }, [isLocked, pathname, router]);
 
   // Determine active item based on current path
   const getActiveItem = () => {
@@ -108,6 +150,7 @@ const UserLayout = ({ children }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         role="user"
         chatUnreadCount={chatUnreadCount}
+        allowedItemIds={isLocked ? PRE_SUBSCRIPTION_NAV_IDS : null}
       />
       
       {/* Main Content Area */}

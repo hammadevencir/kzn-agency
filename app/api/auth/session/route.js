@@ -56,6 +56,7 @@ export async function POST(request) {
           ...(phone ? { phone } : {}),
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
+          lastLoginAt: FieldValue.serverTimestamp(),
         });
       } else if (portal === ROLE.ADMIN) {
         return NextResponse.json(
@@ -80,6 +81,7 @@ export async function POST(request) {
           phone,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
+          lastLoginAt: FieldValue.serverTimestamp(),
         });
       }
     } else {
@@ -104,6 +106,7 @@ export async function POST(request) {
           displayName: decoded.name ?? data?.displayName ?? null,
           ...(phone && !data?.phone ? { phone } : {}),
           updatedAt: FieldValue.serverTimestamp(),
+          lastLoginAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );

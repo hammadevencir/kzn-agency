@@ -49,6 +49,22 @@ export async function POST(request) {
     );
   }
 
+  // One claim under review at a time. The Affiliates page also hides the
+  // button, but referrers were able to spam the endpoint before an admin had
+  // reviewed the first request.
+  const pendingSnap = await db
+    .collection(REWARD_CLAIMS_COLLECTION)
+    .where("userId", "==", user.uid)
+    .where("status", "==", "pending")
+    .limit(1)
+    .get();
+  if (!pendingSnap.empty) {
+    return NextResponse.json(
+      { error: "claim_already_pending" },
+      { status: 409 }
+    );
+  }
+
   let displayName = "";
   try {
     const userRecord = await getAdminAuth().getUser(user.uid);

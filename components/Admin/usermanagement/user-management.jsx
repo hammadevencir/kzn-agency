@@ -43,6 +43,7 @@ const UserManagement = ({ onViewDetails }) => {
     "Email",
     "Phone",
     "Joined Date",
+    "Last Login",
     "Ad Accounts",
     "Subscriptions",
     "Actions",

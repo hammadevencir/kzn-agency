@@ -64,6 +64,7 @@ const SUSPENSION_NOTICE =
 
 const AdAccountCard = ({
   platform,
+  planLabel,
   id,
   status,
   lastTopup,
@@ -106,6 +107,11 @@ const AdAccountCard = ({
                   </span>
                 ) : null}
               </div>
+              {planLabel ? (
+                <p className="text-[12px] text-[#C5A964] font-medium">
+                  {planLabel}
+                </p>
+              ) : null}
               <p className="text-[13px] text-quaternary">ID: {id}</p>
             </div>
           </div>
@@ -220,6 +226,9 @@ const UserAdAccounts = () => {
 
   const [payForExpiredSub, setPayForExpiredSub] = useState(null);
 
+  /** Selected plan tab, or "all". Only meaningful when >1 plan group exists. */
+  const [planFilter, setPlanFilter] = useState("all");
+
   /** Guards the one-shot `?account=` deep-link open below. */
   const deepLinkHandledRef = useRef(false);
 
@@ -246,6 +255,49 @@ const UserAdAccounts = () => {
       .map((a) => a.firestoreId)
       .filter((id) => typeof id === "string" && id && !seen.has(id));
   }, [clientReady, loading, accounts, approvalBannerSeenVersion]);
+
+  /**
+   * One entry per plan the user actually owns accounts under, e.g.
+   * "Meta · White Hat · SILVER" and "Meta · VIP · PLATINUM". Accounts of the
+   * same platform on different plans must not be shown as one pile — the plan
+   * decides the monthly fee and the top-up fee.
+   */
+  const planGroups = React.useMemo(() => {
+    /** @type {{ key: string, label: string, count: number }[]} */
+    const groups = [];
+    const seen = new Map();
+    for (const a of accounts) {
+      const key = typeof a.planGroupKey === "string" && a.planGroupKey
+        ? a.planGroupKey
+        : "other";
+      const label =
+        (typeof a.planGroupLabel === "string" && a.planGroupLabel) ||
+        (typeof a.platform === "string" && a.platform) ||
+        "Other";
+      const existing = seen.get(key);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+      const entry = { key, label, count: 1 };
+      seen.set(key, entry);
+      groups.push(entry);
+    }
+    return groups;
+  }, [accounts]);
+
+  const showPlanTabs = planGroups.length > 1;
+
+  /** Reset to "all" whenever the tab the user was on disappears. */
+  useEffect(() => {
+    if (planFilter === "all") return;
+    if (!planGroups.some((g) => g.key === planFilter)) setPlanFilter("all");
+  }, [planGroups, planFilter]);
+
+  const visibleAccounts = React.useMemo(() => {
+    if (!showPlanTabs || planFilter === "all") return accounts;
+    return accounts.filter((a) => (a.planGroupKey || "other") === planFilter);
+  }, [accounts, planFilter, showPlanTabs]);
 
   const showApprovalBanner = unseenApprovedAccountIds.length > 0;
 
@@ -558,6 +610,37 @@ const UserAdAccounts = () => {
         </button>
       </div>
 
+      {showPlanTabs ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {[{ key: "all", label: "All plans", count: accounts.length }, ...planGroups].map(
+            (g) => {
+              const isActive = planFilter === g.key;
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => setPlanFilter(g.key)}
+                  className={`px-4 py-2 rounded-xl text-[13px] font-medium border transition-colors ${
+                    isActive
+                      ? "bg-[#C5A964] border-[#C5A964] text-black"
+                      : "bg-tertiary border-white/10 text-quaternary hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  {g.label}
+                  <span
+                    className={`ml-2 text-[11px] ${
+                      isActive ? "text-black/60" : "text-quaternary/70"
+                    }`}
+                  >
+                    {g.count}
+                  </span>
+                </button>
+              );
+            }
+          )}
+        </div>
+      ) : null}
+
       {showApprovalBanner ? (
         <div className="bg-[#151D24] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 w-full border border-[#39CB7F]/30">
           <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -633,10 +716,11 @@ const UserAdAccounts = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {accounts.map((a) => (
+          {visibleAccounts.map((a) => (
             <AdAccountCard
               key={a.firestoreId}
               platform={a.platform}
+              planLabel={a.planLabel}
               id={a.id}
               status={a.status}
               lastTopup={a.lastTopup}

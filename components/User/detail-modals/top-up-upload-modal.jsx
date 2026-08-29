@@ -234,9 +234,16 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
                   <Icon className="w-8 h-8 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xl font-medium text-white truncate">
-                    {data.platform}
-                  </h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xl font-medium text-white truncate">
+                      {data.platform}
+                    </h4>
+                    {data.planLabel ? (
+                      <span className="px-2 py-0.5 rounded-full bg-[#C5A964]/20 text-[#C5A964] text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {data.planLabel}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-[12px] text-quaternary mt-1">
                     ID: {data.accountId}
                   </p>

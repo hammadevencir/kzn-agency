@@ -569,6 +569,12 @@ const DataTable = ({
         return (
           <span className="font-light text-quaternary">{row.joinedDate}</span>
         );
+      case "Last Login":
+        return (
+          <span className="font-light text-quaternary whitespace-nowrap">
+            {row.lastLogin || "—"}
+          </span>
+        );
       case "Ad Accounts":
         return (
           <span className="font-light text-quaternary">{row.adAccounts}</span>

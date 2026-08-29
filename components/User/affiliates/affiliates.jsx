@@ -221,7 +221,15 @@ const Affiliates = () => {
   }, [load]);
 
   const balanceDisplay = `$${(balanceCents / 100).toFixed(2)}`;
-  const canClaimReward = balanceCents >= AFFILIATE_MIN_CLAIM_BALANCE_CENTS;
+  /**
+   * One claim under review at a time — otherwise a referrer can submit the same
+   * claim repeatedly before an admin gets to the first one.
+   */
+  const hasPendingClaim = rewardClaims.some(
+    (c) => c.status === 'pending' || c.status === 'payment_submitted'
+  );
+  const canClaimReward =
+    balanceCents >= AFFILIATE_MIN_CLAIM_BALANCE_CENTS && !hasPendingClaim;
   const minClaimBalanceDisplay = `$${(AFFILIATE_MIN_CLAIM_BALANCE_CENTS / 100).toFixed(0)}`;
   const activeDisplay = String(stats.activeReferrals).padStart(2, '0');
   const pendingDisplay = String(stats.pendingReferrals).padStart(2, '0');
@@ -318,6 +326,12 @@ const Affiliates = () => {
             <button 
               type="button"
               onClick={() => {
+                if (hasPendingClaim) {
+                  toast.error(
+                    'You already have a reward claim under review. Wait for it to be processed before submitting another.'
+                  );
+                  return;
+                }
                 if (!canClaimReward) {
                   toast.error(
                     `You need at least ${minClaimBalanceDisplay} in balance to claim rewards.`
@@ -326,7 +340,7 @@ const Affiliates = () => {
                 }
                 setIsClaimModalOpen(true);
               }}
-              disabled={loading}
+              disabled={loading || hasPendingClaim}
               className={`text-[#CBAF69] text-[13px] font-medium flex items-center gap-1 transition-opacity ${
                 loading || !canClaimReward
                   ? 'opacity-50 cursor-not-allowed'
@@ -335,8 +349,12 @@ const Affiliates = () => {
             >
               Claim Reward <ArrowRightIcon className="w-3.5 h-3.5 mt-0.5" />
             </button>
-            {!loading && !canClaimReward ? (
-              <p className="text-[#8B9197] text-[12px] mt-2 max-w-[220px] leading-snug">
+            {!loading && hasPendingClaim ? (
+              <p className="text-[#39CB7F] text-[12px] mt-2 whitespace-nowrap">
+                Your request is pending.
+              </p>
+            ) : !loading && !canClaimReward ? (
+              <p className="text-[#8B9197] text-[12px] mt-2 whitespace-nowrap">
                 Minimum {minClaimBalanceDisplay} balance required to claim.
               </p>
             ) : null}
@@ -627,6 +645,10 @@ const Affiliates = () => {
                 toast.error(
                   `You need at least ${minClaimBalanceDisplay} in balance to claim rewards.`
                 );
+              } else if (data.error === 'claim_already_pending') {
+                toast.error(
+                  'You already have a reward claim under review. Wait for it to be processed before submitting another.'
+                );
               } else {
                 toast.error('Could not submit claim request.');
               }
@@ -659,6 +681,10 @@ const Affiliates = () => {
                 toast.error(
                   `You need at least ${minClaimBalanceDisplay} in balance to claim rewards.`
                 );
+              } else if (data.error === 'claim_already_pending') {
+                toast.error(
+                  'You already have a reward claim under review. Wait for it to be processed before submitting another.'
+                );
               } else {
                 toast.error('Could not submit claim request.');
               }
@@ -690,6 +716,10 @@ const Affiliates = () => {
               if (data.error === 'minimum_balance_not_met') {
                 toast.error(
                   `You need at least ${minClaimBalanceDisplay} in balance to claim rewards.`
+                );
+              } else if (data.error === 'claim_already_pending') {
+                toast.error(
+                  'You already have a reward claim under review. Wait for it to be processed before submitting another.'
                 );
               } else {
                 toast.error('Could not submit claim request.');
