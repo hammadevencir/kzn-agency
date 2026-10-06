@@ -7,6 +7,7 @@ import {
   SESSION_MAX_AGE_MS,
   ROLE,
 } from "@/lib/auth/constants";
+import { normalizeAdminRole } from "@/lib/auth/admin-permissions";
 
 const ALLOWED_ROLES = [ROLE.ADMIN, ROLE.USER];
 
@@ -45,20 +46,14 @@ export async function POST(request) {
     const snap = await userRef.get();
 
     let role;
+    /** Admin sub-role (users/{uid}.adminRole); missing ⇒ "manager". */
+    let adminRole = null;
+
+    const photoURL =
+      typeof decoded.picture === "string" && decoded.picture ? decoded.picture : null;
 
     if (!snap.exists) {
-      if (autoRole) {
-        role = ROLE.USER;
-        await userRef.set({
-          role,
-          email,
-          displayName: decoded.name ?? null,
-          ...(phone ? { phone } : {}),
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-          lastLoginAt: FieldValue.serverTimestamp(),
-        });
-      } else if (portal === ROLE.ADMIN) {
+      if (!autoRole && portal === ROLE.ADMIN) {
         return NextResponse.json(
           {
             error: "no_admin_profile",
@@ -66,30 +61,28 @@ export async function POST(request) {
           },
           { status: 403 }
         );
-      } else {
-        if (!phone) {
-          return NextResponse.json(
-            { error: "phone_required", message: "Phone number is required." },
-            { status: 400 }
-          );
-        }
-        role = portal;
-        await userRef.set({
-          role,
-          email,
-          displayName: decoded.name ?? null,
-          phone,
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-          lastLoginAt: FieldValue.serverTimestamp(),
-        });
       }
+      // New account (email/password signup or first Google sign-in from either
+      // /login or /user/signup): always a regular user. Phone is optional here —
+      // Google users don't provide one; they can add it later in settings.
+      role = ROLE.USER;
+      await userRef.set({
+        role,
+        email,
+        displayName: decoded.name ?? null,
+        photoURL,
+        phone: phone ?? "",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        lastLoginAt: FieldValue.serverTimestamp(),
+      });
     } else {
       const data = snap.data();
       role = data?.role;
       if (!ALLOWED_ROLES.includes(role)) {
         return NextResponse.json({ error: "invalid_role" }, { status: 403 });
       }
+      if (role === ROLE.ADMIN) adminRole = normalizeAdminRole(data?.adminRole);
       if (!autoRole && portal !== role) {
         return NextResponse.json(
           {
@@ -105,6 +98,7 @@ export async function POST(request) {
           email,
           displayName: decoded.name ?? data?.displayName ?? null,
           ...(phone && !data?.phone ? { phone } : {}),
+          ...(photoURL && !data?.photoURL ? { photoURL } : {}),
           updatedAt: FieldValue.serverTimestamp(),
           lastLoginAt: FieldValue.serverTimestamp(),
         },
@@ -112,8 +106,15 @@ export async function POST(request) {
       );
     }
 
-    if (decoded.role !== role) {
-      await auth.setCustomUserClaims(uid, { role });
+    // Compare normalized sub-roles so pre-existing admins (claim without
+    // `adminRole`) aren't forced through an extra token refresh.
+    const claimAdminRole =
+      decoded.role === ROLE.ADMIN ? normalizeAdminRole(decoded.adminRole) : null;
+    if (decoded.role !== role || claimAdminRole !== adminRole) {
+      await auth.setCustomUserClaims(
+        uid,
+        role === ROLE.ADMIN ? { role, adminRole } : { role }
+      );
       return NextResponse.json({ needsTokenRefresh: true, role });
     }
 

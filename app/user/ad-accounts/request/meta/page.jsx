@@ -12,28 +12,50 @@ import { createAdAccountRequest } from "@/lib/user/ad-accounts-client";
 import { humanizeReferralError } from "@/lib/affiliates/humanize-error";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
+import { readPlanScope } from "@/lib/user/plan-scope";
 
 export default function MetaAdAccountRequestPage() {
   const router = useRouter();
-  const { subscriptionDocsByPlatform, loading } = useUserSubscribedPlatforms();
+  const { subscriptionDocs, loading } = useUserSubscribedPlatforms();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
+  const [pickedSubId, setPickedSubId] = React.useState("");
 
-  const metaDoc = subscriptionDocsByPlatform?.meta;
-  const flow =
-    metaDoc?.flow && typeof metaDoc.flow === "object"
-      ? /** @type {Record<string, unknown>} */ (metaDoc.flow)
-      : {};
-  const tier = typeof flow.planTier === "string" ? flow.planTier.trim() : "";
-  const cat = flow.accountCategory;
-  const metaPlanOk = Boolean(
-    tier && (cat === "vip" || cat === "white_hat")
+  /** Every active Meta plan the user holds (e.g. White Hat SILVER + VIP PLATINUM). */
+  const metaPlans = React.useMemo(
+    () =>
+      (subscriptionDocs || [])
+        .filter((d) => {
+          const f = d.flow && typeof d.flow === "object" ? d.flow : {};
+          const key = String(d.platformId || f.platformKey || "").toLowerCase();
+          return key === "meta" && isSubscriptionActive(d);
+        })
+        .map((d) => {
+          const scope = readPlanScope(d.flow, "meta");
+          return {
+            id: d.id,
+            tier: scope.planTier || "",
+            cat: scope.category,
+            label: scope.planLabel || "Meta plan",
+          };
+        }),
+    [subscriptionDocs]
   );
-  const metaActive =
-    metaDoc && typeof metaDoc === "object" && isSubscriptionActive(metaDoc);
-  const canRequest = metaActive && metaPlanOk;
+  const validPlans = metaPlans.filter((p) => p.tier && p.cat);
+
+  // Preselect when there is exactly one plan; otherwise the customer picks.
+  const selected =
+    validPlans.find((p) => p.id === pickedSubId) ||
+    (validPlans.length === 1 ? validPlans[0] : null);
+
+  const tier = selected?.tier || "";
+  const cat = selected?.cat || null;
+  const metaActive = metaPlans.length > 0;
+  const metaPlanOk = validPlans.length > 0;
+  const canRequest = Boolean(selected);
 
   const typeLabel = cat === "vip" ? "VIP" : "White Hat";
+  const typeDisplay = cat === "vip" ? "Supplements" : "Agency";
 
   const handleSubscriptionSuccess = async (subscriptionForm) => {
     setIsModalOpen(false);
@@ -50,6 +72,7 @@ export default function MetaAdAccountRequestPage() {
           amount: "€0",
         },
         finalize: true,
+        subscriptionId: selected?.id,
         referralCode: referralCode || undefined,
       });
       setIsSuccessOpen(true);
@@ -57,9 +80,13 @@ export default function MetaAdAccountRequestPage() {
       const raw = err instanceof Error ? err.message : "";
       if (raw === "meta_subscription_plan_required") {
         toast.error(
-          "Your Meta subscription needs a White Hat or VIP plan. Update it from Subscriptions or your dashboard."
+          "Your Meta subscription needs a package. Update it from Subscriptions or your dashboard."
         );
         router.push("/user/dashboard?updateMetaSubscription=1");
+        return;
+      }
+      if (raw === "meta_subscription_choice_required") {
+        toast.error("Choose which Meta plan this ad account is for.");
         return;
       }
       if (raw === "subscription_inactive") {
@@ -87,9 +114,9 @@ export default function MetaAdAccountRequestPage() {
           Request Meta ad account
         </h1>
         <p className="text-quaternary text-[15px] mt-2 max-w-[720px]">
-          Your White Hat or VIP tier and plan level come from your Meta platform
-          subscription. Requesting an ad account uses that plan automatically — you
-          do not pick a tier here.
+          Your Agency or Supplements package comes from your Meta platform
+          subscription. The new ad account is linked to the plan you request it
+          for.
         </p>
       </div>
 
@@ -119,8 +146,8 @@ export default function MetaAdAccountRequestPage() {
               Your Meta subscription uses a legacy plan without a tier on file.
             </p>
             <p className="text-quaternary text-[14px] max-w-[600px]">
-              Request a subscription update to select White Hat or VIP and your plan
-              tier (Gold, Platinum, etc.). After approval, you can request ad
+              Request a subscription update to select your package (Start, Scale,
+              Elite or a Supplements package). After approval, you can request ad
               accounts.
             </p>
             <Button
@@ -135,28 +162,63 @@ export default function MetaAdAccountRequestPage() {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="rounded-2xl border border-[#C5A964]/30 bg-[#1A2228] p-6">
-              <h2 className="text-[#C5A964] text-[16px] font-bold mb-2">
-                Your Meta plan (from subscription)
-              </h2>
-              <p className="text-white text-[18px] font-semibold">
-                {typeLabel} · {tier}
-              </p>
-              <p className="text-quaternary text-[13px] mt-2">
-                To change tier or category, use{" "}
-                <Link
-                  href="/user/dashboard?updateMetaSubscription=1"
-                  className="text-[#C5A964] hover:underline"
-                >
-                  Request subscription update
-                </Link>{" "}
-                on the dashboard or Subscriptions page.
-              </p>
-            </div>
+            {validPlans.length > 1 ? (
+              <div className="space-y-3">
+                <h2 className="text-[#C5A964] text-[16px] font-bold">
+                  Which plan is this ad account for?
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {validPlans.map((p) => {
+                    const active = selected?.id === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPickedSubId(p.id)}
+                        className={`text-left rounded-2xl border p-5 transition-colors cursor-pointer ${
+                          active
+                            ? "border-[#C5A964] bg-[#C5A964]/10"
+                            : "border-white/10 bg-[#1A2228] hover:border-[#C5A964]/50"
+                        }`}
+                      >
+                        <p className="text-quaternary text-[12px] uppercase tracking-wide">
+                          Meta subscription
+                        </p>
+                        <p className="text-white text-[18px] font-semibold mt-1">
+                          {p.label}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {selected ? (
+              <div className="rounded-2xl border border-[#C5A964]/30 bg-[#1A2228] p-6">
+                <h2 className="text-[#C5A964] text-[16px] font-bold mb-2">
+                  Your Meta plan (from subscription)
+                </h2>
+                <p className="text-white text-[18px] font-semibold">
+                  {typeDisplay} · {tier}
+                </p>
+                <p className="text-quaternary text-[13px] mt-2">
+                  To change tier or category, use{" "}
+                  <Link
+                    href="/user/dashboard?updateMetaSubscription=1"
+                    className="text-[#C5A964] hover:underline"
+                  >
+                    Request subscription update
+                  </Link>{" "}
+                  on the dashboard or Subscriptions page.
+                </p>
+              </div>
+            ) : null}
 
             <div className="text-center">
               <Button
                 type="button"
+                disabled={!canRequest}
                 onClick={() => setIsModalOpen(true)}
                 className="bg-[#C5A964] hover:bg-[#D4BB7D] text-[#11191F] px-10 h-14 rounded-xl text-[18px] font-bold"
               >

@@ -1,66 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-} from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { Loader2 } from "lucide-react";
 import { EyeOpenIcon, EyeClosedIcon, GoogleIcon } from "@/components/icons";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase/client";
 import { establishSession } from "@/lib/auth/establish-session";
 import { navigateAfterSession } from "@/lib/auth/navigate-after-session";
-
-function mapAuthError(code, message) {
-  switch (code) {
-    case "wrong_portal":
-      return "This account is registered under a different portal.";
-    case "no_admin_profile":
-      return "No admin access for this account.";
-    case "invalid_role":
-      return "This account is not allowed to sign in.";
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-    case "auth/user-disabled":
-      return "This account has been disabled.";
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-    case "auth/invalid-credential":
-      return "Invalid Email Or Password";
-    case "auth/too-many-requests":
-      return "Too many attempts. Try again later.";
-    case "auth/popup-closed-by-user":
-    case "auth/cancelled-popup-request":
-      return "Sign-in was cancelled.";
-    case "auth/popup-blocked":
-      return "Google popup was blocked by your browser. Allow popups and try again.";
-    case "auth/account-exists-with-different-credential":
-      return "An account already exists with this email via a different sign-in method.";
-    case "auth/network-request-failed":
-      return "Network error. Check your connection and try again.";
-    case "auth/unauthorized-domain":
-      return "This domain is not authorized for Google sign-in. Contact support.";
-    case "auth/operation-not-allowed":
-      return "Google sign-in is not enabled. Contact support.";
-    case "session_failed":
-      return "We couldn't start your session. Please try again.";
-    case "session_missing_role":
-      return "We couldn't finish sign-in. Please try again.";
-    default: {
-      if (
-        typeof message === "string" &&
-        message.trim() &&
-        !/^Firebase:\s*Error\s*\(/i.test(message.trim())
-      ) {
-        return message;
-      }
-      return "Something went wrong. Please try again.";
-    }
-  }
-}
+import {
+  consumeGoogleRedirectResult,
+  isSilentAuthError,
+  mapAuthError,
+  signInWithGoogle,
+} from "@/lib/auth/google-sign-in";
 
 /** Shared sign-in for admin and end users at `/login` (role comes from Firestore). */
 export default function UnifiedLogin() {
@@ -99,16 +53,41 @@ export default function UnifiedLogin() {
     }
   };
 
+  const finishGoogle = async (user) => {
+    const role = await establishSession(user, "auto");
+    toast.success("Signed in with Google");
+    navigateAfterSession(role);
+  };
+
+  // Complete a Google sign-in that fell back to redirect (popup blocked).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await consumeGoogleRedirectResult(auth);
+        if (!user || cancelled) return;
+        setPendingGoogle(true);
+        await finishGoogle(user);
+      } catch (err) {
+        if (!cancelled && !isSilentAuthError(err?.code)) {
+          toast.error(mapAuthError(err?.code, err?.message));
+        }
+        if (!cancelled) setPendingGoogle(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleGoogle = async () => {
     setPendingGoogle(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      const role = await establishSession(cred.user, "auto");
-      toast.success("Signed in with Google");
-      navigateAfterSession(role);
+      const user = await signInWithGoogle(auth);
+      if (!user) return; // redirect fallback in progress
+      await finishGoogle(user);
     } catch (err) {
-      if (err?.code !== "auth/popup-closed-by-user") {
+      if (!isSilentAuthError(err?.code)) {
         toast.error(mapAuthError(err?.code, err?.message));
       }
     } finally {

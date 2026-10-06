@@ -30,6 +30,8 @@ import {
 } from "@/lib/ad-accounts/platform-request-config";
 import toast from "react-hot-toast";
 import BankDetailsCard from "@/components/payments/bank-details-card";
+import DashboardAccountIdHint from "@/components/payments/dashboard-account-id-hint";
+import { PAYMENT_REFERENCE_PLACEHOLDER } from "@/lib/payments/bank-details";
 
 const PLATFORM_ICONS = {
   meta: MetaIcon,
@@ -110,8 +112,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
     enteredAmount != null && enteredAmount > 0
       ? enteredAmount + (feeAmount ?? 0)
       : null;
+  // Europe-region accounts top up in EUR (to Wise); everything else in USD.
+  const currency = data.topUpCurrency === "EUR" ? "EUR" : "USD";
+  const sym = currency === "EUR" ? "€" : "$";
   const formatUsd = (n) =>
-    `$${n.toLocaleString("en-US", {
+    `${sym}${n.toLocaleString("en-US", {
       minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
       maximumFractionDigits: 2,
     })}`;
@@ -146,7 +151,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       }
       if (numeric < minTopUp) {
         toast.error(
-          `Minimum top-up for ${data.platform} is $${minTopUp.toLocaleString("en-US")}.`
+          `Minimum top-up for ${data.platform} is ${sym}${minTopUp.toLocaleString("en-US")}.`
         );
         return;
       }
@@ -157,8 +162,8 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       return;
     }
     if (!paymentReference.trim()) {
-      setReferenceError("Please enter your payment reference / transaction ID.");
-      toast.error("Please enter your payment reference / transaction ID.");
+      setReferenceError("Please enter your Dashboard Account ID as the payment reference.");
+      toast.error("Please enter your Dashboard Account ID as the payment reference.");
       return;
     }
     setSubmitting(true);
@@ -166,7 +171,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       const proof = await uploadPaymentProof(proofFile, { kind: "top-up" });
       await createTopUpRequest({
         adAccountId: data.firestoreId,
-        amount: withDisplayCurrency(trimmed),
+        amount: currency === "EUR" ? `€${trimmed.replace(/^[€$]\s*/, "")}` : withDisplayCurrency(trimmed),
         finalize: true,
         paymentProof: proof,
         paymentReference: paymentReference.trim(),
@@ -177,9 +182,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       const raw = e instanceof Error ? e.message : "";
       const friendly =
         raw === "below_min_top_up"
-          ? `Minimum top-up${typeof minTopUp === "number" ? ` is $${minTopUp.toLocaleString("en-US")}` : ""}.`
+          ? `Minimum top-up${typeof minTopUp === "number" ? ` is ${sym}${minTopUp.toLocaleString("en-US")}` : ""}.`
           : raw === "invalid_amount"
             ? "Enter a valid top-up amount."
+          : raw === "previous_payment_not_received"
+          ? "We haven't received the payment for a previous top-up yet. Settle it first — check your receipt in Top-up."
           : raw === "top_up_already_pending"
           ? "This account already has a top-up under review. Wait for admin approval before submitting another."
           : raw === "ad_account_paused"
@@ -297,12 +304,12 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               disabled={isPending || submitting}
-              placeholder="e.g. 500 or $500"
+              placeholder={`e.g. 500 or ${sym}500`}
               className="w-full h-12 rounded-xl bg-[#151E25] border border-white/10 px-4 text-white text-[15px] placeholder:text-quaternary focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50"
             />
             {typeof minTopUp === "number" ? (
               <p className="text-[12px] text-quaternary">
-                Minimum top-up: ${minTopUp.toLocaleString("en-US")}
+                Minimum top-up: {sym}{minTopUp.toLocaleString("en-US")}
               </p>
             ) : null}
             {totalToSend != null ? (
@@ -335,7 +342,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
             ) : null}
           </div>
 
-          <BankDetailsCard compact showTitle />
+          <BankDetailsCard compact showTitle currency={currency} />
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-white">Proof of payment</h3>
@@ -436,12 +443,16 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
               value={paymentReference}
               onChange={(e) => { setPaymentReference(e.target.value); setReferenceError(""); }}
               disabled={submitting}
-              placeholder="Enter the transaction / payment ID from your bank"
+              placeholder={PAYMENT_REFERENCE_PLACEHOLDER}
               className={`w-full h-12 rounded-xl bg-[#151E25] border px-4 text-white text-[15px] placeholder:text-quaternary focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50 ${
                 referenceError ? "border-red-500/50" : "border-white/10"
               }`}
             />
             {referenceError && <p className="text-red-400 text-[11px] mt-1 ml-1">{referenceError}</p>}
+            <DashboardAccountIdHint
+              disabled={submitting}
+              onUse={(id) => { setPaymentReference(id); setReferenceError(""); }}
+            />
           </div>
         </div>
 

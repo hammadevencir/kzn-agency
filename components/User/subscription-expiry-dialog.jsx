@@ -1,5 +1,7 @@
 "use client";
 
+import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
+import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -172,18 +174,19 @@ export default function SubscriptionExpiryDialog() {
     setIsPayOpen(true);
   };
 
-  const handlePaySuccess = async (paymentProof, paymentReference) => {
+  const handlePaySuccess = async (paymentProof, paymentReference, paymentMeta) => {
     try {
       await submitPlatformSubscriptionPayment(
         warning.id,
         {
-          amount: checkout.amount ?? null,
+          amount: terms.amount ?? null,
           subscriptionName,
           platformId: warning.doc.platformId || null,
           renewal: true,
         },
         paymentProof || null,
-        paymentReference || null
+        paymentReference || null,
+        paymentMeta || null
       );
       toast.success(
         "Payment proof received. We'll review it and restore access shortly."
@@ -204,9 +207,10 @@ export default function SubscriptionExpiryDialog() {
     warning.doc.checkout && typeof warning.doc.checkout === "object"
       ? warning.doc.checkout
       : {};
-  const amount = checkout.amount != null ? String(checkout.amount) : "—";
+  const terms = payAgainTerms(warning.doc, (warning.doc?.status === "expired" || isSubLapsed(warning.doc)));
+  const amount = terms.amount ?? "—";
   const subscriptionName = String(
-    checkout.subscriptionName || `${warning.platform} plan`
+    terms.subscriptionName || `${warning.platform} plan`
   );
 
   return (

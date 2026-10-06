@@ -84,30 +84,102 @@ function subscriptionPlatformKey(data) {
   return fromTop || fromFlow;
 }
 
+/** Mirrors lib/user/plan-scope.js#readPlanScope (platform + category + tier). */
+function readPlanScope(flowRaw, platformIdFallback) {
+  const flow = flowRaw && typeof flowRaw === "object" ? flowRaw : {};
+  const platformKey = (
+    typeof flow.platformKey === "string" && flow.platformKey
+      ? flow.platformKey
+      : typeof platformIdFallback === "string"
+        ? platformIdFallback
+        : ""
+  ).toLowerCase();
+  const rawCat = String(flow.accountCategory == null ? "" : flow.accountCategory)
+    .trim()
+    .toLowerCase();
+  const category =
+    rawCat === "vip"
+      ? "vip"
+      : rawCat === "white_hat" || rawCat === "white hat" || rawCat === "white-hat"
+        ? "white_hat"
+        : null;
+  const planTier =
+    typeof flow.planTier === "string" && flow.planTier.trim()
+      ? flow.planTier.trim().toUpperCase()
+      : null;
+  const scopeKey =
+    platformKey && category && planTier
+      ? `${platformKey}|${category}|${planTier}`
+      : null;
+  return { platformKey, scopeKey };
+}
+
+/** Mirrors lib/user/plan-scope.js#subscriptionsForAdAccountScope. */
+function subscriptionsForAdAccountScope(subscriptions, target) {
+  const platformKey = String((target && target.platformKey) || "").toLowerCase();
+  const scopeKey = (target && target.scopeKey) || null;
+  if (!platformKey) return [];
+  const onPlatform = [];
+  for (const sub of subscriptions || []) {
+    const sc = readPlanScope(sub.flow, sub.platformId);
+    if (sc.platformKey === platformKey) onPlatform.push({ sub, sc });
+  }
+  if (scopeKey) {
+    const exact = onPlatform.filter((x) => x.sc.scopeKey === scopeKey);
+    if (exact.length) return exact.map((x) => x.sub);
+    return onPlatform.filter((x) => !x.sc.scopeKey).map((x) => x.sub);
+  }
+  return onPlatform.map((x) => x.sub);
+}
+
+/** Mirrors lib/subscriptions/expiry.js#isSubscriptionActive. */
+function isSubscriptionActive(data, nowMs = Date.now()) {
+  if (!data) return false;
+  if (data.status !== SUBSCRIPTION_STATUS.APPROVED && data.status !== "active") {
+    return false;
+  }
+  const exp = tsToMillis(data.expiresAt || data.subscriptionExpiresAt);
+  if (!exp) return true;
+  return exp > nowMs;
+}
+
 /**
  * Mirrors lib/subscriptions/expiry-worker.js#pauseAdAccountsForExpiredSubscription.
- * Auto-pauses every non-deleted, non-paused ad account under the expired
- * subscription's platform for that user — the 30-day "finished" cutoff.
+ * Auto-pauses only the ad accounts that belong to the expired subscription's
+ * plan (a still-active second plan on the same platform keeps its accounts).
  */
-async function pauseAdAccountsForExpiredSubscription(db, subscriptionData) {
+async function pauseAdAccountsForExpiredSubscription(db, subscriptionId, subscriptionData) {
   const uid =
     typeof subscriptionData.userId === "string" ? subscriptionData.userId : "";
   const platformKey = subscriptionPlatformKey(subscriptionData);
   if (!uid || !platformKey) return 0;
 
-  const snap = await db
-    .collection(AD_ACCOUNTS_COLLECTION)
-    .where("userId", "==", uid)
-    .get();
+  const [snap, subSnap] = await Promise.all([
+    db.collection(AD_ACCOUNTS_COLLECTION).where("userId", "==", uid).get(),
+    db.collection(SUBSCRIPTIONS_COLLECTION).where("userId", "==", uid).get(),
+  ]);
+  const subs = subSnap.docs.map((d) =>
+    d.id === subscriptionId
+      ? Object.assign({ id: d.id }, d.data(), subscriptionData, {
+          status: SUBSCRIPTION_STATUS.EXPIRED,
+        })
+      : Object.assign({ id: d.id }, d.data())
+  );
 
   let paused = 0;
   for (const doc of snap.docs) {
     const data = doc.data();
     if (data.paused === true || data.deleted === true) continue;
-    const flow = data.flow && typeof data.flow === "object" ? data.flow : {};
-    const k =
-      typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
-    if (k !== platformKey) continue;
+    const scope = readPlanScope(data.flow);
+    if (scope.platformKey !== platformKey) continue;
+    const covering = subscriptionsForAdAccountScope(subs, {
+      platformKey,
+      scopeKey: scope.scopeKey,
+    });
+    if (!covering.some((c) => c.id === subscriptionId)) continue;
+    if (covering.some((c) => c.id !== subscriptionId && isSubscriptionActive(c))) {
+      continue;
+    }
 
     const at = new Date().toISOString();
     await doc.ref.set(
@@ -264,7 +336,7 @@ async function sweepSubscriptionExpiries(db) {
       expired++;
       touched++;
       pending++;
-      pausedAdAccounts += await pauseAdAccountsForExpiredSubscription(db, data);
+      pausedAdAccounts += await pauseAdAccountsForExpiredSubscription(db, d.id, data);
     } else if (nextStage && nextStage !== currentStage) {
       batch.set(
         d.ref,

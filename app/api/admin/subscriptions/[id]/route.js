@@ -12,39 +12,110 @@ import {
   subscriptionPurchaseAtMs,
   tsToMillis,
 } from "@/lib/subscriptions/expiry";
-import { subscriptionPlatformKey } from "@/lib/subscriptions/require-active-subscription";
+import {
+  loadUserSubscriptionDocs,
+  subscriptionPlatformKey,
+} from "@/lib/subscriptions/require-active-subscription";
+import {
+  readPlanScope,
+  subscriptionsForAdAccountScope,
+} from "@/lib/user/plan-scope";
 import { AD_ACCOUNTS_COLLECTION, ACCOUNT_PAUSE_REASON } from "@/lib/ad-accounts/constants";
 import { reactivateAdAccount } from "@/lib/accounts/pause";
 
 /**
  * Renewing/approving a subscription lifts the auto-pause it caused: every ad
- * account under this platform that was paused for `subscription_expired` is
- * reactivated. Ad accounts paused manually by an admin for another reason are
- * left untouched.
+ * account on *this subscription's plan* that was paused for
+ * `subscription_expired` is reactivated. Accounts of another plan on the same
+ * platform (Meta White Hat vs VIP) and accounts paused manually by an admin
+ * for another reason are left untouched.
  * @param {import("firebase-admin/firestore").Firestore} db
+ * @param {string} subscriptionId
  * @param {Record<string, unknown>} subscriptionData
  * @param {string} adminUid
  */
-async function reactivateAdAccountsForRenewedSubscription(db, subscriptionData, adminUid) {
+async function reactivateAdAccountsForRenewedSubscription(db, subscriptionId, subscriptionData, adminUid) {
   const uid =
     typeof subscriptionData?.userId === "string" ? subscriptionData.userId : "";
   const platformKey = subscriptionPlatformKey(subscriptionData);
   if (!uid || !platformKey) return;
 
-  const snap = await db
-    .collection(AD_ACCOUNTS_COLLECTION)
-    .where("userId", "==", uid)
-    .where("paused", "==", true)
-    .where("pauseReason", "==", ACCOUNT_PAUSE_REASON.SUBSCRIPTION_EXPIRED)
-    .get();
+  const [snap, subs] = await Promise.all([
+    db
+      .collection(AD_ACCOUNTS_COLLECTION)
+      .where("userId", "==", uid)
+      .where("paused", "==", true)
+      .where("pauseReason", "==", ACCOUNT_PAUSE_REASON.SUBSCRIPTION_EXPIRED)
+      .get(),
+    loadUserSubscriptionDocs(db, uid),
+  ]);
 
   for (const doc of snap.docs) {
-    const flow = doc.data()?.flow;
-    const k =
-      flow && typeof flow.platformKey === "string" ? flow.platformKey.toLowerCase() : "";
-    if (k !== platformKey) continue;
+    const scope = readPlanScope(doc.data()?.flow);
+    if (scope.platformKey !== platformKey) continue;
+    const covering = subscriptionsForAdAccountScope(subs, {
+      platformKey,
+      scopeKey: scope.scopeKey,
+    });
+    if (!covering.some((c) => c.id === subscriptionId)) continue;
     await reactivateAdAccount(db, { adAccountId: doc.id, adminUid });
   }
+}
+
+/**
+ * An approved plan upgrade (e.g. White Hat SILVER → GOLD) moves the
+ * subscription to a new plan scope. Carry its ad accounts along — new tier and
+ * the new plan's pricing snapshot — so they stay linked to the subscription and
+ * top-ups use the upgraded plan's fee instead of the old one.
+ * @param {import("firebase-admin/firestore").Firestore} db
+ * @param {string} subscriptionId
+ * @param {Record<string, unknown>} oldData — subscription doc before the upgrade
+ * @param {Record<string, unknown>} newFlow
+ */
+async function moveAdAccountsToUpgradedPlan(db, subscriptionId, oldData, newFlow) {
+  const uid = typeof oldData?.userId === "string" ? oldData.userId : "";
+  const platformKey = subscriptionPlatformKey(oldData);
+  const next = readPlanScope(newFlow, platformKey);
+  if (!uid || !platformKey || !next.scopeKey) return;
+
+  const [adSnap, subs] = await Promise.all([
+    db.collection(AD_ACCOUNTS_COLLECTION).where("userId", "==", uid).get(),
+    loadUserSubscriptionDocs(db, uid),
+  ]);
+  // Judge coverage against the pre-upgrade plan.
+  const subsBefore = subs.map((d) =>
+    d.id === subscriptionId ? { ...d, flow: oldData.flow } : d
+  );
+
+  const batch = db.batch();
+  let n = 0;
+  for (const doc of adSnap.docs) {
+    const data = doc.data();
+    if (data.deleted === true) continue;
+    const scope = readPlanScope(data.flow);
+    if (scope.platformKey !== platformKey || scope.scopeKey === next.scopeKey) continue;
+    const covering = subscriptionsForAdAccountScope(subsBefore, {
+      platformKey,
+      scopeKey: scope.scopeKey,
+    });
+    if (!covering.some((c) => c.id === subscriptionId)) continue;
+
+    /** @type {Record<string, unknown>} */
+    const patch = {
+      "flow.planTier": next.planTier,
+      "flow.accountCategory": next.category,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (newFlow.planSnapshot && typeof newFlow.planSnapshot === "object") {
+      patch["flow.planSnapshot"] = newFlow.planSnapshot;
+    }
+    if (newFlow.pricingSnapshot && typeof newFlow.pricingSnapshot === "object") {
+      patch["flow.pricingSnapshot"] = newFlow.pricingSnapshot;
+    }
+    batch.update(doc.ref, patch);
+    n++;
+  }
+  if (n) await batch.commit();
 }
 
 export async function PATCH(request, context) {
@@ -128,6 +199,15 @@ export async function PATCH(request, context) {
           flow: newFlow,
           checkout: newCheckout,
           request: newRequest,
+          // Keep how the upgrade was paid (EUR/Wise vs USD/Slash) for admins
+          // and the Financial overview — pendingUpgrade is deleted below.
+          ...(typeof pu.paymentCurrency === "string"
+            ? {
+                paymentCurrency: pu.paymentCurrency,
+                paymentAccount: pu.paymentAccount ?? null,
+                paymentAmountLabel: pu.paymentAmountLabel ?? null,
+              }
+            : {}),
           status: SUBSCRIPTION_STATUS.APPROVED,
           pendingUpgrade: FieldValue.delete(),
           pendingUpgradeReview: false,
@@ -142,7 +222,13 @@ export async function PATCH(request, context) {
         },
         { merge: true }
       );
-      await reactivateAdAccountsForRenewedSubscription(db, data, admin.uid);
+      await moveAdAccountsToUpgradedPlan(db, id, data, newFlow);
+      await reactivateAdAccountsForRenewedSubscription(
+        db,
+        id,
+        { ...data, flow: newFlow },
+        admin.uid
+      );
       return NextResponse.json({ ok: true });
     }
 
@@ -170,7 +256,18 @@ export async function PATCH(request, context) {
       },
       { merge: true }
     );
-    await reactivateAdAccountsForRenewedSubscription(db, data, admin.uid);
+    if (data?.migratedFromFlow && typeof data.migratedFromFlow === "object") {
+      // Renewal moved a legacy tier to its new package: carry the plan's ad
+      // accounts over so they keep working and use the new top-up fee.
+      await moveAdAccountsToUpgradedPlan(
+        db,
+        id,
+        { ...data, flow: data.migratedFromFlow },
+        /** @type {Record<string, unknown>} */ (data.flow)
+      );
+      await ref.set({ migratedFromFlow: FieldValue.delete() }, { merge: true });
+    }
+    await reactivateAdAccountsForRenewedSubscription(db, id, data, admin.uid);
     return NextResponse.json({ ok: true });
   }
 

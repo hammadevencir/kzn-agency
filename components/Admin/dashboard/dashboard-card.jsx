@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { YellowChartIcon, BlueChartIcon, OrangeChartIcon, GreenChartIcon } from '@/components/icons';
 
 const DashboardCard = ({ 
@@ -8,7 +9,9 @@ const DashboardCard = ({
   value, 
   showGraph = false, 
   graphColor = 'yellow',
-  className = '' 
+  className = '',
+  /** When set, the whole card links to the section behind the number. */
+  href,
 }) => {
   const getGraphSvg = (color) => {
     const graphs = {
@@ -20,8 +23,17 @@ const DashboardCard = ({
     return graphs[color] || graphs.yellow;
   };
 
+  const cardClass = `bg-[#161D26] p-4 border-quaternary/20 rounded-lg border ${
+    href ? 'block cursor-pointer transition-colors hover:border-[#C5A964]/60 hover:bg-[#1A222C]' : ''
+  } ${className}`;
+  const Wrapper = href ? Link : 'div';
+
   return (
-    <div className={`bg-[#161D26] p-4 border-quaternary/20 rounded-lg border ${className}`} style={{ minWidth: 0, overflow: 'hidden' }}>
+    <Wrapper
+      {...(href ? { href, 'aria-label': `View ${title}` } : {})}
+      className={cardClass}
+      style={{ minWidth: 0, overflow: 'hidden' }}
+    >
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
         <div style={{ flexShrink: 0 }}>
           <h3 style={{ whiteSpace: 'nowrap' }} className="text-[14px] font-light text-quaternary mb-3">{title}</h3>
@@ -33,7 +45,7 @@ const DashboardCard = ({
           </div>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 };
 

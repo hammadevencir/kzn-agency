@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 // Avoid body-size limits on the default edge runtime.
 export const maxDuration = 60;
 
-const ALLOWED_KINDS = new Set(["subscription", "ad-account", "top-up", "misc"]);
+const ALLOWED_KINDS = new Set(["subscription", "ad-account", "top-up", "order", "misc"]);
 const ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",

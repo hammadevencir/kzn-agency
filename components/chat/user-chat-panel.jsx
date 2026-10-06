@@ -8,17 +8,18 @@ import { CHAT_SENDER_ROLE } from "@/lib/chat/constants";
 import { useChatMessages } from "@/lib/hooks/useChatMessages";
 import ChatMessageList from "@/components/chat/chat-message-list";
 import ChatComposer from "@/components/chat/chat-composer";
+import { INSTAGRAM_URL, TELEGRAM_URL } from "@/lib/contact/channels";
 
 const SOCIAL_LINKS = [
   {
     name: "Instagram",
     icon: "/social/instagram.svg",
-    href: "https://instagram.com/kazansolutions",
+    href: INSTAGRAM_URL,
   },
   {
     name: "Telegram",
     icon: "/social/telegram.svg",
-    href: "https://t.me/kazansolutions",
+    href: TELEGRAM_URL,
   },
 ];
 

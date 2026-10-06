@@ -20,6 +20,14 @@ import {
 } from '@/components/icons';
 import { uploadPaymentProof } from '@/lib/user/upload-payment-proof';
 import BankDetailsCard from '@/components/payments/bank-details-card';
+import DashboardAccountIdHint from '@/components/payments/dashboard-account-id-hint';
+import {
+  EUR_TO_USD_RATE,
+  PAYMENT_ACCOUNT_BY_CURRENCY,
+  PAYMENT_CURRENCY,
+  PAYMENT_REFERENCE_PLACEHOLDER,
+  priceLabelInCurrency,
+} from '@/lib/payments/bank-details';
 
 /**
  * Non-Meta platform subscriptions show a logo + "Top-Tier Verified … Ad-accounts"
@@ -137,6 +145,8 @@ const PayNowModal = ({
   const [paymentReference, setPaymentReference] = useState('');
   const [referenceError, setReferenceError] = useState('');
   const [uploading, setUploading] = useState(false);
+  /** Monthly fee currency: EUR → Wise, USD → Slash (client rule). */
+  const [payCurrency, setPayCurrency] = useState(PAYMENT_CURRENCY.EUR);
 
   const proofImagePreviewUrl = useMemo(() => {
     if (!uploadedFile || !uploadedFile.type.startsWith('image/')) {
@@ -197,8 +207,8 @@ const PayNowModal = ({
       return;
     }
     if (!paymentReference.trim()) {
-      setReferenceError('Please enter your payment reference / transaction ID.');
-      toast.error('Please enter your payment reference / transaction ID.');
+      setReferenceError('Please enter your Dashboard Account ID as the payment reference.');
+      toast.error('Please enter your Dashboard Account ID as the payment reference.');
       return;
     }
     setUploading(true);
@@ -206,7 +216,13 @@ const PayNowModal = ({
       const kind =
         flowType === 'platformSubscription' ? 'subscription' : 'ad-account';
       const proof = await uploadPaymentProof(uploadedFile, { kind });
-      await Promise.resolve(onSuccess?.(proof, paymentReference.trim()));
+      await Promise.resolve(
+        onSuccess?.(proof, paymentReference.trim(), {
+          currency: chosenCurrency,
+          account: PAYMENT_ACCOUNT_BY_CURRENCY[chosenCurrency],
+          amountLabel: shownAmount,
+        })
+      );
     } catch (err) {
       const raw = err instanceof Error ? err.message : '';
       const msg =
@@ -232,6 +248,12 @@ const PayNowModal = ({
   } = data;
 
   const isPlatformSubscription = flowType === 'platformSubscription';
+  // Only the monthly subscription fee can be paid in EUR; anything else is USD.
+  const chosenCurrency = isPlatformSubscription ? payCurrency : PAYMENT_CURRENCY.USD;
+  const shownAmount = priceLabelInCurrency(amount, chosenCurrency);
+  const shownOriginalAmount = originalAmount
+    ? priceLabelInCurrency(originalAmount, chosenCurrency)
+    : originalAmount;
   const headerTitle = isPlatformSubscription
     ? 'Complete subscription payment'
     : 'Pay for ad account';
@@ -339,10 +361,15 @@ const PayNowModal = ({
                 <div className="text-right">
                   {originalAmount ? (
                     <span className="text-[#8B9197] text-[14px] line-through block">
-                      {originalAmount}
+                      {shownOriginalAmount}
                     </span>
                   ) : null}
-                  <span className="text-white text-[20px] font-bold">{amount}</span>
+                  <span className="text-white text-[20px] font-bold">{shownAmount}</span>
+                  {chosenCurrency === PAYMENT_CURRENCY.USD && shownAmount !== amount ? (
+                    <span className="block text-[12px] text-[#8B9197] mt-1">
+                      {amount} · €1 = ${EUR_TO_USD_RATE}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               {discountMessage ? (
@@ -351,8 +378,42 @@ const PayNowModal = ({
             </div>
           </div>
 
+          {isPlatformSubscription ? (
+            <div className="space-y-3">
+              <h3 className="text-[18px] font-bold text-white tracking-wide">
+                Pay the monthly fee in
+              </h3>
+              <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Payment currency">
+                {[
+                  { id: PAYMENT_CURRENCY.EUR, label: 'EUR €', sub: 'Wise' },
+                  { id: PAYMENT_CURRENCY.USD, label: 'USD $', sub: 'Slash' },
+                ].map((opt) => {
+                  const active = payCurrency === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={uploading}
+                      onClick={() => setPayCurrency(opt.id)}
+                      className={`h-[60px] rounded-2xl border text-left px-4 transition-colors cursor-pointer disabled:opacity-50 ${
+                        active
+                          ? 'border-[#C5A964] bg-[#C5A964]/10'
+                          : 'border-[#373D45] hover:border-[#C5A964]/50'
+                      }`}
+                    >
+                      <span className="block text-white text-[15px] font-semibold">{opt.label}</span>
+                      <span className="block text-[#8B9197] text-[12px]">Paid to {opt.sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           {/* Bank Details */}
-          <BankDetailsCard showTitle />
+          <BankDetailsCard showTitle currency={chosenCurrency} />
 
           {/* Upload Screenshot */}
           <div className="space-y-5">
@@ -456,7 +517,7 @@ const PayNowModal = ({
               type="text"
               value={paymentReference}
               onChange={(e) => { setPaymentReference(e.target.value); setReferenceError(''); }}
-              placeholder="Enter the transaction / payment ID from your bank"
+              placeholder={PAYMENT_REFERENCE_PLACEHOLDER}
               disabled={uploading}
               className={`w-full h-[52px] bg-transparent text-[14px] text-white placeholder:text-[#8B9197] rounded-2xl px-5 border focus:outline-none focus:ring-1 focus:ring-[#C5A964] disabled:opacity-50 ${
                 referenceError ? 'border-red-500/70' : 'border-[#373D45]'
@@ -465,6 +526,10 @@ const PayNowModal = ({
             {referenceError ? (
               <p className="text-red-400 text-[12px] mt-1 ml-1">{referenceError}</p>
             ) : null}
+            <DashboardAccountIdHint
+              disabled={uploading}
+              onUse={(id) => { setPaymentReference(id); setReferenceError(''); }}
+            />
           </div>
         </div>
 

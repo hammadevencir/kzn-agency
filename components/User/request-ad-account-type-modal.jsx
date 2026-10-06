@@ -73,7 +73,7 @@ const RequestAdAccountTypeModal = ({
             </DialogTitle>
             <p className="text-quaternary text-[14px]">
               {isMetaSubscription
-                ? "Select White Hat or VIP. Your plan tier (Gold, Platinum, etc.) is chosen on the next step."
+                ? "Select Agency or Supplements ad accounts. Your package (Start, Scale, Elite…) is chosen on the next step."
                 : "Select which account you want to be created"}
             </p>
           </div>
@@ -98,7 +98,7 @@ const RequestAdAccountTypeModal = ({
                 <VIPHatIcon width={64} height={40} />
               </div>
               <span className={`text-[16px] font-semibold ${accountType === 'vip' && !isVipDisabled ? 'text-white' : 'text-quaternary'}`}>
-                VIP Ad Accounts
+                Supplements Ad Accounts
               </span>
               {isVipDisabled && (
                 <span className="absolute top-2 right-3 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-md bg-[#C5A964]/15 text-[#C5A964] border border-[#C5A964]/30">
@@ -125,7 +125,7 @@ const RequestAdAccountTypeModal = ({
                 <WhiteHatIcon width={64} height={40} />
               </div>
               <span className={`text-[16px] font-semibold ${accountType === 'whitehat' && !isWhiteHatDisabled ? 'text-white' : 'text-quaternary'}`}>
-                White Hat Ad Account
+                Agency Ad Accounts
               </span>
               {isWhiteHatDisabled && (
                 <span className="absolute top-2 right-3 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-md bg-[#C5A964]/15 text-[#C5A964] border border-[#C5A964]/30">

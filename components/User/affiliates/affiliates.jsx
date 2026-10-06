@@ -320,9 +320,16 @@ const Affiliates = () => {
               <h3 className="text-[14px] font-light text-quaternary">My Balance</h3>
               <Info className="w-3.5 h-3.5 text-gray-500 cursor-help" />
             </div>
-            <p className="text-3xl font-bold text-white mb-4">
-              {loading ? '…' : balanceDisplay}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4">
+              <p className="text-3xl font-bold text-white">
+                {loading ? '…' : balanceDisplay}
+              </p>
+              {!loading && hasPendingClaim ? (
+                <span className="px-3 py-1 rounded-full bg-[#39CB7F]/15 border border-[#39CB7F]/40 text-[#39CB7F] text-[12px] font-medium whitespace-nowrap">
+                  Your request is pending
+                </span>
+              ) : null}
+            </div>
             <button 
               type="button"
               onClick={() => {
@@ -349,11 +356,7 @@ const Affiliates = () => {
             >
               Claim Reward <ArrowRightIcon className="w-3.5 h-3.5 mt-0.5" />
             </button>
-            {!loading && hasPendingClaim ? (
-              <p className="text-[#39CB7F] text-[12px] mt-2 whitespace-nowrap">
-                Your request is pending.
-              </p>
-            ) : !loading && !canClaimReward ? (
+            {!loading && !hasPendingClaim && !canClaimReward ? (
               <p className="text-[#8B9197] text-[12px] mt-2 whitespace-nowrap">
                 Minimum {minClaimBalanceDisplay} balance required to claim.
               </p>

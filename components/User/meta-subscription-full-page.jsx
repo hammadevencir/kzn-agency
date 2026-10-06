@@ -49,19 +49,25 @@ const WHITE_HAT_BENEFITS = [
   "Policy compliance checks.",
 ];
 
+// "Why Work With Us?" list from the client's Supplements pricing text.
 const VIP_BENEFITS = [
-  "Lowest rejection rates compared to other providers.",
-  "Policy compliance checks with 8+ years of expertise.",
-  "Ad account delivery within 24-48 hours.",
-  "Best algorithm for VIP advertisers",
-  "Ultra-fast replies (10-15 min response time).",
-  "Full technical support with a 24/7 expert team.",
-  "No ad spend limits, unlimited spend",
-  "All time zones supported",
-  "Unlimited VIP ad-accounts",
-  "Direct META representative access",
-  "10-15mins Top ups, 24/7 availability",
-  "ZERO Setup & ZERO Hidden Fees",
+  "The best ad-accounts for Supplement stores.",
+  "Free ad-account replacements.",
+  "1 to 7 minutes top-ups, 24/7 availability.",
+  "Unlimited Ad-Acc Request.",
+  "Ultra-fast replies 10 minutes response.",
+  "Highest ad approval rates, less rejections",
+  "24/7 technical support with expertise.",
+  "No Spend Issues, No Credit line Issues.",
+  "Unlimited Spend, No Spending Limits.",
+  "Best Algorithm For Nutraceutical Advertisers.",
+  "No random Ad-Acc restrictions/bans.",
+  "Ad-Acc delivery within 36 hours.",
+  "All time-zones are available to use.",
+  "Policy compliance checks.",
+  "Expert guidance (8+ years experience)",
+  "Direct META representative.",
+  "Cancel monthly.",
 ];
 
 /**
@@ -214,10 +220,10 @@ export default function MetaSubscriptionFullPage({ category }) {
     setIsSubPayOpen(true);
   };
 
-  const handleSubPayDone = async (paymentProof, paymentReference) => {
+  const handleSubPayDone = async (paymentProof, paymentReference, paymentMeta) => {
     if (!subPayData) return;
     try {
-      await afterPayDone(subPayData, paymentProof, paymentReference);
+      await afterPayDone(subPayData, paymentProof, paymentReference, paymentMeta);
       void refetchSubscriptions();
     } catch (err) {
       toast.error(describeSubscriptionRequestError(err));
@@ -253,13 +259,13 @@ export default function MetaSubscriptionFullPage({ category }) {
         </button>
         <h1 className="text-[32px] font-bold tracking-tight">
           {isVip
-            ? "VIP META Agency Ad-accounts"
-            : "Meta — White Hat platform subscription"}
+            ? "KAZAN Solutions — Supplements Agency Ad Accounts"
+            : "KAZAN Solutions — Agency Ad Accounts"}
         </h1>
         <p className="text-quaternary text-[14px] mt-2 max-w-[720px]">
           {isVip
-            ? "Access the highest-quality VIP Meta ad accounts, built for advertisers who demand reliability, performance, and premium support. Choose the account that best suits your needs and grow with confidence, knowing our team is always by your side."
-            : "Choose your White Hat Meta platform subscription tier. After payment and approval, use your plan to request ad accounts."}
+            ? "Choose the package that fits your advertising needs. Whether you're entering the supplement market, ready to scale, or already managing serious volume, KAZAN provides specialized Agency Ad-Accounts built for supplement advertisers."
+            : "Choose the plan that fits where you are today! Whether you're just getting started, already scaling, or managing serious volume, KAZAN is built to grow together with you."}
         </p>
       </div>
 
@@ -275,8 +281,8 @@ export default function MetaSubscriptionFullPage({ category }) {
             </div>
             <h2 className="text-[28px] font-bold mb-10 tracking-tight">
               {isVip
-                ? "KAZAN Solutions VIP Agency Ad Account"
-                : "KAZAN Solutions White Hat Agency Ad Account"}
+                ? "Why work with us?"
+                : "KAZAN Solutions Agency Ad Accounts"}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-4 w-full text-left">
@@ -297,7 +303,7 @@ export default function MetaSubscriptionFullPage({ category }) {
             </div>
             <div>
               <h3 className="text-[#C5A964] text-[15px] font-bold mb-0.5">
-                {isVip ? "VIP Advanced Risk Management" : "Advanced Risk Management"}
+                Advanced Risk Management
               </h3>
               <p className="text-[13px] text-gray-400">
                 We use top-tier Meta Business Managers to ensure stability,
@@ -390,13 +396,13 @@ export default function MetaSubscriptionFullPage({ category }) {
           <div className="text-center">
             <h3 className="text-[18px] font-bold mb-2">
               {isVip
-                ? "The strongest grey-hat performance in the Meta ecosystem"
-                : "The Best White Hat Ad Accounts in the META Space"}
+                ? "With KAZAN, you're not just getting an Ad-Account."
+                : "When you grow, we grow with you."}
             </h3>
             <p className="text-[14px] text-gray-400 mb-8">
               {isVip
-                ? "Select your tier and continue to payment to start your platform subscription."
-                : "We Are the Most Affordable Provider For White & White Hat."}
+                ? "You're getting a team who stands 24/7 behind you! Choose the package that fits you today."
+                : "Choose the package that fits you today and continue to payment."}
             </p>
             <Button
               type="button"
@@ -419,7 +425,7 @@ export default function MetaSubscriptionFullPage({ category }) {
             </h4>
           </div>
           <p className="text-[13px] text-gray-400 leading-relaxed">
-            One subscription sets your Meta tier (White Hat or VIP). Request ad
+            One subscription sets your package (Agency or Supplements). Request ad
             accounts anytime while your plan is active.
           </p>
         </div>

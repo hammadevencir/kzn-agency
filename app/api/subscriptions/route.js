@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { parseAmountToNumber } from "@/lib/ad-accounts/platform-request-config";
+import { sanitizePaymentMeta } from "@/lib/payments/sanitize-payment-meta";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
@@ -136,6 +138,14 @@ export async function POST(request) {
     const plan = findMetaPlan(catRaw, planTierRaw);
     if (!plan) {
       return NextResponse.json({ error: "invalid_meta_plan" }, { status: 400 });
+    }
+    // The base price must be the catalog price for this package (referral
+    // discounts are validated against `originalAmount` further down).
+    const basePrice = parseAmountToNumber(
+      String(checkoutPreview.originalAmount || checkoutPreview.amount || "")
+    );
+    if (basePrice !== parseAmountToNumber(plan.monthlyFee)) {
+      return NextResponse.json({ error: "price_mismatch" }, { status: 400 });
     }
     const { flow: metaFlowPart } = metaPlanToFlowAndCheckout(catRaw, plan);
     subscriptionForm = {
@@ -461,6 +471,7 @@ export async function POST(request) {
     paymentSubmittedAt: finalize ? FieldValue.serverTimestamp() : null,
     paymentProof: paymentProof || null,
     paymentReference: finalize ? paymentReference : null,
+    ...(finalize ? sanitizePaymentMeta(body?.paymentMeta) : {}),
   };
 
   if (referralBlock.referral) {

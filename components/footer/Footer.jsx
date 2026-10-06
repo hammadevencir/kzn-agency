@@ -31,7 +31,13 @@ const Footer = () => {
         </div>
         <div className="flex items-center gap-2">
           {socialLinks.map((link) => (
-            <Link key={link.name} href={link.href}>
+            <Link
+              key={link.name}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={link.name}
+            >
               <Image src={link.icon} alt={link.name} width={24} height={24} />
             </Link>
           ))}

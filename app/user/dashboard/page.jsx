@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -38,6 +39,7 @@ function statusPillClass(status) {
   if (status === 'Needs Top-up') return 'bg-[#FA3C67]';
   if (status === 'Top Spending') return 'bg-[#39CB7F]';
   if (status === 'Rejected') return 'bg-[#FA3C67]';
+  if (status === 'Payment Not Received') return 'bg-[#FA3C67]';
   return 'bg-[#C5A964]';
 }
 
@@ -532,10 +534,10 @@ function DashboardContent() {
     );
   };
 
-  const handleSubPayDone = async (paymentProof, paymentReference) => {
+  const handleSubPayDone = async (paymentProof, paymentReference, paymentMeta) => {
     if (!subPayData) return;
     try {
-      await afterPayDone(subPayData, paymentProof, paymentReference);
+      await afterPayDone(subPayData, paymentProof, paymentReference, paymentMeta);
       void refetchSubscriptions();
       void loadDashboardData();
     } catch (err) {
@@ -558,6 +560,7 @@ function DashboardContent() {
     const blocked = topUpBlockReason(row, {
       expiredPlatformIds,
       unpaidPlatformIds,
+      subscriptionDocs,
     });
     if (blocked) {
       toast.error(blocked.message);
@@ -674,7 +677,10 @@ function DashboardContent() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-y-10 gap-x-10">
-                  <div>
+                  <Link
+                    href="/user/ad-accounts"
+                    className="block -m-3 p-3 rounded-2xl hover:bg-black/5 transition-colors"
+                  >
                     <p className="text-[#8B8069] text-[13px] font-medium mb-2 uppercase tracking-wide">Total Ad Accounts</p>
                     <p className="text-[#15120F] text-[30px] leading-none tracking-tight min-h-[36px] flex items-center">
                       {dashDataLoading ? (
@@ -683,8 +689,11 @@ function DashboardContent() {
                         formatStat(dashboardStats?.totalAdAccounts ?? NaN)
                       )}
                     </p>
-                  </div>
-                  <div>
+                  </Link>
+                  <Link
+                    href="/user/affiliates"
+                    className="block -m-3 p-3 rounded-2xl hover:bg-black/5 transition-colors"
+                  >
                     <p className="text-[#8B8069] text-[13px] font-medium mb-2 uppercase tracking-wide">Active Referrals</p>
                     <p className="text-[#15120F] text-[30px] leading-none tracking-tight min-h-[36px] flex items-center">
                       {dashDataLoading ? (
@@ -693,8 +702,11 @@ function DashboardContent() {
                         formatStat(dashboardStats?.activeReferrals ?? NaN)
                       )}
                     </p>
-                  </div>
-                  <div>
+                  </Link>
+                  <Link
+                    href="/user/top-ups"
+                    className="block -m-3 p-3 rounded-2xl hover:bg-black/5 transition-colors"
+                  >
                     <p className="text-[#8B8069] text-[13px] font-medium mb-2 uppercase tracking-wide">Top-ups this Month</p>
                     <p className="text-[#15120F] text-[30px] leading-none tracking-tight min-h-[36px] flex items-center">
                       {dashDataLoading ? (
@@ -703,8 +715,11 @@ function DashboardContent() {
                         formatStat(dashboardStats?.topUpsThisMonth ?? NaN)
                       )}
                     </p>
-                  </div>
-                  <div>
+                  </Link>
+                  <Link
+                    href="/user/subscriptions"
+                    className="block -m-3 p-3 rounded-2xl hover:bg-black/5 transition-colors"
+                  >
                     <p className="text-[#8B8069] text-[13px] font-medium mb-2 uppercase tracking-wide">Total Subscriptions</p>
                     <p className="text-[#15120F] text-[30px] leading-none tracking-tight min-h-[36px] flex items-center">
                       {dashDataLoading ? (
@@ -713,7 +728,7 @@ function DashboardContent() {
                         formatStat(dashboardStats?.totalSubscriptions ?? NaN)
                       )}
                     </p>
-                  </div>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -762,6 +777,7 @@ function DashboardContent() {
                       const rid = String(row.firestoreId ?? '');
                       const clipId = `dash-clip-${rid.slice(0, 12)}`;
                       const accountName =
+                        (row.planLabel && String(row.planLabel).trim()) ||
                         (row.planHint && String(row.planHint).trim()) ||
                         (row.checkoutPlan && String(row.checkoutPlan).trim()) ||
                         (row.platform && String(row.platform)) ||

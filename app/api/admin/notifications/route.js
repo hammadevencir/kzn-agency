@@ -17,6 +17,13 @@ import {
 import { attachReadStateToNotificationItems } from "@/lib/notifications/read-state";
 import { relativeTime, tsMs } from "@/lib/notifications/helpers";
 import { buildAdminChatNotificationItems } from "@/lib/notifications/chat-notifications";
+import { buildAdminOrderNotificationItems } from "@/lib/orders/server-orders";
+import {
+  PRIVATE_PRICING_ADMIN_HREF,
+  PRIVATE_PRICING_COLLECTION,
+  PRIVATE_PRICING_STATUS,
+} from "@/lib/private-pricing/constants";
+import { ADMIN_SECTION, canAccessAdminSection } from "@/lib/auth/admin-permissions";
 
 const REWARD_CLAIMS_COLLECTION = "reward-claims";
 
@@ -57,7 +64,7 @@ export async function GET() {
         .get(),
     ]);
 
-  /** @type {{ id: string, title: string, desc: string, timeMs: number, time: string, kind: string }[]} */
+  /** @type {{ id: string, title: string, desc: string, timeMs: number, time: string, kind: string, href?: string }[]} */
   const items = [];
 
   for (const d of adSnap.docs) {
@@ -71,6 +78,7 @@ export async function GET() {
     );
     items.push({
       id: `ad-${d.id}`,
+      href: "/admin/ad-accounts",
       title: `New ${platform} ad account request`,
       desc: `${displayNameFromEmail(email)} submitted an ad account request.`,
       timeMs: created,
@@ -92,6 +100,7 @@ export async function GET() {
     seenSub.add(d.id);
     items.push({
       id: `sub-${d.id}`,
+      href: "/admin/subscriptions",
       title: `New ${platform} subscription request`,
       desc: `${displayNameFromEmail(email)} submitted a subscription payment.`,
       timeMs: created,
@@ -119,6 +128,7 @@ export async function GET() {
     );
     items.push({
       id: `sub-up-${d.id}`,
+      href: "/admin/subscriptions",
       title: `${platform} subscription upgrade request`,
       desc: `${displayNameFromEmail(email)} submitted payment for a subscription upgrade.`,
       timeMs: created,
@@ -134,6 +144,7 @@ export async function GET() {
     const amount = data.checkout?.amount || "";
     items.push({
       id: `topup-${d.id}`,
+      href: "/admin/top-ups",
       title: "New top-up request",
       desc: `${displayNameFromEmail(email)} requested a top-up${amount ? ` of ${amount}` : ""}.`,
       timeMs: created,
@@ -149,6 +160,7 @@ export async function GET() {
     const type = data.claimType || "reward";
     items.push({
       id: `reward-${d.id}`,
+      href: "/admin/affiliates",
       title: "New reward claim",
       desc: `${name} requested a ${type} reward claim.`,
       timeMs: created,
@@ -157,10 +169,40 @@ export async function GET() {
     });
   }
 
+  // Legendary Package private-pricing applications (public /pricing form).
+  // Only for admins allowed into the Contact Requests section.
+  if (canAccessAdminSection(sessionUser.adminRole, ADMIN_SECTION.CONTACT_REQUESTS)) try {
+    const ppSnap = await db
+      .collection(PRIVATE_PRICING_COLLECTION)
+      .where("status", "==", PRIVATE_PRICING_STATUS.NEW)
+      .get();
+    for (const d of ppSnap.docs) {
+      const data = d.data();
+      const created = tsMs(data.createdAt);
+      const name = data.fullName ? String(data.fullName) : "Someone";
+      const company = data.company ? ` (${String(data.company)})` : "";
+      const spend = data.currentSpend ? ` · ${String(data.currentSpend)}/mo` : "";
+      items.push({
+        id: `pp-${d.id}`,
+        href: PRIVATE_PRICING_ADMIN_HREF,
+        title: "New private pricing request",
+        desc: `${name}${company} applied for Legendary private pricing${spend}.`,
+        timeMs: created,
+        time: relativeTime(created),
+        kind: "info",
+      });
+    }
+  } catch (e) {
+    console.error("admin notifications: private pricing query failed", e);
+  }
+
   if (sessionUser.role === ROLE.ADMIN) {
     const chatItems = await buildAdminChatNotificationItems(db);
     items.push(...chatItems);
   }
+
+  // Shop orders still in "New" (visible to every admin sub-role).
+  items.push(...(await buildAdminOrderNotificationItems(db)));
 
   items.sort((a, b) => b.timeMs - a.timeMs);
 

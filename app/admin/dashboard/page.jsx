@@ -38,24 +38,28 @@ export default async function AdminDashboardPage() {
             value={formatStat(stats.totalTopUps)}
             showGraph={true}
             graphColor="yellow"
+            href="/admin/top-ups"
           />
           <DashboardCard
             title="Total Subscriptions"
             value={formatStat(stats.totalSubscriptions)}
             showGraph={true}
             graphColor="blue"
+            href="/admin/subscriptions"
           />
           <DashboardCard
             title="Total Users"
             value={formatStat(stats.totalUsers)}
             showGraph={true}
             graphColor="orange"
+            href="/admin/user-management"
           />
           <DashboardCard
             title="Total ad accounts"
             value={formatStat(stats.totalAdAccounts)}
             showGraph={true}
             graphColor="green"
+            href="/admin/ad-accounts"
           />
         </div>
       </div>

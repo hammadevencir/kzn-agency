@@ -17,8 +17,10 @@ import {
   HelpIcon,
   MessageIcon,
   AnnouncementsIcon,
-  MailIcon
+  MailIcon,
+  EarningsIcon
 } from '@/components/icons';
+import { Package } from 'lucide-react';
 
 const Sidebar = ({
   activeItem = 'dashboard',
@@ -33,6 +35,12 @@ const Sidebar = ({
    * @type {string[] | null}
    */
   allowedItemIds = null,
+  /**
+   * Nav ids (main + bottom) to hide, e.g. admin sections a customer-service
+   * login can't access (see lib/auth/admin-permissions.js).
+   * @type {string[]}
+   */
+  hiddenItemIds = [],
 }) => {
   // Highlight must follow `activeItem` (derived from the URL in layouts). Do not keep a
   // separate selected state that only updates on click — e.g. router.push to Dashboard from
@@ -80,6 +88,11 @@ const Sidebar = ({
       icon: InvoicesIcon,
     },
     {
+      id: 'financial',
+      label: 'Financial',
+      icon: EarningsIcon,
+    },
+    {
       id: 'balance-requests',
       label: 'Balance Requests',
       icon: BalanceRequestsIcon,
@@ -108,6 +121,11 @@ const Sidebar = ({
       id: 'create-article',
       label: 'Create KZN article',
       icon: HelpIcon,
+    },
+    {
+      id: 'orders',
+      label: 'Orders',
+      icon: Package,
     },
   ];
 
@@ -139,8 +157,8 @@ const Sidebar = ({
       icon: InvoicesIcon,
     },
     {
-      id: 'services',
-      label: 'Services',
+      id: 'shop',
+      label: 'Shop',
       icon: ServiceIcon,
     },
     {
@@ -158,13 +176,19 @@ const Sidebar = ({
       label: 'Help Center',
       icon: HelpIcon,
     },
+    {
+      id: 'orders',
+      label: 'Manage Orders',
+      icon: Package,
+    },
   ];
 
   // Get navigation items based on role
   const allItems = role === 'admin' ? adminNavigationItems : userNavigationItems;
-  const navigationItems = allowedItemIds
+  const navigationItems = (allowedItemIds
     ? allItems.filter((item) => allowedItemIds.includes(item.id))
-    : allItems;
+    : allItems
+  ).filter((item) => !hiddenItemIds.includes(item.id));
 
   const bottomItems = [
     {
@@ -199,7 +223,12 @@ const Sidebar = ({
       >
         {/* Logo Section */}
         <div className="shrink-0 p-6 border-b border-border">
-          <div className="flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => handleItemClick('dashboard')}
+            className="flex w-full items-center justify-center cursor-pointer"
+            aria-label="Go to dashboard"
+          >
             <Image
               src="/logo.png"
               alt="Logo"
@@ -207,7 +236,7 @@ const Sidebar = ({
               height={40}
               className="object-contain"
             />
-          </div>
+          </button>
         </div>
 
         {/* Navigation Items — scroll when list is taller than viewport */}
@@ -252,7 +281,7 @@ const Sidebar = ({
         {/* Bottom Items — always visible at bottom */}
         <div className="shrink-0 px-4 pb-6 pt-2 border-t border-border">
           <nav className="space-y-2">
-            {bottomItems.map((item) => {
+            {bottomItems.filter((item) => !hiddenItemIds.includes(item.id)).map((item) => {
               const Icon = item.icon;
               const isActiveItem = activeItem === item.id;
 

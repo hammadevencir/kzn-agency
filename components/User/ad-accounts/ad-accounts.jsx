@@ -1,16 +1,18 @@
 "use client";
 
+import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
+import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlusIcon } from "@/components/icons";
 import AdAccountDetailSheet from "./ad-account-detail-sheet";
+import { useBalanceRefresh } from "./balance-refresh";
 import RequestAdAccountModal from "../request-ad-account-modal";
 import TopUpUploadModal from "../detail-modals/top-up-upload-modal";
 import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
 import PayNowModal from "../pay-now-modal";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
-import { submitBalanceCreditRequest } from "@/lib/user/top-ups-client";
 import { topUpBlockReason } from "@/lib/user/top-up-gate";
 import { portalRowToTopUpModalData } from "@/lib/user/portal-row-to-top-up-modal";
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
@@ -77,7 +79,8 @@ const AdAccountCard = ({
   onCardClick,
   onTopUp,
 }) => {
-  const isNeedsTopUp = status === "Needs Top-up";
+  const isNeedsTopUp =
+    status === "Needs Top-up" || status === "Payment Not Received";
   const isTopSpending = status === "Top Spending";
   const useTopUpCta = isLowBalanceSuspensionRisk === true && topUpInReview !== true;
   const isRejected = status === "Rejected";
@@ -130,7 +133,7 @@ const AdAccountCard = ({
                   <circle cx="5.25" cy="5.83" r="0.58" fill="white"/>
                   <circle cx="8.75" cy="5.83" r="0.58" fill="white"/>
                 </svg>
-                <span className="text-[11px] font-medium whitespace-nowrap">Needs Top-up</span>
+                <span className="text-[11px] font-medium whitespace-nowrap">{status}</span>
               </div>
             ) : null}
             {isTopSpending ? (
@@ -206,6 +209,7 @@ const UserAdAccounts = () => {
     expiredPlatformIds,
     unpaidPlatformIds,
     subscriptionDocsByPlatform,
+    subscriptionDocs,
   } = useUserSubscribedPlatforms();
   const subscribedList = Array.from(subscribedPlatformIds);
 
@@ -222,7 +226,6 @@ const UserAdAccounts = () => {
   const [topUpAccount, setTopUpAccount] = useState(null);
   const [isTopUpSuccessOpen, setIsTopUpSuccessOpen] = useState(false);
 
-  const [balanceRequestSending, setBalanceRequestSending] = useState(false);
 
   const [payForExpiredSub, setPayForExpiredSub] = useState(null);
 
@@ -332,21 +335,23 @@ const UserAdAccounts = () => {
     setRejectionBannerSeenVersion((v) => v + 1);
   };
 
-  const openPayNowForPlatform = (platformKey, platformLabel) => {
+  const openPayNowForPlatform = (platformKey, platformLabel, subscriptionDoc = null) => {
     const k = typeof platformKey === "string" ? platformKey.toLowerCase() : "";
-    const doc = k ? subscriptionDocsByPlatform?.[k] : null;
+    // Prefer the exact plan subscription the gate matched (a user can hold two
+    // Meta plans; the newest Meta doc may be the other one).
+    const doc = subscriptionDoc || (k ? subscriptionDocsByPlatform?.[k] : null);
     const checkout =
       doc && doc.checkout && typeof doc.checkout === "object"
         ? doc.checkout
         : {};
-    const amount = checkout.amount != null ? String(checkout.amount) : "—";
+    const terms = payAgainTerms(doc, (doc?.status === "expired" || isSubLapsed(doc)));
+    const amount = terms.amount ?? "—";
     const platform =
       platformLabel ||
       (doc && (doc.flow?.displayPlatform || doc.platformId)) ||
       "Platform";
     setPayForExpiredSub({
-      subscriptionName:
-        String(checkout.subscriptionName || `${platform} plan`),
+      subscriptionName: String(terms.subscriptionName || `${platform} plan`),
       amount: withDisplayCurrency(amount),
       originalAmount:
         checkout.originalAmount != null
@@ -361,7 +366,7 @@ const UserAdAccounts = () => {
     });
   };
 
-  const handleExpiredPaySuccess = async (paymentProof, paymentReference) => {
+  const handleExpiredPaySuccess = async (paymentProof, paymentReference, paymentMeta) => {
     const ctx = payForExpiredSub;
     setPayForExpiredSub(null);
     if (!ctx?.subscriptionId) return;
@@ -375,7 +380,8 @@ const UserAdAccounts = () => {
           renewal: true,
         },
         paymentProof || null,
-        paymentReference || null
+        paymentReference || null,
+        paymentMeta || null
       );
       toast.success(
         "Payment proof received. We'll review and restore access shortly."
@@ -407,6 +413,18 @@ const UserAdAccounts = () => {
       setLoading(false);
     }
   }, []);
+
+  const {
+    refreshBalance,
+    sending: balanceRequestSending,
+    dialog: balanceRefreshDialog,
+  } = useBalanceRefresh({
+    expiredPlatformIds,
+    unpaidPlatformIds,
+    subscriptionDocs,
+    openPayNowForPlatform,
+    onQueued: () => void loadAccounts(),
+  });
 
   useEffect(() => {
     void loadAccounts();
@@ -465,11 +483,12 @@ const UserAdAccounts = () => {
     const blocked = topUpBlockReason(row, {
       expiredPlatformIds,
       unpaidPlatformIds,
+      subscriptionDocs,
     });
     if (blocked) {
       toast.error(blocked.message);
       if (blocked.kind === "expired") {
-        openPayNowForPlatform(blocked.platformKey, row.platform);
+        openPayNowForPlatform(blocked.platformKey, row.platform, blocked.subscriptionDoc);
       }
       return;
     }
@@ -487,13 +506,15 @@ const UserAdAccounts = () => {
     const blocked = topUpBlockReason(row, {
       expiredPlatformIds,
       unpaidPlatformIds,
+      subscriptionDocs,
     });
     if (blocked) {
       toast.error(blocked.message);
       if (blocked.kind === "expired") {
         openPayNowForPlatform(
           blocked.platformKey,
-          row.platform ? String(row.platform) : null
+          row.platform ? String(row.platform) : null,
+          blocked.subscriptionDoc
         );
       }
       return;
@@ -504,48 +525,10 @@ const UserAdAccounts = () => {
   };
 
   const handleRequestBalanceFromSheet = async (row) => {
-    if (!row || typeof row.firestoreId !== "string") return;
-    const blocked = topUpBlockReason(
-      row,
-      { expiredPlatformIds, unpaidPlatformIds },
-      { action: "balance" }
-    );
-    if (blocked) {
-      toast.error(blocked.message);
-      if (blocked.kind === "expired") {
-        openPayNowForPlatform(
-          blocked.platformKey,
-          row.platform ? String(row.platform) : null
-        );
-      }
-      return;
-    }
-    setBalanceRequestSending(true);
-    try {
-      await submitBalanceCreditRequest({ adAccountId: row.firestoreId });
-      toast.success(
-        "Balance request sent to the team. An admin will credit your account when ready."
-      );
+    const queued = await refreshBalance(row);
+    if (queued) {
       setIsDetailSheetOpen(false);
       setSelectedAccount(null);
-      void loadAccounts();
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : "";
-      const msg =
-        raw === "top_up_already_pending"
-          ? "This account already has a balance or top-up request under review."
-          : raw === "ad_account_paused"
-            ? "This ad account is currently paused. Contact support for details."
-            : raw === "subscription_expired"
-              ? "Your subscription has expired. Renew to continue."
-              : raw === "subscription_inactive"
-                ? "Your subscription for this platform isn't active yet. Balance requests unlock once your subscription payment is approved."
-                : raw === "forbidden"
-                  ? "Could not submit this request."
-                  : "Could not send your balance request. Please try again.";
-      toast.error(msg);
-    } finally {
-      setBalanceRequestSending(false);
     }
   };
 
@@ -779,6 +762,8 @@ const UserAdAccounts = () => {
         data={payForExpiredSub}
         onSuccess={handleExpiredPaySuccess}
       />
+
+      {balanceRefreshDialog}
     </div>
   );
 };

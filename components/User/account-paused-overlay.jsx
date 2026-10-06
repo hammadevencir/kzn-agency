@@ -1,5 +1,7 @@
 "use client";
 
+import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
+import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -39,16 +41,18 @@ export default function AccountPausedOverlay({ reason }) {
   const checkout =
     target?.checkout && typeof target.checkout === "object" ? target.checkout : {};
   const flow = target?.flow && typeof target.flow === "object" ? target.flow : {};
-  const subscriptionName = String(checkout.subscriptionName || flow.displayPlatform || "Subscription plan");
-  const amount = checkout.amount != null ? String(checkout.amount) : "—";
+  const terms = payAgainTerms(target, (target?.status === "expired" || isSubLapsed(target)));
+  const subscriptionName = String(terms.subscriptionName || flow.displayPlatform || "Subscription plan");
+  const amount = terms.amount ?? "—";
 
-  const handlePaySuccess = async (paymentProof, paymentReference) => {
+  const handlePaySuccess = async (paymentProof, paymentReference, paymentMeta) => {
     try {
       await submitPlatformSubscriptionPayment(
         target.id,
-        { amount: checkout.amount ?? null, subscriptionName, platformId: target.platformId || null, renewal: true },
+        { amount: terms.amount ?? null, subscriptionName, platformId: target.platformId || null, renewal: true },
         paymentProof || null,
-        paymentReference || null
+        paymentReference || null,
+        paymentMeta || null
       );
       toast.success("Payment proof received. We'll review it and restore access shortly.");
       setSubmitted(true);

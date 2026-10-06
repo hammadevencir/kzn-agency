@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from '@/components/common-admin-manager/sidebar';
 import Header from '@/components/common-admin-manager/header';
@@ -10,6 +10,12 @@ import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
 import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
+import { useAdminRole } from '@/lib/hooks/useAdminRole';
+import {
+  RESTRICTED_SECTIONS_FOR_SUPPORT,
+  canAccessAdminPath,
+  hiddenAdminSections,
+} from '@/lib/auth/admin-permissions';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 
 const AdminLayout = ({ children }) => {
@@ -19,6 +25,20 @@ const AdminLayout = ({ children }) => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.ADMIN);
   const isLoginPage = pathname.includes('/login');
+
+  // Admin sub-role (manager | support). While loading, hide restricted items
+  // so customer-service logins never see them flash.
+  const adminRole = useAdminRole({ enabled: !isLoginPage });
+  const hiddenNavIds = adminRole
+    ? hiddenAdminSections(adminRole)
+    : RESTRICTED_SECTIONS_FOR_SUPPORT;
+
+  // Client-side backstop for proxy.js: bounce support off restricted pages.
+  useEffect(() => {
+    if (adminRole && !canAccessAdminPath(adminRole, pathname)) {
+      router.replace('/admin/dashboard');
+    }
+  }, [adminRole, pathname, router]);
 
   useVerifySessionOrRedirect({
     endpoint: '/api/admin/profile',
@@ -38,9 +58,11 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/contact-requests')) return 'contact-requests';
     if (pathname.includes('/affiliate-requests')) return 'affiliate-requests';
     if (pathname.includes('/invoices')) return 'invoices';
+    if (pathname.startsWith('/admin/financial')) return 'financial';
     if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/announcements')) return 'announcements';
     if (pathname.includes('/create-article')) return 'create-article';
+    if (pathname.includes('/orders')) return 'orders';
     if (pathname === '/admin' || pathname.startsWith('/admin/dashboard')) return 'dashboard';
     return 'dashboard';
   };
@@ -70,12 +92,16 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/affiliate-requests');
     } else if (item === 'invoices') {
       router.push('/admin/invoices');
+    } else if (item === 'financial') {
+      router.push('/admin/financial');
     } else if (item === 'chat') {
       router.push('/admin/chat');
     } else if (item === 'announcements') {
       router.push('/admin/announcements');
     } else if (item === 'create-article') {
       router.push('/admin/create-article');
+    } else if (item === 'orders') {
+      router.push('/admin/orders');
     }
   };
 
@@ -119,6 +145,7 @@ const AdminLayout = ({ children }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         role="admin"
         chatUnreadCount={chatUnreadCount}
+        hiddenItemIds={hiddenNavIds}
       />
       
       {/* Main Content Area */}

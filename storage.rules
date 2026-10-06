@@ -30,10 +30,27 @@ service firebase.storage {
         );
     }
 
+    // Creative images attached to ad-account request forms (VIP "Send us some
+    // creatives"). Uploaded through /api/requests/upload-creatives with the
+    // Admin SDK, so client writes are denied. Admins open them via the stored
+    // token download URL.
+    match /request-creatives/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // Chat attachments (writes via Admin SDK only)
     match /chat-attachments/{userId}/{fileName} {
       allow read: if request.auth != null;
       allow write: if false;
+    }
+
+    // Legendary Package private-pricing applications (ad-spend screenshots /
+    // reports from public visitors). Uploaded by /api/private-pricing with the
+    // Admin SDK; admins open them via the stored token download URL. No direct
+    // client access at all.
+    match /private-pricing/{allPaths=**} {
+      allow read, write: if false;
     }
 
     // Help Center article PDFs (admin-uploaded via Admin SDK only)

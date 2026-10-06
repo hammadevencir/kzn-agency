@@ -9,7 +9,10 @@ import {
 } from "@/lib/ad-accounts/constants";
 import { countWeeklyAdAccountRequests } from "@/lib/ad-accounts/weekly-request-limit";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
-import { pendingTopUpAdAccountIdsFromSnapshot } from "@/lib/user/pending-top-up-by-ad-account";
+import {
+  pendingTopUpAdAccountIdsFromSnapshot,
+  unsettledTopUpsFromSnapshot,
+} from "@/lib/user/pending-top-up-by-ad-account";
 import { mapAdAccountForTopUpsTable } from "@/lib/user/map-ad-account-for-top-ups";
 import { mapAdAccountPortalRow } from "@/lib/user/map-ad-account-portal";
 import {
@@ -18,8 +21,14 @@ import {
   normalizePlatformKey,
 } from "@/lib/ad-accounts/normalize-payload";
 import { buildReferralAttachmentForPurchase } from "@/lib/affiliates/server-referral";
-import { checkPlatformSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
+import {
+  checkPlatformSubscriptionStatus,
+  loadUserSubscriptionDocs,
+  subscriptionPlatformKey,
+} from "@/lib/subscriptions/require-active-subscription";
+import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { sanitizeRequestCreatives } from "@/lib/ad-accounts/request-creatives";
 
 /**
  * GET without `scope`: approved ad accounts for top-up page.
@@ -41,6 +50,20 @@ export async function GET(request) {
   ]);
 
   const pendingByAd = pendingTopUpAdAccountIdsFromSnapshot(topUpsSnap);
+  const unsettledByAd = unsettledTopUpsFromSnapshot(topUpsSnap);
+  const userHasUnsettledPayment = unsettledByAd.size > 0;
+  /** @param {string} id @param {Record<string, unknown>} row */
+  const withSettlement = (id, row) => {
+    const u = unsettledByAd.get(id);
+    return {
+      ...row,
+      userHasUnsettledPayment,
+      paymentNotReceived: Boolean(u),
+      unsettledTopUpId: u?.topUpId ?? null,
+      receiptUrl: u?.receiptUrl ?? null,
+      ...(u ? { status: "Payment Not Received" } : {}),
+    };
+  };
 
   if (scope === "all") {
     const docs = [...accountsSnap.docs];
@@ -50,7 +73,7 @@ export async function GET(request) {
       return tb - ta;
     });
     const items = docs.map((d) =>
-      mapAdAccountPortalRow(d.id, d.data(), pendingByAd.has(d.id))
+      withSettlement(d.id, mapAdAccountPortalRow(d.id, d.data(), pendingByAd.has(d.id)))
     );
     return NextResponse.json({ items });
   }
@@ -65,7 +88,7 @@ export async function GET(request) {
   });
 
   const items = approved.map((d) =>
-    mapAdAccountForTopUpsTable(d.id, d.data(), pendingByAd.has(d.id))
+    withSettlement(d.id, mapAdAccountForTopUpsTable(d.id, d.data(), pendingByAd.has(d.id)))
   );
 
   return NextResponse.json({ items });
@@ -138,7 +161,30 @@ export async function POST(request) {
         { status: 409 }
       );
     }
-    const subDoc = subStatus.doc;
+    // A user can hold several Meta plans (White Hat SILVER + VIP PLATINUM).
+    // The new ad account must belong to the plan the customer picked, not to
+    // whichever Meta subscription happens to be found first.
+    const requestedSubId =
+      typeof body?.subscriptionId === "string" ? body.subscriptionId.trim() : "";
+    const activeMetaSubs = (await loadUserSubscriptionDocs(db, user.uid)).filter(
+      (d) => subscriptionPlatformKey(d) === "meta" && isSubscriptionActive(d)
+    );
+    let subDoc = subStatus.doc;
+    if (requestedSubId) {
+      const picked = activeMetaSubs.find((d) => d.id === requestedSubId);
+      if (!picked) {
+        return NextResponse.json(
+          { error: "subscription_inactive" },
+          { status: 409 }
+        );
+      }
+      subDoc = picked;
+    } else if (activeMetaSubs.length > 1) {
+      return NextResponse.json(
+        { error: "meta_subscription_choice_required" },
+        { status: 400 }
+      );
+    }
     const sf =
       subDoc?.flow && typeof subDoc.flow === "object" ? subDoc.flow : {};
     const tier = typeof sf.planTier === "string" ? sf.planTier.trim() : "";
@@ -174,9 +220,16 @@ export async function POST(request) {
   }
 
   const flow = buildFlowBlock({ subscriptionForm, extraFlow });
+  // Every new ad account needs a region (HK = USD only, EU = EUR only); it
+  // decides the top-up currency and bank details for the account's lifetime.
+  if (!flow.region) {
+    return NextResponse.json({ error: "region_required" }, { status: 400 });
+  }
   const requestFields = extractRequestFields(
     /** @type {Record<string, unknown>} */ (subscriptionForm)
   );
+  // Creative images uploaded via /api/requests/upload-creatives (VIP form).
+  const creatives = sanitizeRequestCreatives(subscriptionForm.creatives, user.uid);
 
   const platformKey =
     (typeof flow?.platformKey === "string" && flow.platformKey) ||
@@ -260,6 +313,7 @@ export async function POST(request) {
       : AD_ACCOUNT_STATUS.PENDING_PAYMENT,
     flow,
     request: requestFields,
+    creatives,
     checkout: {
       subscriptionName: String(checkoutPreview.subscriptionName ?? ""),
       amount: String(checkoutPreview.amount ?? ""),

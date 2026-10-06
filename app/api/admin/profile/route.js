@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
-import { requireAdminSession } from "@/lib/auth/require-user-session";
+import {
+  requireAdminSection,
+  requireAdminSession,
+} from "@/lib/auth/require-user-session";
 
 /**
  * GET — profile fields from Firebase Auth + Firestore (admin settings UI).
+ * Open to every admin sub-role: also used as the admin session heartbeat
+ * (useVerifySessionOrRedirect) and to read the current `adminRole`.
  */
 export async function GET() {
   const user = await requireAdminSession();
@@ -34,6 +39,9 @@ export async function GET() {
     email: rec.email ?? user.email ?? "",
     photoURL: rec.photoURL ?? fs?.photoURL ?? null,
     hasPasswordProvider,
+    // Admin sub-role ("manager" | "support") from the session claim — the
+    // admin layout uses it to hide restricted sidebar items.
+    adminRole: user.adminRole,
   });
 }
 
@@ -41,10 +49,10 @@ export async function GET() {
  * PATCH — mirror Auth profile into Firestore after client updates Firebase Auth.
  */
 export async function PATCH(request) {
-  const user = await requireAdminSession();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  // Settings is a manager-only section (customer-service logins can't edit it).
+  const gate = await requireAdminSection("settings");
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   let body;
   try {

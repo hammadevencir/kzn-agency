@@ -167,12 +167,12 @@ const SolutionsBanner = () => {
                     <div className="flex flex-col">
                       <span className="text-[16px] font-inter-display">My Plan</span>
                       <span className="text-[12px] text-[#B0B0B0] font-inter-display">
-                        White Hat - Platinum
+                        KAZAN Elite
                       </span>
                     </div>
                   </div>
                   <p className="text-[12px] text-primary font-inter-display">
-                    Top Up fee: <span className="text-white">0%</span>
+                    Top Up fee: <span className="text-white">1.8%</span>
                   </p>
                 </div>
               </div>

@@ -103,7 +103,7 @@ export async function PATCH(request, context) {
   }
 
   const action = body?.action;
-  if (action !== "approve" && action !== "reject") {
+  if (action !== "approve" && action !== "reject" && action !== "mark-not-received") {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
@@ -115,8 +115,32 @@ export async function PATCH(request, context) {
   }
 
   const data = snap.data();
-  if (data?.status !== TOP_UP_STATUS.PAYMENT_SUBMITTED) {
+  // "Payment not received" stays open for review: once the transfer lands the
+  // admin can still approve it (or reject it).
+  const reviewable =
+    data?.status === TOP_UP_STATUS.PAYMENT_SUBMITTED ||
+    data?.status === TOP_UP_STATUS.PAYMENT_NOT_RECEIVED;
+  if (!reviewable) {
     return NextResponse.json({ error: "not_pending_review" }, { status: 409 });
+  }
+
+  if (action === "mark-not-received") {
+    if (data?.status !== TOP_UP_STATUS.PAYMENT_SUBMITTED) {
+      return NextResponse.json({ error: "not_pending_review" }, { status: 409 });
+    }
+    const note =
+      typeof body.note === "string" ? body.note.trim().slice(0, 1000) : "";
+    await ref.set(
+      {
+        status: TOP_UP_STATUS.PAYMENT_NOT_RECEIVED,
+        paymentNotReceivedAt: FieldValue.serverTimestamp(),
+        paymentNotReceivedBy: admin.uid,
+        paymentNotReceivedNote: note || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({ ok: true });
   }
 
   if (!normalizeAdAccountDocId(data?.adAccountId)) {

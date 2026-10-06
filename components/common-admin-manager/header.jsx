@@ -41,7 +41,7 @@ function detectNotificationsEndpoint(pathname) {
 const NOTIFICATIONS_POLL_MS = 45000;
 
 /** Notification kinds that deserve an in-app pop-up, not just a bell badge. */
-const POPUP_ID_PREFIXES = ['topup-', 'ad-', 'sub-'];
+const POPUP_ID_PREFIXES = ['topup-', 'ad-', 'sub-', 'order-'];
 
 /** Most pop-ups to show at once, so a batch of approvals cannot bury the UI. */
 const MAX_POPUPS_PER_CHECK = 3;
@@ -427,7 +427,7 @@ const Header = ({
           onClick={() =>
             router.push(pathname?.startsWith('/admin') ? '/admin/settings' : '/user/settings')
           }
-          className="w-[36px] h-[36px] rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center border border-white/10 ml-2 hover:opacity-80 transition-opacity"
+          className="w-[36px] h-[36px] rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center border border-white/10 ml-2 hover:opacity-80 transition-opacity cursor-pointer"
           aria-label={userName ? `Profile: ${userName}` : 'Profile'}
         >
           {showAvatarImage ? (

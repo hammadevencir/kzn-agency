@@ -12,6 +12,7 @@ import {
 } from "@/lib/top-ups/constants";
 import { checkAdAccountSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { computeTopUpPricing } from "@/lib/top-ups/fee";
 import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import {
   minTopUpUsdForPlatform,
@@ -71,8 +72,13 @@ export async function GET(request) {
       platform: String(flow.displayPlatform || flow.platformKey || "—"),
       amount: data.checkout?.amount || "—",
       date: formatTimestamp(data.createdAt),
+      createdAtMs: data.createdAt?.toMillis?.() ?? 0,
       status: data.status || "pending",
       rejectionReason: data.rejectionReason || null,
+      receiptUrl:
+        data.paymentProof && typeof data.paymentProof.url === "string"
+          ? data.paymentProof.url
+          : null,
     };
   });
 
@@ -203,6 +209,21 @@ export async function POST(request) {
     );
   }
 
+  // A previous transfer the admin marked "payment not received" must be
+  // settled before any new top-up (any ad account) can be requested.
+  const unsettledSnap = await db
+    .collection(TOP_UPS_COLLECTION)
+    .where("userId", "==", user.uid)
+    .where("status", "==", TOP_UP_STATUS.PAYMENT_NOT_RECEIVED)
+    .limit(1)
+    .get();
+  if (!unsettledSnap.empty) {
+    return NextResponse.json(
+      { error: "previous_payment_not_received" },
+      { status: 409 }
+    );
+  }
+
   // Block duplicate submissions while a prior top-up is still awaiting review.
   const pendingSnap = await db
     .collection(TOP_UPS_COLLECTION)
@@ -284,6 +305,9 @@ export async function POST(request) {
     paymentNote: finalize ? paymentNote : null,
     paymentProof: paymentProof || null,
     paymentReference: finalize ? paymentReference : null,
+    // Fee + plan computed on the server from the ad account's plan, so admins
+    // (and the Financial overview) see exact numbers, not the client's.
+    pricing: isFreeBalanceRequest ? null : computeTopUpPricing(flow, amountStr),
   };
 
   await docRef.set(payload);

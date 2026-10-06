@@ -1,21 +1,29 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import Header from '../header';
 import TopUpDetails from '../../Admin/detail-modals/topup-details';
 import DataTable from '../data-table';
 import TableSearch from '../table-search';
+import DateRangeFilter from '../date-range-filter';
+import {
+  EMPTY_DATE_RANGE,
+  filterByDateRange,
+  isDateRangeActive,
+} from '@/lib/date-range';
 
 const STATUS_BY_TAB = {
   pending: 'payment_submitted',
+  unsettled: 'payment_not_received',
   approved: 'approved',
   rejected: 'rejected',
 };
 
 const EMPTY_MESSAGE_BY_TAB = {
   pending: 'No Pending Requests',
+  unsettled: 'No unsettled payments',
   approved: 'No Approved Requests',
   rejected: 'No Rejected Requests',
 };
@@ -32,6 +40,12 @@ export default function TopUp() {
   const [fetchError, setFetchError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState(EMPTY_DATE_RANGE);
+
+  const visibleItems = useMemo(
+    () => filterByDateRange(items, dateRange, (row) => row.createdAtMs),
+    [items, dateRange]
+  );
 
   const loadItems = useCallback(async () => {
     const status = STATUS_BY_TAB[activeTab];
@@ -82,6 +96,7 @@ export default function TopUp() {
 
   const tabs = [
     { id: 'pending', label: 'Pending Requests' },
+    { id: 'unsettled', label: 'Payment Not Received' },
     { id: 'approved', label: 'Approved' },
     { id: 'rejected', label: 'Rejected' },
   ];
@@ -129,7 +144,7 @@ export default function TopUp() {
             </p>
           ) : null}
 
-          <div className="flex gap-6 mb-6 border-b border-border">
+          <div className="flex gap-6 mb-6 border-b border-border overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -149,6 +164,12 @@ export default function TopUp() {
             ))}
           </div>
 
+          <DateRangeFilter
+            value={dateRange}
+            onChange={setDateRange}
+            className="mb-6"
+          />
+
           {fetchError ? (
             <p className="text-sm text-red-400 mb-4">
               Could not load top-ups ({fetchError}).
@@ -158,18 +179,20 @@ export default function TopUp() {
             <p className="text-sm text-quaternary mb-4">Loading…</p>
           ) : null}
 
-          {!loading && !fetchError && items.length === 0 ? (
+          {!loading && !fetchError && visibleItems.length === 0 ? (
             <div className="rounded-xl border border-border/60 py-14 px-4 text-center">
               <p className="text-sm text-quaternary">
-                {filterUserId
-                  ? 'No top-ups for this user in this tab.'
-                  : EMPTY_MESSAGE_BY_TAB[activeTab] ?? 'No requests'}
+                {items.length > 0 && isDateRangeActive(dateRange)
+                  ? 'No top-ups in this date range.'
+                  : filterUserId
+                    ? 'No top-ups for this user in this tab.'
+                    : EMPTY_MESSAGE_BY_TAB[activeTab] ?? 'No requests'}
               </p>
             </div>
           ) : (
             <DataTable
               headers={tableHeaders}
-              data={items}
+              data={visibleItems}
               type="dashboard"
               onViewDetails={handleViewDetails}
               searchable={false}
@@ -184,7 +207,7 @@ export default function TopUp() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         requestData={selectedRequest}
-        showPendingActions={activeTab === 'pending'}
+        showPendingActions={activeTab === 'pending' || activeTab === 'unsettled'}
         onApproved={bumpRefresh}
         onRejected={bumpRefresh}
       />

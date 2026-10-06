@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { XIcon } from '@/components/icons';
 import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
 import { parseAmountToNumber } from '@/lib/ad-accounts/platform-request-config';
+import RequestCreativesUpload from '@/components/User/request-creatives-upload';
+import { AD_ACCOUNT_REGION_OPTIONS } from '@/lib/ad-accounts/regions';
 
 const SubscriptionRequestModal = ({
   isOpen,
@@ -27,7 +29,7 @@ const SubscriptionRequestModal = ({
   const [formData, setFormData] = useState(() => {
     if (isDynamic) {
       /** @type {Record<string, string>} */
-      const base = { referralCode: '' };
+      const base = { referralCode: '', region: '' };
       for (const f of fields) base[f.key] = '';
       return base;
     }
@@ -35,11 +37,14 @@ const SubscriptionRequestModal = ({
       bmId: '',
       timezone: '',
       website: '',
+      pageUrl: '',
+      creativesLink: '',
       confirmHat: '',
       advertiseDetails: '',
       supplierName: '',
       previousProvider: '',
       referralCode: '',
+      region: '',
     };
   });
 
@@ -60,6 +65,11 @@ const SubscriptionRequestModal = ({
   };
 
   const [errors, setErrors] = useState({});
+
+  const [creativeItems, setCreativeItems] = useState([]);
+  const showCreativesUpload = !isDynamic && type === 'VIP';
+  const creativesUploading = creativeItems.some((it) => it.status === 'uploading');
+  const creativesFailed = creativeItems.some((it) => it.status === 'error');
 
   const clearError = (field) =>
     setErrors((p) => ({ ...p, [field]: undefined }));
@@ -91,6 +101,18 @@ const SubscriptionRequestModal = ({
   };
 
   const handleSubmit = () => {
+    if (creativesUploading) return;
+    if (showCreativesUpload && creativesFailed) {
+      setErrors((p) => ({
+        ...p,
+        creatives: 'Remove the images that failed to upload before sending.',
+      }));
+      return;
+    }
+    if (!formData.region) {
+      setErrors((p) => ({ ...p, region: 'Choose the region for your ad account.' }));
+      return;
+    }
     if (isDynamic) {
       const e = validateDynamic();
       setErrors(e);
@@ -106,8 +128,20 @@ const SubscriptionRequestModal = ({
       if (Object.keys(e).length > 0) return;
     }
 
+    const creatives = showCreativesUpload
+      ? creativeItems
+          .filter((it) => it.status === 'done' && it.meta)
+          .map((it) => it.meta)
+      : [];
+
     if (onSuccess) {
-      onSuccess({ ...formData, platform, planName, type });
+      onSuccess({
+        ...formData,
+        ...(creatives.length > 0 ? { creatives } : {}),
+        platform,
+        planName,
+        type,
+      });
     }
   };
 
@@ -183,7 +217,7 @@ const SubscriptionRequestModal = ({
         {/* Header */}
         <div className="p-8 pb-4 shrink-0 flex items-center justify-between border-b border-white/5">
           <SheetTitle className="text-[20px] font-bold text-white tracking-tight uppercase">
-            {platform === 'Meta' ? type : platform} - {planName?.replace(/ PLAN$/i, '')}
+            {platform === 'Meta' ? (type === 'VIP' ? 'Supplements' : type === 'White Hat' ? 'Agency' : type) : platform} - {planName?.replace(/ PLAN$/i, '')}
           </SheetTitle>
           <button
             onClick={onClose}
@@ -199,6 +233,38 @@ const SubscriptionRequestModal = ({
           </p>
 
           <div className="space-y-6 text-left">
+            <div>
+              <label className={labelStyle}>Which region do you want your ad account in?</label>
+              <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Ad account region">
+                {AD_ACCOUNT_REGION_OPTIONS.map((opt) => {
+                  const active = formData.region === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => {
+                        handleInputChange('region', opt.value);
+                        setErrors((p) => ({ ...p, region: undefined }));
+                      }}
+                      className={`rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
+                        active
+                          ? 'border-[#CBAF69] bg-[#CBAF69]/10'
+                          : `border-white/10 bg-[#161D26] hover:border-[#CBAF69]/50 ${errors.region ? 'ring-1 ring-red-500' : ''}`
+                      }`}
+                    >
+                      <span className="block text-white text-[15px] font-semibold">{opt.label}</span>
+                      <span className="block text-[#8B9197] text-[12px] mt-0.5">{opt.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.region ? (
+                <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.region}</p>
+              ) : null}
+            </div>
+
             {showReferralField ? (
             <div>
               <label className={labelStyle}>Referral code (optional)</label>
@@ -263,23 +329,30 @@ const SubscriptionRequestModal = ({
               {errors.website && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.website}</p>}
             </div>
 
-            {/* Creative Upload Area - only for VIP/Gray-hat */}
-            {type === 'VIP' && (
-            <div className="space-y-3">
-               <label className={labelStyle}>Send us some creatives so we can check if you are eligible</label>
-               <div className="w-full h-[140px] border-2 border-dashed border-[#232A33] rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#CBAF69]/50 transition-colors bg-[#161D26]/30">
-                  <div className="w-10 h-10 border-2 border-[#CBAF69] rounded-full flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 16V8M12 8L9 11M12 8L15 11" stroke="#CBAF69" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M3 15V16C3 18.2091 4.79086 20 7 20H17C19.2091 20 21 18.2091 21 16V15" stroke="#CBAF69" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white text-[14px] font-bold">Upload here</p>
-                    <p className="text-quaternary text-[12px]">Png, Jpeg</p>
-                  </div>
-               </div>
+            {/* Page URL (optional) */}
+            <div>
+              <label className={labelStyle}>Page URL</label>
+              <input
+                type="text"
+                inputMode="url"
+                placeholder="e.g. https://facebook.com/yourpage (optional)"
+                className={inputStyle}
+                value={formData.pageUrl}
+                onChange={(e) => handleInputChange('pageUrl', e.target.value)}
+              />
             </div>
+
+            {/* Creative Upload Area - only for VIP/Gray-hat */}
+            {showCreativesUpload && (
+              <RequestCreativesUpload
+                label="Send us some creatives so we can check if you are eligible"
+                items={creativeItems}
+                onItemsChange={(updater) => {
+                  setCreativeItems(updater);
+                  clearError('creatives');
+                }}
+                error={errors.creatives}
+              />
             )}
 
             {/* Confirm Hat Type */}
@@ -302,6 +375,19 @@ const SubscriptionRequestModal = ({
                 </div>
               </div>
               {errors.confirmHat && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.confirmHat}</p>}
+            </div>
+
+            {/* Creatives Google Drive link (optional) */}
+            <div>
+              <label className={labelStyle}>Creatives (Google Drive link)</label>
+              <input
+                type="text"
+                inputMode="url"
+                placeholder="https://drive.google.com/... (optional)"
+                className={inputStyle}
+                value={formData.creativesLink}
+                onChange={(e) => handleInputChange('creativesLink', e.target.value)}
+              />
             </div>
 
             {/* Advertise Details */}
@@ -356,9 +442,10 @@ const SubscriptionRequestModal = ({
             </Button>
             <Button
               onClick={handleSubmit}
-              className="flex-[1.5] h-[52px] rounded-2xl bg-[#CBAF69] text-[#11191F] hover:bg-[#D4BB7D] transition-all text-[16px] font-bold shadow-xl shadow-[#CBAF69]/10"
+              disabled={creativesUploading}
+              className="flex-[1.5] h-[52px] rounded-2xl bg-[#CBAF69] text-[#11191F] hover:bg-[#D4BB7D] transition-all text-[16px] font-bold shadow-xl shadow-[#CBAF69]/10 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Send Request
+              {creativesUploading ? 'Uploading images…' : 'Send Request'}
             </Button>
           </div>
 

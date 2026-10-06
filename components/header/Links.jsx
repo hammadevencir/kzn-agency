@@ -15,6 +15,11 @@ export const links = (pathname) => [
     active: pathname === "/platforms",
   },
   {
+    label: "Pricing",
+    href: "/pricing",
+    active: pathname === "/pricing",
+  },
+  {
     label: "Contact",
     href: "/contact",
     active: pathname === "/contact",

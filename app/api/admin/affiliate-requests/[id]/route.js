@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireAdminSession } from "@/lib/auth/require-user-session";
+import { requireAdminSection } from "@/lib/auth/require-user-session";
 import {
   AFFILIATE_REQUESTS_COLLECTION,
   AFFILIATE_REQUEST_STATUS,
 } from "@/lib/affiliate-requests/constants";
 
 export async function PATCH(request, context) {
-  const admin = await requireAdminSession();
-  if (!admin) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  // Customer-service (support) admins cannot access this section.
+  const gate = await requireAdminSection("affiliate-requests");
+  if (gate.error) return gate.error;
+  const admin = gate.user;
 
   const params = await context.params;
   const rawParamId = params?.id;

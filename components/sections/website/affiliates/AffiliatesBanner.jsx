@@ -7,6 +7,12 @@ import Image from "next/image";
 import { motion, useInView } from "motion/react";
 import { toast } from "react-hot-toast";
 import AffiliateRequestForm from "./AffiliateRequestForm";
+import {
+  REFEREE_DISCOUNT_PERCENT,
+  REFERRER_SUBSCRIPTION_COMMISSION_PERCENT,
+} from "@/lib/affiliates/constants";
+
+const PAYOUT_OPTIONS = ["Crypto", "Top-up your ad-account", "Send to bank"];
 
 const AffiliatesBanner = () => {
   const [copied, setCopied] = useState(false);
@@ -84,11 +90,11 @@ const AffiliatesBanner = () => {
               ease: [0.25, 0.46, 0.45, 0.94],
             }}
           >
-            Thousands of affiliates are already earning with us. Get up to
+            Hundreds of affiliates are already earning with us. Get up to
             different monthly commission for every sign-up through your code
             simple, transparent, and built to help you grow. Plus, to help you
-            convert faster, every new signup gets a 25% discount on their first
-            month. More value for them, more recurring income for you.
+            convert faster, every new signup gets a {REFEREE_DISCOUNT_PERCENT}%
+            discount on their first month. More value for them, more recurring income for you.
           </motion.span>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -113,6 +119,40 @@ const AffiliatesBanner = () => {
             height={291}
           />
           <div className="flex flex-col w-full h-full justify-center gap-3 z-10 static">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{
+                duration: 0.4,
+                delay: 0.3,
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
+              className="flex flex-col gap-3 border w-full min-w-0 border-primary/50 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-lg py-5 px-4"
+            >
+              <h2 className="text-lg md:text-xl font-syne font-bold leading-snug">
+                Earn{" "}
+                <span className="text-primary">
+                  {REFERRER_SUBSCRIPTION_COMMISSION_PERCENT}%
+                </span>{" "}
+                of monthly fees passively.
+              </h2>
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl font-bold text-primary">$17.470</span>
+                <span className="text-yellow-100/50 text-xs">
+                  Reclaim your money
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PAYOUT_OPTIONS.map((option) => (
+                  <span
+                    key={option}
+                    className="text-[10px] text-primary px-2.5 py-1 rounded-full border border-primary/50 bg-primary/10 whitespace-nowrap"
+                  >
+                    {option}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
@@ -208,7 +248,7 @@ const AffiliatesBanner = () => {
               <p className="text-[6.5px] text-white mt-4">
                 Earn Monthly Passive Income With Kazan Solutions.{" "}
                 <span className="text-primary font-semibold">
-                  First Month 25% Off.
+                  First Month {REFEREE_DISCOUNT_PERCENT}% Off.
                 </span>
               </p>
             </div>

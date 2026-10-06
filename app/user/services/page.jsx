@@ -1,13 +1,6 @@
-import React from "react";
-import UserServices from "@/components/User/services/services";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Services | KZN Agency",
-  description: "Explore our premium add-ons and engagement services",
-};
-
-const UserServicesPage = () => {
-  return <UserServices />;
-};
-
-export default UserServicesPage;
+/** "Services" was renamed to "Shop" — keep old links working. */
+export default function UserServicesPage() {
+  redirect("/user/shop");
+}

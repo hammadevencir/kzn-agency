@@ -1,12 +1,13 @@
+import {
+  DISCORD_URL,
+  INSTAGRAM_URL,
+  TELEGRAM_URL,
+  WHATSAPP_URL,
+} from "@/lib/contact/channels";
+
 export const socialLinks = [
-  {
-    name: "X",
-    icon: "/social/x.svg",
-    href: "#",
-  },
-  { name: "Instagram", icon: "/social/instagram.svg", href: "#" },
-  { name: "Discord", icon: "/social/discord.svg", href: "#" },
-  { name: "Whatsapp", icon: "/social/whatsapp.svg", href: "#" },
-  { name: "Telegram", icon: "/social/telegram.svg", href: "#" },
-  { name: "Messenger", icon: "/social/messenger.svg", href: "#" },
+  { name: "Instagram", icon: "/social/instagram.svg", href: INSTAGRAM_URL },
+  { name: "Telegram", icon: "/social/telegram.svg", href: TELEGRAM_URL },
+  { name: "Whatsapp", icon: "/social/whatsapp.svg", href: WHATSAPP_URL },
+  { name: "Discord", icon: "/social/discord.svg", href: DISCORD_URL },
 ];

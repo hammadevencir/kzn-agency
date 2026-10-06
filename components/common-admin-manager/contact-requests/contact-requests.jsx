@@ -6,6 +6,10 @@ import Header from '../header';
 import ContactRequestDetails from '../../Admin/detail-modals/contact-request-details';
 import DataTable from '../data-table';
 import TableSearch from '../table-search';
+import { useSearchParams } from 'next/navigation';
+import PrivatePricingRequests from './private-pricing-requests';
+
+const PRIVATE_PRICING_TAB = 'private-pricing';
 
 const STATUS_BY_TAB = {
   new: 'new',
@@ -20,7 +24,16 @@ const EMPTY_MESSAGE_BY_TAB = {
 export default function ContactRequests() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [activeTab, setActiveTab] = useState('new');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabParam === PRIVATE_PRICING_TAB ? PRIVATE_PRICING_TAB : 'new'
+  );
+
+  // Notification bell deep-links to ?tab=private-pricing while already on this page.
+  useEffect(() => {
+    if (tabParam === PRIVATE_PRICING_TAB) setActiveTab(PRIVATE_PRICING_TAB);
+  }, [tabParam]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -80,7 +93,9 @@ export default function ContactRequests() {
   const tabs = [
     { id: 'new', label: 'New' },
     { id: 'resolved', label: 'Resolved' },
+    { id: PRIVATE_PRICING_TAB, label: 'Private pricing' },
   ];
+  const isPrivatePricing = activeTab === PRIVATE_PRICING_TAB;
 
   const tableHeaders = ['Name', 'Phone', 'Request', 'Date', 'Status', 'Actions'];
 
@@ -96,7 +111,9 @@ export default function ContactRequests() {
             <div>
               <h2 className="text-lg font-semibold text-white mb-2">Overview</h2>
               <p className="text-quaternary text-[11px] md:text-[12px]">
-                Messages submitted through the public Contact Us form
+                {isPrivatePricing
+                  ? 'Legendary Package private-pricing applications from the Pricing page'
+                  : 'Messages submitted through the public Contact Us form'}
               </p>
             </div>
             <TableSearch
@@ -124,6 +141,10 @@ export default function ContactRequests() {
             ))}
           </div>
 
+          {isPrivatePricing ? (
+            <PrivatePricingRequests searchQuery={searchQuery} />
+          ) : (
+          <>
           {fetchError ? (
             <p className="text-sm text-red-400 mb-4">
               Could not load contact requests ({fetchError}).
@@ -147,6 +168,8 @@ export default function ContactRequests() {
               searchValue={searchQuery}
               onSearchChange={setSearchQuery}
             />
+          )}
+          </>
           )}
         </div>
       </div>

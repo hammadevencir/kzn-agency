@@ -98,12 +98,22 @@ const ContactForm = () => {
         }),
       });
       if (!res.ok) {
-        setSubmitError("Something went wrong. Please try again.");
+        const data = await res.json().catch(() => ({}));
+        console.warn("contact submit failed", res.status, data?.error);
+        const msg =
+          typeof data?.message === "string" && data.message
+            ? data.message
+            : "Something went wrong. Please try again.";
+        if (typeof data?.field === "string" && data.field in emptyForm) {
+          setErrors((p) => ({ ...p, [data.field]: msg }));
+        }
+        setSubmitError(msg);
         return;
       }
       setSubmitted(true);
-    } catch {
-      setSubmitError("Something went wrong. Please try again.");
+    } catch (err) {
+      console.warn("contact submit network error", err);
+      setSubmitError("Network error. Check your connection and try again.");
     } finally {
       setPending(false);
     }
@@ -112,7 +122,8 @@ const ContactForm = () => {
   return (
     <section
       ref={ref}
-      className="flex flex-col w-full items-center py-16 md:py-24 px-4 gradient-bg"
+      id="contact-form"
+      className="flex flex-col w-full items-center py-16 md:py-24 px-4 gradient-bg scroll-mt-24"
     >
       <motion.div
         className="flex flex-col items-center gap-3 text-center max-w-2xl mb-10"

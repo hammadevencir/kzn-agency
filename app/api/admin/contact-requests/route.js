@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireAdminSession } from "@/lib/auth/require-user-session";
+import { requireAdminSection } from "@/lib/auth/require-user-session";
 import { CONTACT_REQUESTS_COLLECTION } from "@/lib/contact-requests/constants";
 import { mapContactRequestAdminRow } from "@/lib/admin/map-contact-request-admin-row";
 
@@ -8,10 +8,10 @@ import { mapContactRequestAdminRow } from "@/lib/admin/map-contact-request-admin
  * ?status=new|resolved (optional — omit for all)
  */
 export async function GET(request) {
-  const admin = await requireAdminSession();
-  if (!admin) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  // Customer-service (support) admins cannot access this section.
+  const gate = await requireAdminSection("contact-requests");
+  if (gate.error) return gate.error;
+  const admin = gate.user;
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");

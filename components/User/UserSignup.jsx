@@ -4,9 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
-  signInWithPopup,
   updateProfile,
 } from "firebase/auth";
 import { Loader2 } from "lucide-react";
@@ -17,6 +15,12 @@ import { establishSession } from "@/lib/auth/establish-session";
 import { ROLE } from "@/lib/auth/constants";
 import { navigateAfterSession } from "@/lib/auth/navigate-after-session";
 import { REFERRAL_CODE_LS_KEY } from "@/lib/affiliates/referral-storage";
+import {
+  consumeGoogleRedirectResult,
+  isSilentAuthError,
+  mapAuthError,
+  signInWithGoogle,
+} from "@/lib/auth/google-sign-in";
 
 function getPasswordStrength(password) {
   if (password.length === 0) return { strength: "None", bars: 0 };
@@ -25,37 +29,6 @@ function getPasswordStrength(password) {
   if (password.length < 12) return { strength: "Good", bars: 3 };
   if (password.length < 16) return { strength: "Strong", bars: 4 };
   return { strength: "Very Strong", bars: 5 };
-}
-
-function mapAuthError(code, message) {
-  switch (code) {
-    case "wrong_portal":
-      return "This account is registered under a different portal.";
-    case "auth/email-already-in-use":
-      return "An account already exists with this email.";
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-    case "auth/weak-password":
-      return "Password is too weak. Use at least 6 characters.";
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-    case "auth/invalid-credential":
-      return "Invalid Email Or Password";
-    case "auth/popup-closed-by-user":
-      return "Sign-in was cancelled.";
-    default: {
-      if (
-        typeof message === "string" &&
-        message.trim() &&
-        !/^Firebase:\s*Error\s*\(/i.test(message.trim())
-      ) {
-        return message;
-      }
-      return code === "session_failed"
-        ? "We couldn't start your session. Please try again."
-        : "Something went wrong. Please try again.";
-    }
-  }
 }
 
 export default function UserSignup() {
@@ -117,16 +90,50 @@ export default function UserSignup() {
     }
   };
 
+  // Google users may be brand new or existing (either role): let the server
+  // resolve the role ("auto") and create a users/{uid} profile with role "user"
+  // when none exists. Phone is optional here and can be added in settings.
+  const finishGoogle = async (user) => {
+    const role = await establishSession(
+      user,
+      "auto",
+      phone.trim() ? { phone: phone.trim() } : undefined
+    );
+    toast.success("Signed in with Google");
+    navigateAfterSession(role);
+  };
+
+  // Complete a Google sign-in that fell back to redirect (popup blocked).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await consumeGoogleRedirectResult(auth);
+        if (!user || cancelled) return;
+        setPendingGoogle(true);
+        const role = await establishSession(user, "auto");
+        toast.success("Signed in with Google");
+        navigateAfterSession(role);
+      } catch (err) {
+        if (!cancelled && !isSilentAuthError(err?.code)) {
+          toast.error(mapAuthError(err?.code, err?.message));
+        }
+        if (!cancelled) setPendingGoogle(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleGoogle = async () => {
     setPendingGoogle(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      const role = await establishSession(cred.user, ROLE.USER);
-      toast.success("Signed in with Google");
-      navigateAfterSession(role);
+      const user = await signInWithGoogle(auth);
+      if (!user) return; // redirect fallback in progress
+      await finishGoogle(user);
     } catch (err) {
-      if (err?.code !== "auth/popup-closed-by-user") {
+      if (!isSilentAuthError(err?.code)) {
         toast.error(mapAuthError(err?.code, err?.message));
       }
     } finally {
@@ -228,11 +235,21 @@ export default function UserSignup() {
 
           <p className="text-quaternary text-[12px] text-center leading-relaxed px-1">
             By signing up, you confirm that you&apos;ve read and accepted our{" "}
-            <Link href="#" className="text-primary hover:text-primary/80">
+            <Link
+              href="/user-notice"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline-offset-2 hover:underline"
+            >
               User Notice
             </Link>{" "}
             and{" "}
-            <Link href="#" className="text-primary hover:text-primary/80">
+            <Link
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline-offset-2 hover:underline"
+            >
               Privacy Policy
             </Link>
             .

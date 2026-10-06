@@ -104,7 +104,7 @@ const HomeBanner = () => {
         className="static z-10"
       >
         <Image
-          src="/dashboard-new.png"
+          src="/dashboard-hero.png"
           loading="lazy"
           quality={100}
           alt="hero"

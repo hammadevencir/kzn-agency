@@ -18,6 +18,7 @@ import { relativeTime, tsMs } from "@/lib/notifications/helpers";
 import { buildUserChatNotificationItems } from "@/lib/notifications/chat-notifications";
 import { buildAnnouncementNotificationItems } from "@/lib/announcements/server-announcements";
 import { adAccountDeepLink } from "@/lib/notifications/deep-links";
+import { buildUserOrderNotificationItems } from "@/lib/orders/server-orders";
 
 export async function GET() {
   const user = await requireEndUserSession();
@@ -81,6 +82,22 @@ export async function GET() {
   for (const d of topUpSnap.docs) {
     const data = d.data();
     const status = data.status;
+    if (status === TOP_UP_STATUS.PAYMENT_NOT_RECEIVED) {
+      const ms = tsMs(data.paymentNotReceivedAt) || tsMs(data.updatedAt);
+      if (!ms) continue;
+      const amt = data.checkout?.amount || "";
+      items.push({
+        // Distinct id so the later approve/reject notice is a new, unread item.
+        id: `topup-nr-${d.id}`,
+        title: "Payment not received",
+        desc: `We haven't received your transfer${amt ? ` for the ${amt} top-up` : ""} yet. Check your receipt in Top-up; new top-ups unlock once it's settled.`,
+        timeMs: ms,
+        time: relativeTime(ms),
+        kind: "danger",
+        href: "/user/top-ups",
+      });
+      continue;
+    }
     if (status !== TOP_UP_STATUS.APPROVED && status !== TOP_UP_STATUS.REJECTED) {
       continue;
     }
@@ -148,6 +165,8 @@ export async function GET() {
   }
 
   items.push(...chatItems, ...announcementItems);
+  // Shop orders: "Hi friend, your (service) is delivered!" (id prefix `order-`).
+  items.push(...(await buildUserOrderNotificationItems(db, user.uid)));
 
   items.sort((a, b) => b.timeMs - a.timeMs);
 

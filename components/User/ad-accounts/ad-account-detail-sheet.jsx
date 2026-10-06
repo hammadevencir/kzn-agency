@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { XIcon } from "@/components/icons";
+import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
 
@@ -263,9 +264,12 @@ const AdAccountDetailSheet = ({
             disabled={
               !isApproved || isPaused || requestBalanceSending || typeof onRequestBalance !== "function"
             }
-            className="flex-1 h-14 rounded-2xl bg-[#C5A964] hover:bg-[#b09650] text-[#151E25] text-[15px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 h-14 rounded-2xl bg-[#C5A964] hover:bg-[#b09650] text-[#151E25] text-[15px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
-            {requestBalanceSending ? "Sending…" : "Request Balance"}
+            <RefreshCw
+              className={`w-4 h-4 ${requestBalanceSending ? "animate-spin" : ""}`}
+            />
+            {requestBalanceSending ? "Refreshing…" : "Refresh balance"}
           </button>
         </div>
       </SheetContent>

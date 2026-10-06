@@ -46,6 +46,9 @@ const DepositDetailsModal = ({
             label: 'Payment Reference:',
             value: depositData.paymentReference || '—',
           },
+          ...(depositData.paidVia
+            ? [{ label: 'Paid via:', value: depositData.paidVia }]
+            : []),
         ];
 
   const uiStatus =

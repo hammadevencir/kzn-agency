@@ -23,8 +23,9 @@ const ServiceCard = ({ title, description, icon, onExplore }) => {
         <p className="text-[14px] text-quaternary leading-relaxed line-clamp-4">
           {description}
         </p>
+        {/* TODO: point back to /user/help once the service PDFs are published. */}
         <Link
-          href="/user/help"
+          href="/user/chat"
           className="block text-[14px] text-[#C5A964] font-medium pt-2 hover:underline w-fit"
         >
           Know more about it

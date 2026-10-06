@@ -9,6 +9,18 @@
  *
  * Override defaults:
  *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
+ *
+ * Admin sub-roles (see lib/auth/admin-permissions.js):
+ *   --role manager   (default) full access
+ *   --role support   customer service — no Settings / Affiliate Requests /
+ *                    Contact Requests / Financial
+ * Optional flags (override env): --email <email> --password <pwd> --name <display name>
+ *
+ * Example (customer service login):
+ *   npm run seed:admin -- --role support --email cs@kzn.com --password 'S3cret!pass' --name "Customer Service"
+ *
+ * Re-running for an existing email updates its password/role and revokes its
+ * refresh tokens so the new role applies on next sign-in.
  */
 
 const fs = require("fs");
@@ -42,11 +54,27 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const ADMIN_EMAIL =
-  process.env.SEED_ADMIN_EMAIL || "admin@kzn.com";
+function argValue(name) {
+  const argv = process.argv.slice(2);
+  const i = argv.indexOf(`--${name}`);
+  if (i !== -1 && argv[i + 1] && !argv[i + 1].startsWith("--")) return argv[i + 1];
+  const eq = argv.find((a) => a.startsWith(`--${name}=`));
+  return eq ? eq.slice(name.length + 3) : undefined;
+}
+
+const ADMIN_EMAIL = (
+  argValue("email") || process.env.SEED_ADMIN_EMAIL || "admin@kzn.com"
+).toLowerCase();
 const ADMIN_PASSWORD =
-  process.env.SEED_ADMIN_PASSWORD || "password";
+  argValue("password") || process.env.SEED_ADMIN_PASSWORD || "password";
+const DISPLAY_NAME = argValue("name");
 const ADMIN_ROLE = "admin";
+/** Admin sub-role: "manager" (default) | "support" (customer service). */
+const ADMIN_SUB_ROLE = argValue("role") || "manager";
+if (!["manager", "support"].includes(ADMIN_SUB_ROLE)) {
+  console.error('--role must be "manager" or "support"');
+  process.exit(1);
+}
 
 function getAdminApp() {
   const existing = getApps()[0];
@@ -83,6 +111,7 @@ async function main() {
     await auth.updateUser(uid, {
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL,
+      ...(DISPLAY_NAME ? { displayName: DISPLAY_NAME } : {}),
     });
     console.log("Updated existing Auth user:", ADMIN_EMAIL, uid);
   } catch (e) {
@@ -90,13 +119,19 @@ async function main() {
     const created = await auth.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
+      ...(DISPLAY_NAME ? { displayName: DISPLAY_NAME } : {}),
       emailVerified: true,
     });
     uid = created.uid;
     console.log("Created Auth user:", ADMIN_EMAIL, uid);
   }
 
-  await auth.setCustomUserClaims(uid, { role: ADMIN_ROLE });
+  await auth.setCustomUserClaims(uid, {
+    role: ADMIN_ROLE,
+    adminRole: ADMIN_SUB_ROLE,
+  });
+  // Invalidate existing sessions so a changed sub-role applies immediately.
+  await auth.revokeRefreshTokens(uid);
 
   const userRef = db.collection("users").doc(uid);
   const snap = await userRef.get();
@@ -105,15 +140,24 @@ async function main() {
   await userRef.set(
     {
       role: ADMIN_ROLE,
+      adminRole: ADMIN_SUB_ROLE,
       email: ADMIN_EMAIL,
-      displayName: prev?.displayName ?? "Admin",
+      displayName:
+        DISPLAY_NAME ??
+        prev?.displayName ??
+        (ADMIN_SUB_ROLE === "support" ? "Customer Service" : "Admin"),
       updatedAt: FieldValue.serverTimestamp(),
       ...(snap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
     },
     { merge: true }
   );
 
-  console.log("Firestore users/" + uid + " set with role:", ADMIN_ROLE);
+  console.log(
+    "Firestore users/" + uid + " set with role:",
+    ADMIN_ROLE,
+    "adminRole:",
+    ADMIN_SUB_ROLE
+  );
   console.log("Done. Sign in at /login with this email and password.");
 }
 

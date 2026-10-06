@@ -42,6 +42,19 @@ const demoQuestions = [
 ];
 
 /**
+ * Return an absolute http(s) URL when the answer is a single link
+ * (e.g. "habi.com" or "https://drive.google.com/…"), else null.
+ * @param {unknown} answer
+ */
+function toExternalUrl(answer) {
+  const v = typeof answer === "string" ? answer.trim() : "";
+  if (!v || /\s/.test(v)) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(v)) return `https://${v}`;
+  return null;
+}
+
+/**
  * Ad-account request detail sheet (admin review).
  * @param {() => void} [onAdminApprove] — when set, skips demo success modal and runs API flow from parent.
  * @param {() => void} [onAdminReject]
@@ -252,27 +265,45 @@ const RequestDetailsModal = ({
                       {question.text}
                     </span>
                     {question.type === "creatives" ? (
-                      <div className="flex flex-col sm:flex-row md:flex-row gap-2 mt-1">
+                      <div className="grid grid-cols-2 gap-2 mt-2 mb-1">
                         {question.creatives?.map((creative, idx) => (
-                          <div
+                          <a
                             key={idx}
-                            className="w-full sm:w-[120px] md:w-[150px] h-[84px] my-2 sm:my-3 md:my-3 rounded-md overflow-hidden border border-border bg-muted"
+                            href={creative.image}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={creative.name}
+                            className="block rounded-md overflow-hidden border border-border bg-muted hover:opacity-90 transition-opacity"
                           >
-                            <Image
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
                               src={creative.image}
                               alt={creative.name}
-                              width={180}
-                              height={80}
-                              className="object-cover w-full h-full"
+                              loading="lazy"
+                              className="object-cover w-full h-[96px]"
                             />
-                          </div>
+                            <span className="block px-2 py-1 text-[11px] text-white truncate">
+                              {creative.name}
+                            </span>
+                          </a>
                         ))}
                       </div>
                     ) : (
-                          <p className="text-white text-xs sm:text-[14px] md:text-[14px] mt-1 whitespace-pre-wrap">
+                      <p className="text-white text-xs sm:text-[14px] md:text-[14px] mt-1 whitespace-pre-wrap break-words">
+                        {toExternalUrl(question.answer) ? (
+                          <a
+                            href={toExternalUrl(question.answer)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline break-all"
+                          >
                             {question.answer}
-                          </p>
+                          </a>
+                        ) : (
+                          question.answer
                         )}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ol>

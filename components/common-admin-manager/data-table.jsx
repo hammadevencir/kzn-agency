@@ -23,6 +23,7 @@ import {
   PlayIcon,
   RestoreIcon,
 } from "@/components/icons";
+import { RefreshCw } from "lucide-react";
 
 function avatarAltText(label) {
   if (label == null) return "Avatar";
@@ -90,6 +91,9 @@ const DataTable = ({
   onDelete,
   onDeleteReferral,
   onTopUp,
+  /** user-top-ups: renders a refresh icon next to the balance. */
+  onRefreshBalance,
+  refreshingBalance = false,
   onPause,
   onReactivate,
   onRestore,
@@ -180,6 +184,8 @@ const DataTable = ({
         return renderUserTopUpsCell(row, header, index, cellClassName);
       case "contact-requests":
         return renderContactRequestsCell(row, header, index, cellClassName);
+      case "private-pricing":
+        return renderPrivatePricingCell(row, header, index, cellClassName);
       case "affiliate-requests":
         return renderAffiliateRequestsCell(row, header, index, cellClassName);
       default:
@@ -946,27 +952,60 @@ const DataTable = ({
       case "Account ID":
         return <span key="accountId" className="font-light text-quaternary">{row.accountId}</span>;
       case "Platform":
-        return <span key="platform" className="font-light text-white">{row.platform}</span>;
+        return (
+          <div key="platform" className="flex flex-col">
+            <span className="font-light text-white">{row.platform}</span>
+            {row.planLabel ? (
+              <span className="text-[12px] text-[#C5A964]">{row.planLabel}</span>
+            ) : null}
+          </div>
+        );
       case "Date Created":
         return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
       case "Last Top-up":
         return <span key="lastTopup" className="font-light text-quaternary">{row.lastTopup}</span>;
-      case "Balance":
-        return <span key="balance" className="font-light text-quaternary">{row.balance}</span>;
+      case "Balance": {
+        const canRefresh =
+          typeof onRefreshBalance === "function" &&
+          row.isPaused !== true &&
+          row.topUpInReview !== true;
+        return (
+          <div key="balance" className="flex items-center gap-2">
+            <span className="font-light text-quaternary">{row.balance}</span>
+            {canRefresh ? (
+              <button
+                type="button"
+                onClick={() => onRefreshBalance(row)}
+                disabled={refreshingBalance}
+                className="p-1 rounded-full text-[#C5A964] hover:bg-[#C5A964]/10 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                aria-label="Refresh balance"
+                title="Refresh balance"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshingBalance ? "animate-spin" : ""}`}
+                />
+              </button>
+            ) : null}
+          </div>
+        );
+      }
       case "Status": {
         const paused = row.isPaused === true;
+        const notReceived = !paused && row.paymentNotReceived === true;
         const s = row.status?.toLowerCase() || "";
         const isActive =
-          !paused && (s === "active" || s === "top spending");
-        const isPending = !paused && row.topUpInReview === true;
+          !paused && !notReceived && (s === "active" || s === "top spending");
+        const isPending = !paused && !notReceived && row.topUpInReview === true;
         const pillClass = paused
           ? "bg-[#F5B301]"
+          : notReceived
+            ? "bg-[#FF4D59]"
           : isPending
             ? "bg-[#C5A964]/90"
             : isActive
               ? "bg-[#39CB7F]"
               : "bg-[#FF4D59]";
-        const label = row.status || "—";
+        const label = paused ? "Paused" : row.status || "—";
         return (
           <div
             key="status"
@@ -997,6 +1036,23 @@ const DataTable = ({
       }
       case "Actions": {
         const paused = row.isPaused === true;
+        if (!paused && row.paymentNotReceived === true) {
+          return row.receiptUrl ? (
+            <a
+              key="actions"
+              href={row.receiptUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#F5B301] text-[#F5B301] text-[13px] hover:bg-[#F5B301]/10 transition-colors"
+            >
+              Check Receipt
+            </a>
+          ) : (
+            <span key="actions" className="text-[14px] text-[#FF4D59]">
+              Payment not received
+            </span>
+          );
+        }
         const pending = !paused && row.topUpInReview === true;
         const disabled = paused || pending;
         return (
@@ -1075,6 +1131,59 @@ const DataTable = ({
         );
       default:
         return row[header.toLowerCase().replace(/\s+/g, "")] || "";
+    }
+  };
+
+  const renderPrivatePricingCell = (row, header) => {
+    switch (header) {
+      case "Name":
+        return <span key="name" className="font-light text-white">{row.name}</span>;
+      case "Company":
+        return <span key="company" className="font-light text-quaternary">{row.company}</span>;
+      case "Current Spend":
+        return <span key="currentSpend" className="font-light text-quaternary">{row.currentSpend}</span>;
+      case "Expected Spend":
+        return (
+          <span key="expectedSpend" className="font-light text-quaternary truncate max-w-[180px] inline-block">
+            {row.expectedSpend}
+          </span>
+        );
+      case "Date":
+        return <span key="dateCreated" className="font-light text-quaternary">{row.dateCreated}</span>;
+      case "Status": {
+        const s = (row.status || "new").toLowerCase();
+        const stClass =
+          s === "closed"
+            ? "bg-[#39CB7F] text-white"
+            : s === "quoted"
+              ? "bg-[#C5A964] text-black"
+              : s === "contacted"
+                ? "bg-[#3B82F6] text-white"
+                : "bg-secondary text-white";
+        const label = s.charAt(0).toUpperCase() + s.slice(1);
+        return (
+          <span
+            key="status"
+            className={`inline-flex px-3 py-1 rounded-full text-[12px] font-medium ${stClass}`}
+          >
+            {label}
+          </span>
+        );
+      }
+      case "Actions":
+        return (
+          <button
+            key="actions"
+            onClick={() => onViewDetails?.(row)}
+            className="text-primary hover:text-primary/80 flex items-center gap-1 text-[11px] md:text-[14px]"
+          >
+            <span className="hidden sm:inline">View Details</span>
+            <span className="sm:hidden">View</span>
+            <ArrowRightIcon width={18} height={18} />
+          </button>
+        );
+      default:
+        return "";
     }
   };
 

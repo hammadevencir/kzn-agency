@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { sanitizePaymentMeta } from "@/lib/payments/sanitize-payment-meta";
+import { renewalTermsForSubscription } from "@/lib/meta/meta-plan-catalog";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
@@ -107,6 +109,7 @@ export async function PATCH(request, context) {
           checkout,
           paymentProof,
           paymentReference,
+          ...sanitizePaymentMeta(body?.paymentMeta),
           paymentSubmittedAt: FieldValue.serverTimestamp(),
           paymentMethod: "wire_transfer_manual",
           paymentNote: body?.paymentNote
@@ -134,9 +137,29 @@ export async function PATCH(request, context) {
     return NextResponse.json({ error: "invalid_subscription_state" }, { status: 409 });
   }
 
+  // Legacy tiers (pre 2026-09 pricing) renew into their successor package at
+  // the new price. The old flow is kept so approval can move the plan's ad
+  // accounts across.
+  const renewal = isRenewalOfExpired ? renewalTermsForSubscription(data) : null;
+  const migrationFields = renewal?.migration
+    ? {
+        flow: { ...(data.flow || {}), ...renewal.migration.flow },
+        migratedFromFlow: data.flow || null,
+      }
+    : {};
+  const checkoutToStore = renewal?.migration
+    ? {
+        ...checkout,
+        amount: renewal.migration.checkoutPreview.amount,
+        subscriptionName: renewal.migration.checkoutPreview.subscriptionName,
+        originalAmount: null,
+      }
+    : checkout;
+
   await ref.set(
     {
-      checkout,
+      ...migrationFields,
+      checkout: checkoutToStore,
       status: SUBSCRIPTION_STATUS.PAYMENT_SUBMITTED,
       paymentSubmittedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -146,6 +169,7 @@ export async function PATCH(request, context) {
         : null,
       paymentProof,
       paymentReference,
+      ...sanitizePaymentMeta(body?.paymentMeta),
       ...(isRenewalOfExpired
         ? {
             isRenewal: true,

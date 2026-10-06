@@ -13,6 +13,9 @@ import {
 } from "@/lib/top-ups/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
 import { pauseAdAccount, reactivateAdAccount } from "@/lib/accounts/pause";
+import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
+import { subscriptionPlatformKey } from "@/lib/subscriptions/require-active-subscription";
+import { readPlanScope } from "@/lib/user/plan-scope";
 
 export async function PATCH(request, context) {
   const admin = await requireAdminSession();
@@ -34,7 +37,7 @@ export async function PATCH(request, context) {
   }
 
   const action = body?.action;
-  const VALID_ACTIONS = ["approve", "reject", "update-balance", "pause", "reactivate", "restore"];
+  const VALID_ACTIONS = ["approve", "reject", "update-balance", "pause", "reactivate", "restore", "assign-plan"];
   if (!VALID_ACTIONS.includes(action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
@@ -47,6 +50,55 @@ export async function PATCH(request, context) {
   }
 
   const data = snap.data();
+
+  if (action === "assign-plan") {
+    // Re-link an ad account to one of its owner's subscriptions on the same
+    // platform (fixes accounts created under the wrong Meta plan). The plan
+    // tier + pricing snapshot come from that subscription, so the top-up fee
+    // and the subscription the top-up gate checks both follow.
+    const subscriptionId =
+      typeof body?.subscriptionId === "string" ? body.subscriptionId.trim() : "";
+    if (!subscriptionId) {
+      return NextResponse.json({ error: "missing_subscription" }, { status: 400 });
+    }
+    const subSnap = await db
+      .collection(SUBSCRIPTIONS_COLLECTION)
+      .doc(subscriptionId)
+      .get();
+    const sub = subSnap.exists ? subSnap.data() : null;
+    const adScope = readPlanScope(data?.flow);
+    if (
+      !sub ||
+      sub.userId !== data?.userId ||
+      subscriptionPlatformKey(sub) !== adScope.platformKey
+    ) {
+      return NextResponse.json({ error: "subscription_mismatch" }, { status: 400 });
+    }
+    const subFlow = sub.flow && typeof sub.flow === "object" ? sub.flow : {};
+    const subScope = readPlanScope(subFlow, subscriptionPlatformKey(sub));
+    /** @type {Record<string, unknown>} */
+    const patch = {
+      "flow.planTier": subScope.planTier,
+      "flow.accountCategory": subScope.category,
+      "flow.planSnapshot":
+        subFlow.planSnapshot && typeof subFlow.planSnapshot === "object"
+          ? subFlow.planSnapshot
+          : null,
+      "flow.pricingSnapshot":
+        subFlow.pricingSnapshot && typeof subFlow.pricingSnapshot === "object"
+          ? subFlow.pricingSnapshot
+          : null,
+      planReassignedAt: FieldValue.serverTimestamp(),
+      planReassignedBy: admin.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (subScope.category) {
+      patch["flow.requestTypeLabel"] =
+        subScope.category === "vip" ? "VIP" : "White Hat";
+    }
+    await ref.update(patch);
+    return NextResponse.json({ ok: true });
+  }
 
   if (action === "update-balance") {
     const raw = body?.newBalance;

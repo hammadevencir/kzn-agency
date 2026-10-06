@@ -6,7 +6,7 @@ import { mapTopUpAdminRow } from "@/lib/admin/map-top-up-admin-row";
 import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
 
 /**
- * ?status=payment_submitted|approved/rejected
+ * ?status=payment_submitted|payment_not_received|approved|rejected
  */
 export async function GET(request) {
   const admin = await requireAdminSession();
@@ -18,7 +18,7 @@ export async function GET(request) {
   const status = searchParams.get("status");
   if (
     !status ||
-    !["payment_submitted", "approved", "rejected"].includes(status)
+    !["payment_submitted", "payment_not_received", "approved", "rejected"].includes(status)
   ) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
   }

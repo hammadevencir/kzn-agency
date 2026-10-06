@@ -6,6 +6,7 @@ import {
   LOGIN_PATH,
   DASHBOARD_PATH,
 } from "@/lib/auth/constants";
+import { canAccessAdminPath } from "@/lib/auth/admin-permissions";
 
 function isAuthPath(pathname) {
   return pathname === "/user/signup";
@@ -110,6 +111,15 @@ export async function proxy(request) {
   if (isAdminRoute && role !== ROLE.ADMIN) {
     const url = request.nextUrl.clone();
     url.pathname = homeForRole(role);
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Admin sub-roles: customer-service (support) logins can't open restricted
+  // sections (settings, affiliate/contact requests, financial).
+  if (isAdminRoute && !canAccessAdminPath(decoded.adminRole, pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = DASHBOARD_PATH[ROLE.ADMIN];
     url.search = "";
     return NextResponse.redirect(url);
   }

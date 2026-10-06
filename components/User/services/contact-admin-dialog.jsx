@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Dialog,
@@ -9,55 +10,69 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { XIcon } from '@/components/icons';
+import {
+  CONTACT_PAGE_PATH,
+  DISCORD_HANDLE,
+  DISCORD_URL,
+  TELEGRAM_HANDLE,
+  TELEGRAM_URL,
+  WHATSAPP_HANDLE,
+  WHATSAPP_URL,
+} from '@/lib/contact/channels';
 
 const contactChannels = [
   {
     id: 'discord',
     name: 'Discord',
-    handle: 'discord.gg/kazansolutions',
+    handle: DISCORD_HANDLE,
     icon: '/social/discord.svg',
-    href: 'https://discord.gg/kazansolutions',
+    href: DISCORD_URL,
   },
   {
     id: 'whatsapp',
     name: 'WhatsApp',
-    handle: '+31 40 229 1682',
+    handle: WHATSAPP_HANDLE,
     icon: '/social/whatsapp.svg',
-    href: 'https://wa.me/31402291682',
+    href: WHATSAPP_URL,
   },
   {
     id: 'telegram',
     name: 'Telegram',
-    handle: '@kazansolutions',
+    handle: TELEGRAM_HANDLE,
     icon: '/social/telegram.svg',
-    href: 'https://t.me/kazansolutions',
+    href: TELEGRAM_URL,
   },
   {
     id: 'website',
     name: 'Website',
-    handle: 'Make this easy with kazansolutions.com',
+    handle: 'Submit a Contact Request',
     icon: '/social/website.svg',
-    href: 'https://www.kazansolutions.com',
+    href: CONTACT_PAGE_PATH,
   },
 ];
 
 const ContactAdminDialog = ({ isOpen, onClose }) => {
+  const router = useRouter();
   const [selectedChannel, setSelectedChannel] = useState('discord');
 
   const handleContinue = () => {
     const channel = contactChannels.find((c) => c.id === selectedChannel);
-    if (channel) {
-      window.open(channel.href, '_blank', 'noopener,noreferrer');
+    if (!channel) return;
+    if (channel.href.startsWith('/')) {
+      onClose?.();
+      router.push(channel.href);
+      return;
     }
+    window.open(channel.href, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[480px] max-h-[92vh] bg-[#11191F] border-white/5 p-0 overflow-hidden rounded-[32px] flex flex-col shadow-2xl"
+        className="w-[calc(100%-2rem)] sm:max-w-[480px] max-h-[92vh] bg-[#11191F] border-white/5 p-0 overflow-hidden rounded-[32px] flex flex-col shadow-2xl"
       >
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar">
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="mb-6 mt-2 relative w-full flex justify-center">
@@ -112,7 +127,7 @@ const ContactAdminDialog = ({ isOpen, onClose }) => {
                       className="object-contain"
                     />
                     <span
-                      className={`text-[15px] font-medium ${
+                      className={`text-[15px] font-medium text-center break-all ${
                         isSelected ? 'text-white' : 'text-quaternary'
                       }`}
                     >
@@ -126,7 +141,7 @@ const ContactAdminDialog = ({ isOpen, onClose }) => {
         </div>
 
         {/* Continue Button */}
-        <div className="p-8 pt-0 bg-[#11191F]">
+        <div className="p-5 sm:p-8 pt-0 sm:pt-0 bg-[#11191F]">
           <Button
             onClick={handleContinue}
             className="w-full h-[58px] rounded-2xl bg-[#CBAF69] text-[#11191F] hover:bg-[#D4BB7D] transition-all text-[16px] font-bold shadow-xl shadow-[#CBAF69]/10"

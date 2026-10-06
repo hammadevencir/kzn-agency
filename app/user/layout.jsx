@@ -78,7 +78,8 @@ const UserLayout = ({ children }) => {
     if (pathname.includes('/top-ups')) return 'top-ups';
     if (pathname.includes('/ad-accounts')) return 'ad-accounts';
     if (pathname.includes('/invoices')) return 'invoices';
-    if (pathname.includes('/services')) return 'services';
+    if (pathname.includes('/shop') || pathname.includes('/services')) return 'shop';
+    if (pathname.includes('/orders')) return 'orders';
     if (pathname.includes('/affiliates')) return 'affiliates';
     if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/help')) return 'help';
@@ -99,8 +100,10 @@ const UserLayout = ({ children }) => {
       router.push('/user/ad-accounts');
     } else if (item === 'invoices') {
       router.push('/user/invoices');
-    } else if (item === 'services') {
-      router.push('/user/services');
+    } else if (item === 'shop') {
+      router.push('/user/shop');
+    } else if (item === 'orders') {
+      router.push('/user/orders');
     } else if (item === 'affiliates') {
       router.push('/user/affiliates');
     } else if (item === 'chat') {

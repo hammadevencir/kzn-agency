@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/ui/success-modal";
+import AdAccountPlanSection from "./ad-account-plan-section";
 
 const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -112,6 +113,13 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
                     </div>
                   ))}
                 </div>
+
+                {data.firestoreId ? (
+                  <AdAccountPlanSection
+                    key={data.firestoreId}
+                    adAccountFirestoreId={String(data.firestoreId)}
+                  />
+                ) : null}
 
                 <div className="space-y-3">
                   <div className="space-y-1">

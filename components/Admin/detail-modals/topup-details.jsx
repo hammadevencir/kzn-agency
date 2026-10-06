@@ -96,6 +96,9 @@ const TopUpDetails = ({
     { label: "Phone:", value: data.phone || "—" },
     { label: "Payment Reference:", value: data.paymentReference || "—" },
     { label: "Ad Account ID:", value: displayAdAccountId },
+    ...(!isBalanceCreditRequest && data.planLabel
+      ? [{ label: "Package:", value: data.planLabel }]
+      : []),
     {
       label: isBalanceCreditRequest ? "Amount (transfer):" : "Top-up amount:",
       value:
@@ -104,6 +107,15 @@ const TopUpDetails = ({
           ? "N/A · free balance request"
           : displayTopUpAmount,
     },
+    ...(!isBalanceCreditRequest && data.topUpFeeAmount
+      ? [
+          {
+            label: `Top-up fee${data.topUpFeeLabel ? ` (${data.topUpFeeLabel})` : ""}:`,
+            value: data.topUpFeeAmount,
+          },
+          { label: "Total they should send:", value: data.totalToSend || "—" },
+        ]
+      : []),
     { label: "Balance at request:", value: displayCurrentBalance },
     { label: "Date requested:", value: displayLastUpdated },
   ];
@@ -147,6 +159,34 @@ const TopUpDetails = ({
       onRejected?.();
     } catch {
       toast.error("Could not reject request.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const isPaymentNotReceived = data.status === "payment_not_received";
+
+  const handleMarkNotReceived = async () => {
+    const id = data.firestoreId;
+    if (!id || typeof id !== "string") return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/top-ups/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "mark-not-received" }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body?.error || "Could not update request.");
+        return;
+      }
+      toast.success("Marked as payment not received. The customer has been notified.");
+      onRejected?.();
+      onClose?.();
+    } catch {
+      toast.error("Could not update request.");
     } finally {
       setBusy(false);
     }
@@ -363,7 +403,18 @@ const TopUpDetails = ({
           </div>
 
           {canShowPendingFooter ? (
-            <div className="p-4 sm:p-5 md:p-6 flex gap-3">
+            <div className="p-4 sm:p-5 md:p-6 flex flex-wrap gap-3">
+              {!isBalanceCreditRequest && !isPaymentNotReceived ? (
+                <Button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void handleMarkNotReceived()}
+                  variant="outline"
+                  className="w-full py-3 rounded-full border border-[#F5B301]/60 bg-transparent text-[#F5B301] hover:bg-[#F5B301]/10 text-sm font-medium"
+                >
+                  Payment not received
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 disabled={busy}
