@@ -32,21 +32,22 @@ import {
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 import { markMetaUpgradeExitToDashboard } from "@/lib/meta/meta-upgrade-session";
 
+// "Why Work With Us?" list as in the client's price list PDF (2026-10).
 const WHITE_HAT_BENEFITS = [
   "5-10 minutes top-ups, 24/7 availability.",
-  "Unlimited Spend, No Spending Limits.",
-  "No random Ad-Acc restrictions/bans.",
-  "Ad-Acc delivery within 24-72 hours.",
-  "Expert guidance (8+ years experience)",
   "Ultra-fast replies 10 minutes response.",
-  "Unlimited Ad-Acc Request for HK & US.",
-  "Higher ad approvals, fewer rejections",
-  "All time-zones are available to use.",
-  "Direct META representative.",
   "No Spend Issues, No Credit line Issues.",
+  "Unlimited Spend, No Spending Limits.",
+  "Unlimited Ad-Acc Request.",
   "Best Algorithm For Advertisers.",
+  "No random Ad-Acc restrictions/bans.",
+  "Higher ad approvals, fewer rejections",
   "24/7 technical support with expertise.",
+  "Ad-Acc delivery within 24-72 hours.",
+  "All time-zones are available to use.",
   "Policy compliance checks.",
+  "Expert guidance (8+ years experience)",
+  "Direct META representative.",
 ];
 
 // "Why Work With Us?" list from the client's Supplements pricing text.
@@ -306,9 +307,10 @@ export default function MetaSubscriptionFullPage({ category }) {
                 Advanced Risk Management
               </h3>
               <p className="text-[13px] text-gray-400">
-                We use top-tier Meta Business Managers to ensure stability,
-                clean algorithms, fewer restrictions, and superior ad
-                performance.
+                We operate with top-tier IBMS Business Managers to ensure
+                stability and security. This structured approach guarantees a
+                clean algorithm, fewer restrictions, and superior ad
+                performance for all our customers. 🙌
               </p>
             </div>
           </div>

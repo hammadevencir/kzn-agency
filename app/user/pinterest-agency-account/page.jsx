@@ -25,7 +25,7 @@ export default function PinterestAgencyAccountPage() {
   const handleSubscriptionSuccess = async (subscriptionForm) => {
     setIsModalOpen(false);
     const checkoutPreview = {
-      subscriptionName: `Pinterest - Standard Ad Account`,
+      subscriptionName: cfg.planTitle,
       amount: cfg.monthlyFee,
     };
     const flow = {
@@ -137,6 +137,12 @@ export default function PinterestAgencyAccountPage() {
           {/* Pricing Section */}
           <div className="mb-16">
             <h3 className="text-[#C5A964] text-[18px] font-bold mb-6">No Setup Fee</h3>
+            <div className="bg-[#151D24] border border-[#C5A964]/30 rounded-2xl p-6 md:p-8 mb-6">
+              <h4 className="text-[18px] font-bold text-white mb-2">
+                ✅ {cfg.monthlyFee}/month – {cfg.planTitle}
+              </h4>
+              <p className="text-gray-400 text-[14px] leading-relaxed">{cfg.planDescription}</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Monthly Fee Card */}
@@ -168,9 +174,8 @@ export default function PinterestAgencyAccountPage() {
                   <h4 className="text-[16px] text-gray-200 mb-2 font-medium">Top-Up Fee</h4>
                   <div className="flex items-end gap-4">
                     <span className="text-[28px] font-bold">{cfg.topUpFee}</span>
-                    <div className="text-gray-400 text-[12px] pb-1 leading-tight max-w-[200px]">
-                      {cfg.topUpFee} applies to each recharge.<br/>
-                      Top-ups are fast and seamless & no delay.
+                    <div className="text-gray-400 text-[12px] pb-1 leading-tight max-w-[260px]">
+                      A standard {cfg.topUpFee} top-up fee applies to each recharge of the ad-account. Top-ups are fast and seamless without any delay.
                     </div>
                   </div>
                 </div>
@@ -178,7 +183,8 @@ export default function PinterestAgencyAccountPage() {
 
             </div>
             <p className="text-gray-400 text-[13px] mt-6">
-              Minimum top-up for a Pinterest ad account is{' '}
+              <span className="text-white font-semibold">What&apos;s the minimum top up?</span>{' '}
+              Our minimum top up for a Pinterest ad account is{' '}
               <span className="text-white font-semibold">{cfg.minTopUp}</span>.
             </p>
           </div>
@@ -208,6 +214,7 @@ export default function PinterestAgencyAccountPage() {
         platform="Pinterest"
         planName="Pinterest Agency Account"
         fields={cfg.fields}
+        intro={cfg.requestIntro}
         onSuccess={handleSubscriptionSuccess}
       />
 

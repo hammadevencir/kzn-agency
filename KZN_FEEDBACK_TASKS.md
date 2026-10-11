@@ -7,15 +7,15 @@ Legend: `[ ]` todo · `[~]` code for this already exists — verify on staging/m
 
 ---
 
-## Open questions for client (blockers)
+## Open questions for client — answered 2026-10-11
 
-- ❓ **Discord**: the current invite has expired, and the client said they'll send a new one.
-- ❓ **Slash USD bank details**: not provided. Only the Wise EUR details were sent (see B15).
-- ❓ **KAZAN Scale fee**: the first message says **2.3%**, the pricing text says **2.2%**. Which one is right?
-- ❓ **Prices for the other platforms** (TikTok, Google, etc.): the client said "I'll send later".
-- ❓ **Pricing page "stuff below"**: the ad-guardians-style section, which the client said "I'll come with it soon".
-- ❓ **Deadline**: the text says "before 21st Sept", but the messages are dated 28 Sept. Confirm the real date.
-- ❓ **Help-center PDFs**: coming later. For now "Know more about it" should go to Messages (F8).
+- ✅ **Discord**: temporary invite https://discord.gg/tSEfUP8nz is now used everywhere (`lib/contact/channels.js`). Switch back to discord.gg/kazansolutions when the client says it's fixed.
+- ✅ **Slash USD bank details**: confirmed. They match the USD account already shown.
+- ✅ **KAZAN Scale fee**: **2.3%** (catalog + pricing page updated).
+- ✅ **Other platforms' prices**: the client's PDF (`tmp/`) matches what's already in the dashboard (TikTok €199 / 2%, Google €175 / 3%, Taboola €175 / 2%, Snapchat, Twitter, Pinterest €175 / 3%, all $350 minimum top-up) and the request forms match too.
+- ⏸ **Pricing page "stuff below"**: later, per the client.
+- ✅ **Help-center PDFs**: Help Center is hidden until the PDFs exist (`HELP_CENTER_ENABLED` in `lib/features.js`). Locked new users get Messages instead.
+- ✅ **Full PDF match (2026-10-11)**: every platform page and request form now uses the PDF's wording, prices, fees, minimums and question order. The two extra non-PDF questions (Page URL, Drive link) were removed from the non-Meta forms. The Meta request form follows the PDF order, and its creatives upload is on for White Hat too. Legacy Meta plans match the PDF, so existing Gray Hat Gold is now **5%** and Diamond **4%** (was 3% / 1.5%) until they renew.
 
 ---
 
@@ -85,7 +85,7 @@ The dashboard preview on the home page (it may be a static image, in which case 
 - [x] **Mobile alignment**: the "Get in Touch" and "Contact Us Now" contents aren't centred, and the rows overflow on the right.
 - [x] **WhatsApp**: sometimes shows "invalid number". Use the `https://wa.me/31402291682` format (no `+` or spaces). The client also mentioned the `@kazansolutions` tag.
 - [x] **Telegram**: t.me opens, but "Send message" says "address is invalid". Use `https://t.me/kazansolutions`, and check that any `tg://` link is formed correctly.
-- [ ] **Discord**: ❓ waiting for the new invite link.
+- [x] **Discord**: temporary invite link in place (discord.gg/tSEfUP8nz).
 - [x] **Website (Submit a Contact Request)**: sometimes clicking does nothing and it goes back to the dashboard. That part is a frontend fix (handler/navigation). The send failure itself is B2.
 - Files: `components/sections/website/ContactDialog.jsx`, `ContactForm.jsx`
 
@@ -123,7 +123,7 @@ Fill the empty space above "Total Referrals" (blue box in img11):
 ### F21. Public Pricing page (new) — img21, img27, pricing text
 - [x] Create a new `/pricing` route, **English only** (no EN/NL toggle like the img21 reference). Use img21 and https://ad-guardians.com/pricing/ as layout references ("similar but way better").
 - [x] Show **two clearly separated tracks**, so people see the difference:
-  - **Agency Ad Accounts (general)**: START €199/mo + 2.8%, SCALE €599/mo + ❓2.2 or 2.3%, ELITE €899/mo + 1.8%. Include the copy from the doc ("Starting out or still testing? Start here." etc.).
+  - **Agency Ad Accounts (general)**: START €199/mo + 2.8%, SCALE €599/mo + 2.3%, ELITE €899/mo + 1.8%. Include the copy from the doc ("Starting out or still testing? Start here." etc.).
   - **Supplements Agency Ad Accounts**: Essential €399/mo + 4%, Advanced €699/mo + 2.8%, Ultimate €1499/mo + 1.8%. Include the copy and the "Why Work With Us?" checklist (17 ✅ items in the doc).
 - [x] Add a **LEGENDARY PACKAGE** card with an "APPLY FOR PRIVATE PRICING" button that opens the form (form backend is B19).
 - [x] Add a Pricing link to the site nav.
@@ -228,9 +228,9 @@ Currently `lib/payments/bank-details.js` has only one USD wire account.
 - [x] Store the chosen currency and amount on the subscription payment. Admin sees which account the money should arrive in.
 - [x] Show the F7 "Important Notes" text in both views.
 
-### B16. New pricing packages + automatic fee calculation — done 2026-10-02. White Hat → Agency (Start/Scale/Elite), VIP → Supplements (Essential/Advanced/Ultimate), Scale = 2.2%. Old tiers keep their price and fee until renewal, then move: Silver→Start, Gold→Scale, Platinum/Platinum Excl.→Elite, VIP Gold→Essential, Diamond→Advanced, Platinum→Ultimate.
+### B16. New pricing packages + automatic fee calculation — done 2026-10-02. White Hat → Agency (Start/Scale/Elite), VIP → Supplements (Essential/Advanced/Ultimate), Scale = 2.3%. Old tiers keep their price and fee until renewal, then move: Silver→Start, Gold→Scale, Platinum/Platinum Excl.→Elite, VIP Gold→Essential, Diamond→Advanced, Platinum→Ultimate.
 - [x] Replace the Meta plan catalog (`lib/meta/meta-plan-catalog.js`, `platform-request-config.js`, `platform-subscription-pricing.js`) with the new packages:
-  - **General**: START €199 / 2.8% · SCALE €599 / ❓2.2 or 2.3% · ELITE €899 / 1.8%
+  - **General**: START €199 / 2.8% · SCALE €599 / 2.3% · ELITE €899 / 1.8%
   - **Supplements**: Essential €399 / 4% · Advanced €699 / 2.8% · Ultimate €1499 / 1.8%
 - [x] The dashboard and all flows use these packages, and the **top-up fee % is calculated automatically from the package** (after the B7 fix).
 - [x] Decide what happens to existing White Hat / VIP subscribers: keep them grandfathered or migrate them.

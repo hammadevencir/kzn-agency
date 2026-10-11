@@ -5,7 +5,7 @@ export const PRICING = {
   agency: {
     start: { monthly: 199, topUpFee: 2.8 },
 
-    scale: { monthly: 599, topUpFee: 2.2 },
+    scale: { monthly: 599, topUpFee: 2.3 },
     elite: { monthly: 899, topUpFee: 1.8 },
   },
   supplements: {

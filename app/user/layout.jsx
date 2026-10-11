@@ -15,6 +15,7 @@ import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedire
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
+import { HELP_CENTER_ENABLED } from '@/lib/features';
 
 /**
  * Sections a customer can reach before we've confirmed a subscription payment:
@@ -25,6 +26,8 @@ import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatfor
 const PRE_SUBSCRIPTION_NAV_IDS = [
   'dashboard',
   'subscriptions',
+  // Messages replaces the (hidden) Help Center as the way to reach support.
+  'chat',
   'help',
   'settings',
   'logout',
@@ -36,6 +39,7 @@ const PRE_SUBSCRIPTION_PATH_PREFIXES = [
   '/user/subscriptions',
   '/user/subscribe',
   '/user/help',
+  '/user/chat',
   '/user/settings',
 ];
 
@@ -154,6 +158,7 @@ const UserLayout = ({ children }) => {
         role="user"
         chatUnreadCount={chatUnreadCount}
         allowedItemIds={isLocked ? PRE_SUBSCRIPTION_NAV_IDS : null}
+        hiddenItemIds={HELP_CENTER_ENABLED ? [] : ['help']}
       />
       
       {/* Main Content Area */}

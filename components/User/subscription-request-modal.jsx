@@ -21,6 +21,8 @@ const SubscriptionRequestModal = ({
   planName = "GOLD PLAN",
   type = "Standard",
   fields = null,
+  /** Sentence above the form (per-platform wording from the client PDF). */
+  intro = null,
   onSuccess,
 }) => {
   const showReferralField = type !== "White Hat";
@@ -67,7 +69,8 @@ const SubscriptionRequestModal = ({
   const [errors, setErrors] = useState({});
 
   const [creativeItems, setCreativeItems] = useState([]);
-  const showCreativesUpload = !isDynamic && type === 'VIP';
+  // Client PDF: both White Hat and Gray Hat (VIP) Meta requests ask for creatives.
+  const showCreativesUpload = !isDynamic;
   const creativesUploading = creativeItems.some((it) => it.status === 'uploading');
   const creativesFailed = creativeItems.some((it) => it.status === 'error');
 
@@ -229,7 +232,7 @@ const SubscriptionRequestModal = ({
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
           <p className="text-[15px] text-gray-300 font-medium leading-relaxed">
-            To process your ad-account request, please provide us with the following details:
+            {intro || 'To process your ad-account request, please provide us with the following details:'}
           </p>
 
           <div className="space-y-6 text-left">
@@ -305,7 +308,7 @@ const SubscriptionRequestModal = ({
 
             {/* Timezone */}
             <div>
-              <label className={labelStyle}>Your preferred Timezone</label>
+              <label className={labelStyle}>Your preferred Time zone</label>
               <input
                 type="text"
                 placeholder="Answer here"
@@ -329,6 +332,32 @@ const SubscriptionRequestModal = ({
               {errors.website && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.website}</p>}
             </div>
 
+            {/* Creatives (client PDF item 4): upload, or a Google Drive link */}
+            {showCreativesUpload && (
+              <RequestCreativesUpload
+                label="Send us some creatives so we can check if you are eligible"
+                items={creativeItems}
+                onItemsChange={(updater) => {
+                  setCreativeItems(updater);
+                  clearError('creatives');
+                }}
+                error={errors.creatives}
+              />
+            )}
+
+            {/* Creatives Google Drive link (optional) */}
+            <div>
+              <label className={labelStyle}>Creatives (Google Drive link)</label>
+              <input
+                type="text"
+                inputMode="url"
+                placeholder="https://drive.google.com/... (optional)"
+                className={inputStyle}
+                value={formData.creativesLink}
+                onChange={(e) => handleInputChange('creativesLink', e.target.value)}
+              />
+            </div>
+
             {/* Page URL (optional) */}
             <div>
               <label className={labelStyle}>Page URL</label>
@@ -342,22 +371,9 @@ const SubscriptionRequestModal = ({
               />
             </div>
 
-            {/* Creative Upload Area - only for VIP/Gray-hat */}
-            {showCreativesUpload && (
-              <RequestCreativesUpload
-                label="Send us some creatives so we can check if you are eligible"
-                items={creativeItems}
-                onItemsChange={(updater) => {
-                  setCreativeItems(updater);
-                  clearError('creatives');
-                }}
-                error={errors.creatives}
-              />
-            )}
-
             {/* Confirm Hat Type */}
             <div>
-              <label className={labelStyle}>{type === 'VIP' ? 'You are gonna advertise Gray-hat only so not Black-hat, can you confirm' : `You are gonna advertise ${type || 'White-hat'} only, can you confirm`}</label>
+              <label className={labelStyle}>{type === 'VIP' ? 'You are gonna advertise Gray-hat only so not Black hat, can you confirm' : 'You are gonna advertise white-hat only so not Gray-hat, can you confirm'}</label>
               <div className="relative">
                 <select
                   className={`${selectStyle} ${errors.confirmHat ? 'ring-1 ring-red-500' : ''}`}
@@ -375,19 +391,6 @@ const SubscriptionRequestModal = ({
                 </div>
               </div>
               {errors.confirmHat && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.confirmHat}</p>}
-            </div>
-
-            {/* Creatives Google Drive link (optional) */}
-            <div>
-              <label className={labelStyle}>Creatives (Google Drive link)</label>
-              <input
-                type="text"
-                inputMode="url"
-                placeholder="https://drive.google.com/... (optional)"
-                className={inputStyle}
-                value={formData.creativesLink}
-                onChange={(e) => handleInputChange('creativesLink', e.target.value)}
-              />
             </div>
 
             {/* Advertise Details */}
