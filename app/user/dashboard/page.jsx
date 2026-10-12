@@ -36,6 +36,7 @@ function formatStat(n) {
 
 /** @param {string} status */
 function statusPillClass(status) {
+  if (status === 'Paused') return 'bg-[#F5B301]';
   if (status === 'Needs Top-up') return 'bg-[#FA3C67]';
   if (status === 'Top Spending') return 'bg-[#39CB7F]';
   if (status === 'Rejected') return 'bg-[#FA3C67]';
@@ -786,9 +787,13 @@ function DashboardContent() {
                         row.balance != null && String(row.balance).trim() !== ''
                           ? String(row.balance)
                           : '—';
-                      const status = String(row.status ?? '—');
-                      const actionLabel =
-                        row.primaryAction === 'topup' ? 'Top-up' : 'View';
+                      const isPaused = row.isPaused === true;
+                      const status = isPaused ? 'Paused' : String(row.status ?? '—');
+                      const actionLabel = isPaused
+                        ? 'Paused'
+                        : row.primaryAction === 'topup'
+                          ? 'Top-up'
+                          : 'View';
                       return (
                         <tr
                           key={rid}
@@ -858,14 +863,20 @@ function DashboardContent() {
                             </span>
                           </td>
                           <td className="py-6 px-4 pr-0">
-                            <button
-                              type="button"
-                              onClick={() => handleRowAction(row)}
-                              className="text-[#C5A964] font-semibold hover:text-[#D4BB7D] transition-colors flex items-center gap-2 justify-end w-full text-[14px]"
-                            >
-                              {actionLabel}
-                              <ArrowRightIcon className="w-4 h-4 mt-0.5" />
-                            </button>
+                            {isPaused ? (
+                              <span className="text-quaternary font-semibold flex items-center justify-end w-full text-[14px] cursor-not-allowed">
+                                Paused
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleRowAction(row)}
+                                className="text-[#C5A964] font-semibold hover:text-[#D4BB7D] transition-colors flex items-center gap-2 justify-end w-full text-[14px]"
+                              >
+                                {actionLabel}
+                                <ArrowRightIcon className="w-4 h-4 mt-0.5" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

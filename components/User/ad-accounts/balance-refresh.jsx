@@ -15,8 +15,11 @@ import { topUpBlockReason } from "@/lib/user/top-up-gate";
 /** @param {string} raw */
 function refreshErrorMessage(raw) {
   switch (raw) {
+    case "balance_refresh_already_pending":
     case "top_up_already_pending":
-      return "This account already has a balance or top-up request under review.";
+      return "A balance refresh for this account is already requested. Your balance will update shortly.";
+    case "previous_payment_not_received":
+      return "We haven't received the payment for a previous top-up yet. Check your receipt in Top-up — this unlocks once it's settled.";
     case "ad_account_paused":
       return "This ad account is currently paused. Contact support for details.";
     case "subscription_expired":

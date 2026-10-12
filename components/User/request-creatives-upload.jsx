@@ -172,7 +172,7 @@ export default function RequestCreativesUpload({ label, items, onItemsChange, er
             {isFull ? 'Maximum reached' : dragOver ? 'Drop images here' : 'Upload here'}
           </p>
           <p className="text-quaternary text-[12px]">
-            Png, Jpeg, Webp · up to {CREATIVE_MAX_FILES} images, 10 MB each
+            Png, Jpeg, Webp · up to {CREATIVE_MAX_FILES} images (large photos are compressed automatically)
           </p>
         </div>
       </label>

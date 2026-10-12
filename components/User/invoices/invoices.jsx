@@ -116,6 +116,7 @@ function DownloadInvoiceButton({ invoice, txnId, billToName, billToAddress, desc
         description,
         totalDisplay: formatAmountDisplay(invoice.amount),
         paid: invoice.status === "approved",
+        paymentCurrency: invoice.paymentCurrency === "EUR" ? "EUR" : "USD",
         filename: `${txnId}.pdf`,
       });
     } finally {

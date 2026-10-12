@@ -89,11 +89,33 @@ export async function PATCH(request, context) {
     if (isValidRating(order.rating)) {
       return NextResponse.json({ error: "already_rated" }, { status: 409 });
     }
-    await ref.update({
-      rating,
-      ratedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    // Re-check inside a transaction so a double submit can't overwrite the
+    // rating or post the chat message twice.
+    let outcome;
+    try {
+      outcome = await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(ref);
+        const cur = fresh.exists ? fresh.data() : null;
+        if (!cur || cur.userId !== user.uid) return "not_found";
+        if (cur.status !== ORDER_STATUS.DELIVERED) return "not_delivered";
+        if (isValidRating(cur.rating)) return "already_rated";
+        tx.update(ref, {
+          rating,
+          ratedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return "ok";
+      });
+    } catch (err) {
+      console.error("[orders] rating transaction failed", err);
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
+    }
+    if (outcome !== "ok") {
+      return NextResponse.json(
+        { error: outcome },
+        { status: outcome === "not_found" ? 404 : 409 }
+      );
+    }
     const text = ratingChatMessage(rating, label);
     if (text) await postOrderChatMessageAsUser(user.uid, text);
   } else if (action === "complaint") {

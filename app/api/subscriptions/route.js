@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseAmountToNumber } from "@/lib/ad-accounts/platform-request-config";
+import { getPlatformRequestConfig, parseAmountToNumber } from "@/lib/ad-accounts/platform-request-config";
 import { sanitizePaymentMeta } from "@/lib/payments/sanitize-payment-meta";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
@@ -127,6 +127,8 @@ export async function POST(request) {
     type: "Subscription",
   };
 
+  /** Validated Meta category of this purchase ('' for other platforms). */
+  let validatedMetaCategory = "";
   if (platformId === "meta") {
     const meta = body?.meta && typeof body.meta === "object" ? body.meta : {};
     const catRaw = typeof meta.category === "string" ? meta.category.trim().toLowerCase() : "";
@@ -147,16 +149,40 @@ export async function POST(request) {
     if (basePrice !== parseAmountToNumber(plan.monthlyFee)) {
       return NextResponse.json({ error: "price_mismatch" }, { status: 400 });
     }
+    validatedMetaCategory = catRaw;
     const { flow: metaFlowPart } = metaPlanToFlowAndCheckout(catRaw, plan);
     subscriptionForm = {
       platform: displayPlatform,
-      planName: `${catRaw === "vip" ? "VIP" : "White Hat"} — ${plan.name}`,
+      // Customer-facing package names (internal type stays "VIP"/"White Hat").
+      planName: `${catRaw === "vip" ? "Supplements" : "Agency"} — ${plan.name}`,
       type: catRaw === "vip" ? "VIP" : "White Hat",
     };
     extraFlow = {
       ...extraFlow,
       ...metaFlowPart,
     };
+  } else {
+    // Other platforms have one fixed monthly fee (client price list). The
+    // price and pricing snapshot come from the server config, never the client.
+    const cfg = getPlatformRequestConfig(platformId);
+    if (cfg) {
+      const basePrice = parseAmountToNumber(
+        String(checkoutPreview.originalAmount || checkoutPreview.amount || "")
+      );
+      if (basePrice !== parseAmountToNumber(cfg.monthlyFee)) {
+        return NextResponse.json({ error: "price_mismatch" }, { status: 400 });
+      }
+      extraFlow = {
+        ...extraFlow,
+        accountCategory: null,
+        planTier: null,
+        pricingSnapshot: {
+          monthlyFee: cfg.monthlyFee,
+          topUpFee: cfg.topUpFee,
+          minTopUp: cfg.minTopUp,
+        },
+      };
+    }
   }
 
   const flow = buildFlowBlock({ subscriptionForm, extraFlow });
@@ -232,12 +258,11 @@ export async function POST(request) {
   // Auto-detect: if Meta and the user already has an active Meta subscription
   // **in the same category** (VIP vs White Hat), upgrade in place. Buying the
   // other category is treated as a brand-new subscription.
+  // The server-validated category (the client never sends flow.accountCategory).
   const requestedMetaCategory = /** @type {'vip' | 'white_hat' | ''} */ (
-    platformId === "meta" && extraFlow && typeof extraFlow === "object"
-      ? extraFlow.accountCategory === "vip" ||
-        extraFlow.accountCategory === "white_hat"
-        ? extraFlow.accountCategory
-        : ""
+    platformId === "meta" &&
+    (validatedMetaCategory === "vip" || validatedMetaCategory === "white_hat")
+      ? validatedMetaCategory
       : ""
   );
 

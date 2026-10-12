@@ -8,6 +8,7 @@ import {
   PRIVATE_PRICING_MAX_REQUEST_BYTES,
   PRIVATE_PRICING_STATUS,
   PRIVATE_PRICING_STORAGE_PREFIX,
+  PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE,
 } from "@/lib/private-pricing/constants";
 import {
   validatePrivatePricingFields,
@@ -55,7 +56,7 @@ export async function POST(request) {
       {
         error: "payload_too_large",
         field: "files",
-        message: "Your files are too large in total (max 30 MB).",
+        message: PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE,
       },
       { status: 413 }
     );

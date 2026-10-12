@@ -129,8 +129,8 @@ export default function MetaAdAccountRequestPage() {
               You need an active Meta platform subscription first.
             </p>
             <p className="text-quaternary text-[14px] max-w-[600px]">
-              Subscribe from your dashboard and choose your Meta plan (White Hat or
-              VIP and tier). Then you can request ad accounts here.
+              Subscribe from your dashboard and choose your Meta package (Agency or
+              Supplements). Then you can request ad accounts here.
             </p>
             <Button
               type="button"

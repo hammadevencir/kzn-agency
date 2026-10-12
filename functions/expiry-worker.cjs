@@ -188,11 +188,15 @@ async function pauseAdAccountsForExpiredSubscription(db, subscriptionId, subscri
         pauseReason: ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED,
         pausedAt: FieldValue.serverTimestamp(),
         pausedBy: "system",
+        // Mirrors lib/accounts/pause.js#pauseAdAccount: an indefinite pause
+        // (clears any old pauseUntil so the sweep can't auto-reactivate it).
+        pauseUntil: null,
         pauseHistory: FieldValue.arrayUnion({
           label: ACCOUNT_PAUSE_REASON_LABEL_SUBSCRIPTION_EXPIRED,
           reason: ACCOUNT_PAUSE_REASON_SUBSCRIPTION_EXPIRED,
           at,
           by: "system",
+          until: null,
         }),
         updatedAt: FieldValue.serverTimestamp(),
       },

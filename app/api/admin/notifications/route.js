@@ -40,7 +40,7 @@ export async function GET() {
 
   const db = getAdminDb();
 
-  const [adSnap, topUpSnap, subSnapNew, subSnapUpgrade, rewardSnap] =
+  const [adSnap, topUpSnap, subSnapNew, subSnapUpgrade, rewardSnap, subSnapRenewal] =
     await Promise.all([
       db
         .collection(AD_ACCOUNTS_COLLECTION)
@@ -61,6 +61,10 @@ export async function GET() {
       db
         .collection(REWARD_CLAIMS_COLLECTION)
         .where("status", "==", "pending")
+        .get(),
+      db
+        .collection(SUBSCRIPTIONS_COLLECTION)
+        .where("pendingRenewalReview", "==", true)
         .get(),
     ]);
 
@@ -99,7 +103,9 @@ export async function GET() {
     );
     seenSub.add(d.id);
     items.push({
-      id: `sub-${d.id}`,
+      // Event time in the id: a later renewal payment on the same doc is a
+      // new, unread notification (read state is stored per id).
+      id: `sub-${d.id}-${created}`,
       href: "/admin/subscriptions",
       title: `New ${platform} subscription request`,
       desc: `${displayNameFromEmail(email)} submitted a subscription payment.`,
@@ -127,10 +133,31 @@ export async function GET() {
       flow.displayPlatform || data.platformId || "Platform"
     );
     items.push({
-      id: `sub-up-${d.id}`,
+      id: `sub-up-${d.id}-${created}`,
       href: "/admin/subscriptions",
       title: `${platform} subscription upgrade request`,
       desc: `${displayNameFromEmail(email)} submitted payment for a subscription upgrade.`,
+      timeMs: created,
+      time: relativeTime(created),
+      kind: "info",
+    });
+  }
+
+  for (const d of subSnapRenewal.docs) {
+    const data = d.data();
+    const pr =
+      data.pendingRenewal && typeof data.pendingRenewal === "object"
+        ? data.pendingRenewal
+        : {};
+    const created = tsMs(pr.paymentSubmittedAt) || tsMs(data.updatedAt);
+    const email = data.userEmail ? String(data.userEmail) : "a user";
+    const flow = data.flow && typeof data.flow === "object" ? data.flow : {};
+    const platform = String(flow.displayPlatform || data.platformId || "Platform");
+    items.push({
+      id: `sub-rn-${d.id}-${created}`,
+      href: "/admin/subscriptions",
+      title: `${platform} subscription renewal`,
+      desc: `${displayNameFromEmail(email)} paid to extend their subscription.`,
       timeMs: created,
       time: relativeTime(created),
       kind: "info",

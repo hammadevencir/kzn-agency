@@ -49,6 +49,19 @@ const DepositDetailsModal = ({
           ...(depositData.paidVia
             ? [{ label: 'Paid via:', value: depositData.paidVia }]
             : []),
+          ...(depositData.requestKind
+            ? [
+                {
+                  label: 'Request type:',
+                  value:
+                    depositData.requestKind === 'renewal'
+                      ? 'Renewal'
+                      : depositData.requestKind === 'upgrade'
+                        ? 'Plan change / upgrade'
+                        : 'New subscription',
+                },
+              ]
+            : []),
         ];
 
   const uiStatus =

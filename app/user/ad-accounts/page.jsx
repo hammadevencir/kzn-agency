@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import UserAdAccounts from "@/components/User/ad-accounts/ad-accounts";
 
 export const metadata = {
@@ -6,5 +7,10 @@ export const metadata = {
 };
 
 export default function UserAdAccountsPage() {
-  return <UserAdAccounts />;
+  // useSearchParams (notification deep links) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <UserAdAccounts />
+    </Suspense>
+  );
 }

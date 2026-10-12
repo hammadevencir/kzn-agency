@@ -57,11 +57,16 @@ const UserLayout = ({ children }) => {
     enabled: !isAuthPage,
   });
 
-  const { hasConfirmedSubscription, loading: subsLoading } =
-    useUserSubscribedPlatforms();
+  const {
+    hasConfirmedSubscription,
+    loading: subsLoading,
+    error: subsError,
+  } = useUserSubscribedPlatforms();
 
   /** Locked until an admin confirms a payment; unknown while still loading. */
-  const isLocked = !isAuthPage && !subsLoading && !hasConfirmedSubscription;
+  // A failed load never locks the portal (the APIs still enforce access).
+  const isLocked =
+    !isAuthPage && !subsLoading && !subsError && !hasConfirmedSubscription;
 
   /**
    * Deep links and back-navigation must respect the lock too — hiding the nav

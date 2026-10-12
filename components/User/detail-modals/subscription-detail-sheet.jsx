@@ -72,7 +72,9 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
         ? "bg-[#FA3C67]"
         : statusVariant === "warning"
           ? "bg-[#C5A964]"
-          : "bg-secondary";
+          : statusVariant === "paused"
+            ? "bg-[#F5B301]"
+            : "bg-secondary";
 
   const lastPaid =
     data.paymentSubmittedAtLabel && data.paymentSubmittedAtLabel !== "—"
@@ -92,7 +94,7 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
       await submitPlatformSubscriptionPayment(
         data.firestoreId,
         {
-          amount: data.amountPaid || null,
+          amount: data.renewalAmount || data.amountPaid || null,
           subscriptionName:
             data.subscriptionName || `${data.platform || "Platform"} plan`,
           platformId: data.platformId || null,
@@ -105,15 +107,19 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
       toast.success(
         "Renewal payment submitted. We'll review it and extend your subscription."
       );
-    } catch {
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "";
       toast.error(
-        "Could not record your payment. Please try again or contact support."
+        raw === "renewal_already_submitted"
+          ? "Your renewal payment is already being reviewed."
+          : "Could not record your payment. Please try again or contact support."
       );
     }
     setIsPayModalOpen(false);
   };
 
-  const showExtend = statusVariant === "success";
+  // Hide "Extend" while an extension payment is already waiting for review.
+  const showExtend = statusVariant === "success" && data.renewalPending !== true;
 
   return (
     <>
@@ -367,12 +373,8 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
         data={{
           subscriptionName:
             data.subscriptionName || `${data.platform || "Platform"} plan`,
-          amount:
-            data.amountPaid && data.amountPaid !== "—"
-              ? data.amountPaid
-              : "—",
-          originalAmount: data.originalAmount || undefined,
-          discountMessage: data.discountMessage || undefined,
+          // Extensions are full price (no first-month referral discount).
+          amount: data.renewalAmount || data.amountPaid || "—",
         }}
         onSuccess={handleExtendSuccess}
       />

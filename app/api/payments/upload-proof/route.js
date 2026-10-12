@@ -16,7 +16,9 @@ const ALLOWED_TYPES = new Set([
   "image/webp",
   "application/pdf",
 ]);
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Vercel serverless rejects bodies over ~4.5 MB; the client compresses images
+// below this and rejects bigger PDFs (lib/user/upload-payment-proof.js).
+const MAX_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
 
 function sanitizeName(name) {
   const base = (name || "proof").replace(/[^a-zA-Z0-9._-]+/g, "_");
@@ -44,7 +46,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "missing_file" }, { status: 400 });
   }
 
-  const contentType = file.type || "application/octet-stream";
+  const rawType = (file.type || "application/octet-stream").toLowerCase();
+  const contentType = rawType === "image/jpg" ? "image/jpeg" : rawType;
   if (!ALLOWED_TYPES.has(contentType)) {
     return NextResponse.json(
       { error: "unsupported_file_type" },
@@ -54,7 +57,13 @@ export async function POST(request) {
 
   const size = typeof file.size === "number" ? file.size : 0;
   if (!size || size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: "file_too_large" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: size ? "file_too_large" : "missing_file",
+        message: size ? "File is too large — max 4 MB." : "The file is empty.",
+      },
+      { status: size ? 413 : 400 }
+    );
   }
 
   let buffer;

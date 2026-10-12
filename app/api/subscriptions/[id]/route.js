@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { sanitizePaymentMeta } from "@/lib/payments/sanitize-payment-meta";
-import { renewalTermsForSubscription } from "@/lib/meta/meta-plan-catalog";
+import {
+  fullPriceTermsForSubscription,
+  renewalTermsForSubscription,
+} from "@/lib/meta/meta-plan-catalog";
+import { isSubscriptionActive, isSubscriptionExpired } from "@/lib/subscriptions/expiry";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
@@ -86,13 +90,51 @@ export async function PATCH(request, context) {
     data?.pendingUpgrade != null &&
     typeof data.pendingUpgrade === "object";
 
-  if (isApprovedLike) {
-    if (!hasPendingUpgradeDraft) {
-      return NextResponse.json(
-        { error: "no_pending_upgrade" },
-        { status: 400 }
-      );
-    }
+  const paymentNote = body?.paymentNote
+    ? String(body.paymentNote).slice(0, 500)
+    : null;
+  const paymentMetaFields = sanitizePaymentMeta(body?.paymentMeta);
+  /** Server-side price: the client's amount is never trusted. */
+  const storedCheckout =
+    data?.checkout && typeof data.checkout === "object" ? data.checkout : {};
+
+  // One renewal payment at a time (also if the plan lapsed while it waits).
+  if (data?.pendingRenewalReview === true) {
+    return NextResponse.json(
+      { error: "renewal_already_submitted" },
+      { status: 409 }
+    );
+  }
+
+  // Paid-up + still running + no upgrade draft → early renewal / extension.
+  if (isApprovedLike && !hasPendingUpgradeDraft && isSubscriptionActive(data)) {
+    const terms = fullPriceTermsForSubscription(data);
+    await ref.set(
+      {
+        pendingRenewal: {
+          checkout: {
+            subscriptionName: terms.subscriptionName || checkout.subscriptionName,
+            amount: terms.amount || "",
+            originalAmount: null,
+            discountMessage: null,
+          },
+          paymentProof,
+          paymentReference,
+          ...paymentMetaFields,
+          paymentSubmittedAt: FieldValue.serverTimestamp(),
+          paymentMethod: "wire_transfer_manual",
+          paymentNote,
+        },
+        pendingRenewalReview: true,
+        renewalRejectionReason: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({ ok: true, kind: "renewal" });
+  }
+
+  if (isApprovedLike && hasPendingUpgradeDraft) {
     if (data.pendingUpgradeReview === true) {
       return NextResponse.json(
         { error: "upgrade_already_submitted" },
@@ -102,33 +144,35 @@ export async function PATCH(request, context) {
     const prev = /** @type {Record<string, unknown>} */ (
       data.pendingUpgrade
     );
+    // The upgrade's price was validated when the draft was created.
+    const upgradeCheckout =
+      prev.checkout && typeof prev.checkout === "object" ? prev.checkout : checkout;
     await ref.set(
       {
         pendingUpgrade: {
           ...prev,
-          checkout,
+          checkout: upgradeCheckout,
           paymentProof,
           paymentReference,
-          ...sanitizePaymentMeta(body?.paymentMeta),
+          ...paymentMetaFields,
           paymentSubmittedAt: FieldValue.serverTimestamp(),
           paymentMethod: "wire_transfer_manual",
-          paymentNote: body?.paymentNote
-            ? String(body.paymentNote).slice(0, 500)
-            : null,
+          paymentNote,
         },
         pendingUpgradeReview: true,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, kind: "upgrade" });
   }
 
-  // A lapsed subscription is renewed by paying on the same doc: the renew
-  // prompt the portal shows on expiry has to lead somewhere, so `expired` is
-  // accepted here alongside a first payment. Approval then starts a fresh cycle
-  // from `paymentSubmittedAt` and lifts the ad-account pause.
-  const isRenewalOfExpired = data?.status === SUBSCRIPTION_STATUS.EXPIRED;
+  // A lapsed subscription is renewed by paying on the same doc. "Lapsed" also
+  // covers an approved doc whose expiresAt has passed but which the scheduled
+  // sweep hasn't marked `expired` yet.
+  const isRenewalOfExpired =
+    data?.status === SUBSCRIPTION_STATUS.EXPIRED ||
+    (isApprovedLike && isSubscriptionExpired(data));
 
   if (
     data?.status !== SUBSCRIPTION_STATUS.PENDING_PAYMENT &&
@@ -137,24 +181,52 @@ export async function PATCH(request, context) {
     return NextResponse.json({ error: "invalid_subscription_state" }, { status: 409 });
   }
 
-  // Legacy tiers (pre 2026-09 pricing) renew into their successor package at
-  // the new price. The old flow is kept so approval can move the plan's ad
-  // accounts across.
-  const renewal = isRenewalOfExpired ? renewalTermsForSubscription(data) : null;
-  const migrationFields = renewal?.migration
-    ? {
+  let migrationFields = {};
+  /** @type {Record<string, unknown>} */
+  let checkoutToStore;
+  if (isRenewalOfExpired) {
+    // Legacy tiers (pre 2026-09 pricing) renew into their successor package at
+    // the new price. The old flow + checkout are kept so approval can move the
+    // plan's ad accounts across — and a rejection can undo the move.
+    const renewal = renewalTermsForSubscription(data);
+    if (renewal.migration) {
+      migrationFields = {
         flow: { ...(data.flow || {}), ...renewal.migration.flow },
         migratedFromFlow: data.flow || null,
-      }
-    : {};
-  const checkoutToStore = renewal?.migration
-    ? {
-        ...checkout,
-        amount: renewal.migration.checkoutPreview.amount,
+        migratedFromCheckout: storedCheckout || null,
+      };
+      checkoutToStore = {
         subscriptionName: renewal.migration.checkoutPreview.subscriptionName,
+        amount: renewal.migration.checkoutPreview.amount,
         originalAmount: null,
-      }
-    : checkout;
+        discountMessage: null,
+      };
+    } else {
+      // Renewals are always full price (no first-month referral discount).
+      const terms = fullPriceTermsForSubscription(data);
+      checkoutToStore = {
+        subscriptionName: terms.subscriptionName || checkout.subscriptionName,
+        amount: terms.amount || "",
+        originalAmount: null,
+        discountMessage: null,
+      };
+    }
+  } else {
+    // First payment: the price (and any referral discount) was validated and
+    // stored when the subscription was created — keep it.
+    checkoutToStore =
+      storedCheckout && storedCheckout.amount
+        ? storedCheckout
+        : (() => {
+            const terms = fullPriceTermsForSubscription(data);
+            return {
+              subscriptionName: terms.subscriptionName || checkout.subscriptionName,
+              amount: terms.amount || "",
+              originalAmount: null,
+              discountMessage: null,
+            };
+          })();
+  }
 
   await ref.set(
     {
@@ -164,12 +236,10 @@ export async function PATCH(request, context) {
       paymentSubmittedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       paymentMethod: "wire_transfer_manual",
-      paymentNote: body?.paymentNote
-        ? String(body.paymentNote).slice(0, 500)
-        : null,
+      paymentNote,
       paymentProof,
       paymentReference,
-      ...sanitizePaymentMeta(body?.paymentMeta),
+      ...paymentMetaFields,
       ...(isRenewalOfExpired
         ? {
             isRenewal: true,
@@ -177,7 +247,7 @@ export async function PATCH(request, context) {
             rejectionReason: null,
           }
         : {}),
-   },
+    },
     { merge: true }
   );
 

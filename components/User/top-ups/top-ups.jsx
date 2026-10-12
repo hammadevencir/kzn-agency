@@ -82,14 +82,7 @@ const UserTopUps = () => {
     setPayForExpiredSub({
       subscriptionName: String(terms.subscriptionName || `${platform} plan`),
       amount: withDisplayCurrency(amount),
-      originalAmount:
-        checkout.originalAmount != null
-          ? String(checkout.originalAmount)
-          : undefined,
-      discountMessage:
-        typeof checkout.discountMessage === "string"
-          ? checkout.discountMessage
-          : undefined,
+      // Renewals are full price — no first-month referral discount.
       subscriptionId: doc?.id || null,
       platformId: doc?.platformId || k || null,
     });
@@ -144,7 +137,13 @@ const UserTopUps = () => {
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const res = await fetch("/api/top-ups", { credentials: "include" });
+      // Ask the server for the selected range so older dates aren't cut off
+      // by the default page size.
+      const qs = new URLSearchParams();
+      if (historyRange.from) qs.set("from", historyRange.from);
+      if (historyRange.to) qs.set("to", historyRange.to);
+      qs.set("tz", String(new Date().getTimezoneOffset()));
+      const res = await fetch(`/api/top-ups?${qs.toString()}`, { credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.items)) {
         setHistory(data.items);
@@ -154,7 +153,7 @@ const UserTopUps = () => {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [historyRange.from, historyRange.to]);
 
   useEffect(() => {
     void loadAccounts();

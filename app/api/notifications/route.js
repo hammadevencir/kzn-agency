@@ -132,6 +132,21 @@ export async function GET() {
   for (const d of subSnap.docs) {
     const data = d.data();
     const status = data.status;
+    const subFlow = data.flow && typeof data.flow === "object" ? data.flow : {};
+    const subPlatform = String(subFlow.displayPlatform || data.platformId || "Platform");
+    // Rejected renewal / extension payments (the plan itself isn't rejected).
+    const renewalRejMs = tsMs(data.renewalReviewedAt);
+    if (renewalRejMs && (data.renewalRejectionReason || (status === SUBSCRIPTION_STATUS.EXPIRED && data.rejectionReason))) {
+      items.push({
+        id: `sub-rr-${d.id}-${renewalRejMs}`,
+        title: `${subPlatform} renewal payment not approved`,
+        desc: String(data.renewalRejectionReason || data.rejectionReason).slice(0, 160),
+        timeMs: renewalRejMs,
+        time: relativeTime(renewalRejMs),
+        kind: "danger",
+        href: "/user/subscriptions",
+      });
+    }
     if (
       status !== SUBSCRIPTION_STATUS.APPROVED &&
       status !== SUBSCRIPTION_STATUS.REJECTED
@@ -146,7 +161,9 @@ export async function GET() {
       flow.displayPlatform || data.platformId || "Platform"
     );
     items.push({
-      id: `sub-${d.id}`,
+      // Event time in the id so a renewal approval on the same doc is a new
+      // (unread, popped) notification.
+      id: `sub-${d.id}-${reviewedMs}`,
       title:
         status === SUBSCRIPTION_STATUS.APPROVED
           ? `${platform} subscription approved`

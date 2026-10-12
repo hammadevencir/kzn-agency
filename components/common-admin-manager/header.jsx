@@ -9,6 +9,8 @@ import { X } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
 import { showNotificationToast } from '@/components/common-admin-manager/notification-toast';
+import { useAdminRole } from '@/lib/hooks/useAdminRole';
+import { ADMIN_SECTION, canAccessAdminSection } from '@/lib/auth/admin-permissions';
 import {
   readAnnouncedNotificationIds,
   writeAnnouncedNotificationIds,
@@ -130,6 +132,7 @@ const Header = ({
   const endpoint = detectNotificationsEndpoint(pathname);
   const markReadEndpoint = detectMarkReadEndpoint(pathname);
   const isAdminArea = Boolean(pathname?.startsWith('/admin'));
+  const adminRole = useAdminRole({ enabled: isAdminArea });
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -320,7 +323,7 @@ const Header = ({
 
           {/* Notifications Dropdown */}
           {isNotificationsOpen && (
-            <div className="absolute top-[calc(100%+12px)] right-0 w-[380px] md:w-[440px] bg-[#161D26] border border-white/5 rounded-[24px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="fixed left-4 right-4 top-[72px] max-h-[calc(100vh-96px)] sm:absolute sm:left-auto sm:top-[calc(100%+12px)] sm:right-0 sm:max-h-none sm:w-[380px] md:w-[440px] z-50 bg-[#161D26] border border-white/5 rounded-[24px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
 
               {/* Header */}
               <div className="flex items-center justify-between gap-3 p-6 pb-4 border-b border-white/5 shrink-0">
@@ -424,10 +427,21 @@ const Header = ({
         {/* Avatar — synced from Firebase (same as settings) */}
         <button
           type="button"
-          onClick={() =>
-            router.push(pathname?.startsWith('/admin') ? '/admin/settings' : '/user/settings')
-          }
-          className="w-[36px] h-[36px] rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center border border-white/10 ml-2 hover:opacity-80 transition-opacity cursor-pointer"
+          onClick={() => {
+            if (!isAdminArea) {
+              router.push('/user/settings');
+              return;
+            }
+            // Customer-service logins can't open Settings (B18) — don't send
+            // them to a page that bounces them back to the dashboard.
+            if (adminRole && canAccessAdminSection(adminRole, ADMIN_SECTION.SETTINGS)) {
+              router.push('/admin/settings');
+            }
+          }}
+          title={isAdminArea && adminRole === 'support' ? 'Customer Service' : undefined}
+          className={`w-[36px] h-[36px] rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center border border-white/10 ml-2 transition-opacity ${
+            isAdminArea && adminRole === 'support' ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'
+          }`}
           aria-label={userName ? `Profile: ${userName}` : 'Profile'}
         >
           {showAvatarImage ? (

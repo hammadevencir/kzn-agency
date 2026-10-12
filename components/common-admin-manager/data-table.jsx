@@ -965,13 +965,19 @@ const DataTable = ({
       case "Last Top-up":
         return <span key="lastTopup" className="font-light text-quaternary">{row.lastTopup}</span>;
       case "Balance": {
+        // A pending balance refresh only blocks another refresh; a pending
+        // paid top-up doesn't block refreshing the balance.
+        const refreshPending = row.balanceRefreshPending === true;
         const canRefresh =
           typeof onRefreshBalance === "function" &&
           row.isPaused !== true &&
-          row.topUpInReview !== true;
+          !refreshPending;
         return (
           <div key="balance" className="flex items-center gap-2">
             <span className="font-light text-quaternary">{row.balance}</span>
+            {refreshPending ? (
+              <span className="text-[11px] text-[#C5A964]">Refresh requested</span>
+            ) : null}
             {canRefresh ? (
               <button
                 type="button"
@@ -995,7 +1001,10 @@ const DataTable = ({
         const s = row.status?.toLowerCase() || "";
         const isActive =
           !paused && !notReceived && (s === "active" || s === "top spending");
-        const isPending = !paused && !notReceived && row.topUpInReview === true;
+        const isPending =
+          !paused &&
+          !notReceived &&
+          (row.topUpInReview === true || row.balanceRefreshPending === true);
         const pillClass = paused
           ? "bg-[#F5B301]"
           : notReceived
@@ -1054,6 +1063,21 @@ const DataTable = ({
           );
         }
         const pending = !paused && row.topUpInReview === true;
+        // Client B12: while a top-up is in review, let the customer re-check
+        // the receipt they uploaded instead of a dead "In review" label.
+        if (pending && row.pendingTopUpReceiptUrl) {
+          return (
+            <a
+              key="actions"
+              href={row.pendingTopUpReceiptUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#C5A964] text-[#C5A964] text-[13px] hover:bg-[#C5A964]/10 transition-colors"
+            >
+              Check Receipt
+            </a>
+          );
+        }
         const disabled = paused || pending;
         return (
           <button

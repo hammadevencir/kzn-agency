@@ -114,6 +114,39 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
                   ))}
                 </div>
 
+                {Array.isArray(data.questions) && data.questions.length > 0 ? (
+                  <div className="space-y-3">
+                    <h3 className="text-[15px] font-semibold text-white">
+                      Request details
+                    </h3>
+                    <div className="p-5 rounded-2xl bg-[#151E25] space-y-4 text-[13px]">
+                      {data.questions.map((q, i) => (
+                        <div key={`${q.text}-${i}`} className="space-y-1">
+                          <p className="text-quaternary">{q.text}</p>
+                          {q.type === "creatives" && Array.isArray(q.creatives) ? (
+                            <div className="flex flex-wrap gap-2">
+                              {q.creatives.map((c) => (
+                                <a
+                                  key={c.image}
+                                  href={c.image}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-20 h-20 rounded-lg overflow-hidden border border-white/10"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={c.image} alt={c.name || "Creative"} className="w-full h-full object-cover" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-white break-words">{q.answer || "—"}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
                 {data.firestoreId ? (
                   <AdAccountPlanSection
                     key={data.firestoreId}

@@ -30,7 +30,7 @@ export async function GET(request) {
   let docs = [];
 
   if (status === "payment_submitted") {
-    const [snapNew, snapUpgrade] = await Promise.all([
+    const [snapNew, snapUpgrade, snapRenewal] = await Promise.all([
       db
         .collection(SUBSCRIPTIONS_COLLECTION)
         .where("status", "==", status)
@@ -39,13 +39,18 @@ export async function GET(request) {
         .collection(SUBSCRIPTIONS_COLLECTION)
         .where("pendingUpgradeReview", "==", true)
         .get(),
+      // Early renewals / extensions paid while the plan is still running.
+      db
+        .collection(SUBSCRIPTIONS_COLLECTION)
+        .where("pendingRenewalReview", "==", true)
+        .get(),
     ]);
     const seen = new Set();
     for (const d of snapNew.docs) {
       seen.add(d.id);
       docs.push(d);
     }
-    for (const d of snapUpgrade.docs) {
+    for (const d of [...snapUpgrade.docs, ...snapRenewal.docs]) {
       if (seen.has(d.id)) continue;
       seen.add(d.id);
       docs.push(d);
@@ -60,10 +65,11 @@ export async function GET(request) {
 
   function reviewMs(data) {
     if (!data || typeof data !== "object") return 0;
+    const pendingBlock =
+      data.pendingRenewalReview === true ? data.pendingRenewal : data.pendingUpgrade;
     const pu =
-      data.pendingUpgrade &&
-      typeof data.pendingUpgrade === "object"
-        ? /** @type {Record<string, unknown>} */ (data.pendingUpgrade)
+      pendingBlock && typeof pendingBlock === "object"
+        ? /** @type {Record<string, unknown>} */ (pendingBlock)
         : null;
     const puPaid = pu?.paymentSubmittedAt;
     /** @type {any} */

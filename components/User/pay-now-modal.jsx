@@ -229,7 +229,7 @@ const PayNowModal = ({
         raw === 'unsupported_file_type'
           ? 'Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF.'
           : raw === 'file_too_large'
-            ? 'File is too large. Please upload a file under 8 MB.'
+            ? 'File is too large — max 4 MB. Please upload a smaller screenshot or PDF.'
             : 'Could not upload your payment screenshot. Please try again.';
       setProofError(msg);
       toast.error(msg);

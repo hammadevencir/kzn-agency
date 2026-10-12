@@ -20,6 +20,7 @@ import {
 } from '@/components/icons';
 import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
 import { REFEREE_DISCOUNT_PERCENT } from '@/lib/affiliates/constants';
+import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
 
 const platforms = [
   { id: 'meta', name: 'Meta', icon: MetaIcon, hasBadge: true },
@@ -44,6 +45,7 @@ const RequestAdAccountModal = ({
   disabledPlatformIds = null,
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState(null);
+  const { hasConfirmedSubscription } = useUserSubscribedPlatforms();
   const [hasReferral, setHasReferral] = useState(false);
 
   const handleNext = () => {
@@ -84,12 +86,14 @@ const RequestAdAccountModal = ({
     }
     // Only show the referral-discount banner when the user actually has a
     // saved referral code (captured at signup via `?ref=…`).
+    // The referral discount is first-month only: once a subscription payment
+    // has been approved the banner would promise a discount that won't apply.
     try {
-      setHasReferral(Boolean(getSavedReferralCode()));
+      setHasReferral(Boolean(getSavedReferralCode()) && !hasConfirmedSubscription);
     } catch {
       setHasReferral(false);
     }
-  }, [isOpen]);
+  }, [isOpen, hasConfirmedSubscription]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

@@ -23,12 +23,12 @@ import { createTopUpRequest } from "@/lib/user/top-ups-client";
 import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
 import { withDisplayCurrency } from "@/lib/payments/format-amount";
 import {
-  minTopUpUsdForPlatform,
   parseAmountToNumber,
   topUpFeePctFromLabel,
   formatTopUpFeePct,
 } from "@/lib/ad-accounts/platform-request-config";
 import toast from "react-hot-toast";
+import { meetsMinTopUp, minTopUpForAccount } from "@/lib/top-ups/fee";
 import BankDetailsCard from "@/components/payments/bank-details-card";
 import DashboardAccountIdHint from "@/components/payments/dashboard-account-id-hint";
 import { PAYMENT_REFERENCE_PLACEHOLDER } from "@/lib/payments/bank-details";
@@ -97,7 +97,10 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const pk = String(data.platformKey || "").toLowerCase();
   const Icon = PLATFORM_ICONS[pk] || TikTokIcon;
   const isPending = data.topUpInReview === true;
-  const minTopUp = minTopUpUsdForPlatform(pk);
+  // $350 floor (client price list); Europe-region accounts pay the EUR
+  // equivalent (€287) — same rule as POST /api/top-ups.
+  const minRule = minTopUpForAccount(pk, data.topUpCurrency === "EUR" ? "EUR" : "USD");
+  const minTopUp = minRule ? minRule.minAmount : null;
 
   // Top-up fee → show the total the user must actually transfer.
   // Accounts without a stored pricing snapshot fall back to the standard fee.
@@ -149,10 +152,8 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
         toast.error("Enter a valid top-up amount.");
         return;
       }
-      if (numeric < minTopUp) {
-        toast.error(
-          `Minimum top-up for ${data.platform} is ${sym}${minTopUp.toLocaleString("en-US")}.`
-        );
+      if (!meetsMinTopUp(numeric, currency, minRule.minUsd)) {
+        toast.error(`Minimum top-up for ${data.platform} is ${minRule.label}.`);
         return;
       }
     }
@@ -182,7 +183,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       const raw = e instanceof Error ? e.message : "";
       const friendly =
         raw === "below_min_top_up"
-          ? `Minimum top-up${typeof minTopUp === "number" ? ` is ${sym}${minTopUp.toLocaleString("en-US")}` : ""}.`
+          ? `Minimum top-up${typeof minTopUp === "number" ? ` is ${minRule.label}` : ""}.`
           : raw === "invalid_amount"
             ? "Enter a valid top-up amount."
           : raw === "previous_payment_not_received"
@@ -200,7 +201,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
           : raw === "unsupported_file_type"
             ? "Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF."
             : raw === "file_too_large"
-              ? "File is too large. Please upload a file under 8 MB."
+              ? "File is too large — max 4 MB. Please upload a smaller screenshot or PDF."
               : raw || "Could not submit top-up request.";
       toast.error(friendly);
     } finally {
@@ -309,7 +310,7 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
             />
             {typeof minTopUp === "number" ? (
               <p className="text-[12px] text-quaternary">
-                Minimum top-up: {sym}{minTopUp.toLocaleString("en-US")}
+                Minimum top-up: {minRule.label}
               </p>
             ) : null}
             {totalToSend != null ? (

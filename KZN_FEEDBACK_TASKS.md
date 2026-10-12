@@ -308,3 +308,43 @@ Replace "Services" with a **Shop**.
 3. **Payment rules**: B10, B12, B13, B3, B11.
 4. **Pricing and currency**: B16, B15, B14, F21, B19 (needs the ❓ answers).
 5. **New modules**: B18 → B21 → B20 → B22.
+
+---
+
+## Verification — 2026-10-12
+
+Everything was checked end to end in a real browser (Playwright, desktop + 375px phone) against local Firebase emulators (`demo-kzn`, no live data touched). Two independent code reviews ran alongside.
+
+**Result: 146 / 146 automated checks pass; `next build` passes.**
+
+| Suite | Checks | Covers |
+|---|---|---|
+| Public website | 41 | F1, F3, F6, F12–F14, F19, F21, B2, B19, mobile layout of every public page |
+| Customer portal | 49 | F4–F11, F15–F18, B4–B7, B14, B15, PDF wording/forms, Help Center hidden, mobile layout of every portal page |
+| Admin + roles | 41 | F16, F17, B3, B12, B13, B18, Plan section, Last Login, Financial/Orders/Private pricing/Team pages |
+| End-to-end flows | 15 | Legacy renewal → new package (EUR/USD), early extension (+28 days), admin approvals, shop order → deliver → smiley + Trustpilot, Financial totals |
+
+**Defects found by the review and fixed before the final run:**
+- **Paying early failed:** early renewal / "Extend" payments used to fail; they're now stored as a pending renewal that admins approve (adds 28 days).
+- **Prices came from the browser:** subscription prices are now always built on the server (catalog / platform price list), and renewals never reuse the first-month referral discount.
+- **Rejected renewals dead-ended:** a rejected renewal now puts the plan back to expired (undoing a legacy-tier move) so the customer can pay again.
+- **Locked out or wrongly unlocked:** a lapsed customer renewing is no longer locked out, a failed subscription load never locks the portal, and the shop API now requires a confirmed subscription.
+- **Fees and minimums:** non-Meta top-up fees are taken from the price list on the server, not from the browser. The Europe-region minimum top-up is €287 (= $350).
+- **Top-up screens:**
+  - "Refresh balance" no longer blocks real top-ups.
+  - Pending top-ups show "Check Receipt".
+  - Top-up history filters by any date range.
+  - Notification links open the account even when you're already on that page.
+- **Notifications and Financial:** repeat subscription events now show as new notifications. Financial revenue is taken from server prices.
+- **Uploads:** photos are compressed before upload, and the limit is 4 MB so uploads stay under Vercel's 4.5 MB cap.
+- **Phone layout:** the notification panel and footer links now fit on phones.
+- **Labels:**
+  - "White Hat"/"VIP" were replaced with "Agency"/"Supplements" in invoices and admin views.
+  - The invoice PDF shows Wise details for EUR payments and Slash for USD.
+- **Smaller items:**
+  - The Customer Service avatar no longer bounces to Settings.
+  - The cron route fails closed without `CRON_SECRET`.
+  - Approved ad accounts can't be reset to "in review".
+  - Two composite indexes were added to `firestore.indexes.json`.
+
+**Local testing switch:** `lib/firebase/client.js` connects to the emulators only when `NEXT_PUBLIC_FIREBASE_EMULATORS=1` (off by default, no effect in production).

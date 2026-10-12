@@ -159,8 +159,76 @@ export async function PATCH(request, context) {
   const isNewSubscriptionReview =
     data?.status === SUBSCRIPTION_STATUS.PAYMENT_SUBMITTED;
 
-  if (!isUpgradeReview && !isNewSubscriptionReview) {
+  // Early renewal / extension paid while the plan was still running.
+  const isRenewalReview =
+    !isUpgradeReview &&
+    data?.pendingRenewalReview === true &&
+    data?.pendingRenewal &&
+    typeof data.pendingRenewal === "object";
+
+  if (!isUpgradeReview && !isNewSubscriptionReview && !isRenewalReview) {
     return NextResponse.json({ error: "not_pending_review" }, { status: 409 });
+  }
+
+  if (isRenewalReview) {
+    const pr = /** @type {Record<string, unknown>} */ (data.pendingRenewal);
+    if (action === "approve") {
+      // Stack another 28-day cycle on top of the running one.
+      const nextExpiresMs = computeNextExpiresAtMs({
+        currentExpiresAtMs: tsToMillis(data?.expiresAt),
+        purchaseAtMs: tsToMillis(pr.paymentSubmittedAt) || Date.now(),
+        nowMs: Date.now(),
+      });
+      await ref.set(
+        {
+          status: SUBSCRIPTION_STATUS.APPROVED,
+          checkout: pr.checkout && typeof pr.checkout === "object" ? pr.checkout : data.checkout,
+          paymentProof: pr.paymentProof ?? data.paymentProof ?? null,
+          paymentReference: pr.paymentReference ?? data.paymentReference ?? null,
+          paymentSubmittedAt: pr.paymentSubmittedAt ?? FieldValue.serverTimestamp(),
+          paymentMethod: pr.paymentMethod ?? "wire_transfer_manual",
+          ...(typeof pr.paymentCurrency === "string"
+            ? {
+                paymentCurrency: pr.paymentCurrency,
+                paymentAccount: pr.paymentAccount ?? null,
+                paymentAmountLabel: pr.paymentAmountLabel ?? null,
+              }
+            : {}),
+          pendingRenewal: FieldValue.delete(),
+          pendingRenewalReview: false,
+          renewalRejectionReason: FieldValue.delete(),
+          lastRenewalApprovedAt: FieldValue.serverTimestamp(),
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewedBy: admin.uid,
+          expiresAt: new Date(nextExpiresMs),
+          expiryWarningStage: null,
+          expiryWarningStageAt: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      await reactivateAdAccountsForRenewedSubscription(db, id, data, admin.uid);
+      return NextResponse.json({ ok: true });
+    }
+    const reasonR =
+      typeof body.rejectionReason === "string"
+        ? body.rejectionReason.trim().slice(0, 2000)
+        : "";
+    if (!reasonR) {
+      return NextResponse.json({ error: "missing_rejection_reason" }, { status: 400 });
+    }
+    // The plan keeps running until its current expiry; only the extension is refused.
+    await ref.set(
+      {
+        pendingRenewal: FieldValue.delete(),
+        pendingRenewalReview: false,
+        renewalRejectionReason: reasonR,
+        renewalReviewedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "approve") {
@@ -265,7 +333,10 @@ export async function PATCH(request, context) {
         { ...data, flow: data.migratedFromFlow },
         /** @type {Record<string, unknown>} */ (data.flow)
       );
-      await ref.set({ migratedFromFlow: FieldValue.delete() }, { merge: true });
+      await ref.set(
+        { migratedFromFlow: FieldValue.delete(), migratedFromCheckout: FieldValue.delete() },
+        { merge: true }
+      );
     }
     await reactivateAdAccountsForRenewedSubscription(db, id, data, admin.uid);
     return NextResponse.json({ ok: true });
@@ -288,8 +359,33 @@ export async function PATCH(request, context) {
         pendingUpgrade: FieldValue.delete(),
         pendingUpgradeReview: false,
         upgradeRejectionReason: reason,
-        reviewedAt: FieldValue.serverTimestamp(),
-        reviewedBy: admin.uid,
+        // Not `reviewedAt`: that dates the plan's last approved payment (the
+        // Financial overview books revenue on it).
+        upgradeReviewedAt: FieldValue.serverTimestamp(),
+        upgradeReviewedBy: admin.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (data?.isRenewal === true) {
+    // A rejected renewal of a lapsed plan must not dead-end the customer: put
+    // the doc back to `expired` (so they can pay again) and undo a legacy-tier
+    // move so the plan's ad accounts stay linked to it.
+    await ref.set(
+      {
+        status: SUBSCRIPTION_STATUS.EXPIRED,
+        ...(data.migratedFromFlow && typeof data.migratedFromFlow === "object"
+          ? { flow: data.migratedFromFlow, migratedFromFlow: FieldValue.delete() }
+          : {}),
+        ...(data.migratedFromCheckout && typeof data.migratedFromCheckout === "object"
+          ? { checkout: data.migratedFromCheckout, migratedFromCheckout: FieldValue.delete() }
+          : {}),
+        isRenewal: false,
+        rejectionReason: reason,
+        renewalReviewedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }

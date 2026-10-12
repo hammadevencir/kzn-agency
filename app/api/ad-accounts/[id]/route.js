@@ -76,6 +76,11 @@ export async function PATCH(request, context) {
   if (data?.userId !== user.uid) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+  // Payment proof can only be attached while the request is waiting for it —
+  // never to an approved / rejected account (that would reset it to review).
+  if (data?.status !== AD_ACCOUNT_STATUS.PENDING_PAYMENT) {
+    return NextResponse.json({ error: "invalid_ad_account_state" }, { status: 409 });
+  }
 
   await ref.set(
     {

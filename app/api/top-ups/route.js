@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
 import {
@@ -12,7 +12,9 @@ import {
 } from "@/lib/top-ups/constants";
 import { checkAdAccountSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
-import { computeTopUpPricing } from "@/lib/top-ups/fee";
+import { computeTopUpPricing, meetsMinTopUp, minTopUpForAccount } from "@/lib/top-ups/fee";
+import { currencyForRegion } from "@/lib/ad-accounts/regions";
+import { isBalanceRefreshRequest } from "@/lib/user/pending-top-up-by-ad-account";
 import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import {
   minTopUpUsdForPlatform,
@@ -54,10 +56,26 @@ export async function GET(request) {
   if (adAccountIdFilter) {
     query = query.where("adAccountId", "==", adAccountIdFilter);
   }
+  // Optional date range (YYYY-MM-DD, inclusive, UTC day bounds widened by the
+  // client's offset — `tz` = Date#getTimezoneOffset()) for the history filter.
+  const tzOffsetMin = Number.parseInt(searchParams.get("tz") || "0", 10) || 0;
+  const dayStartMs = (v) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v || "")) return null;
+    const ms = Date.parse(`${v}T00:00:00Z`);
+    return Number.isNaN(ms) ? null : ms + tzOffsetMin * 60000;
+  };
+  const fromMs = dayStartMs(searchParams.get("from"));
+  const toStartMs = dayStartMs(searchParams.get("to"));
+  if (fromMs != null) {
+    query = query.where("createdAt", ">=", Timestamp.fromMillis(fromMs));
+  }
+  if (toStartMs != null) {
+    query = query.where("createdAt", "<", Timestamp.fromMillis(toStartMs + 86400000));
+  }
 
   const snap = await query
     .orderBy("createdAt", "desc")
-    .limit(50)
+    .limit(fromMs != null || toStartMs != null ? 500 : 200)
     .get();
 
   const items = snap.docs.map((d) => {
@@ -224,17 +242,26 @@ export async function POST(request) {
     );
   }
 
-  // Block duplicate submissions while a prior top-up is still awaiting review.
+  // Block duplicate submissions while a prior request of the SAME kind is
+  // still awaiting review: a pending paid top-up blocks another top-up, a
+  // pending balance refresh blocks another refresh — but a refresh never
+  // blocks a real top-up (and vice versa).
   const pendingSnap = await db
     .collection(TOP_UPS_COLLECTION)
     .where("userId", "==", user.uid)
     .where("adAccountId", "==", adAccountId)
     .where("status", "==", TOP_UP_STATUS.PAYMENT_SUBMITTED)
-    .limit(1)
     .get();
-  if (!pendingSnap.empty) {
+  const samePending = pendingSnap.docs.some(
+    (d) => isBalanceRefreshRequest(d.data()) === isFreeBalanceRequest
+  );
+  if (samePending) {
     return NextResponse.json(
-      { error: "top_up_already_pending" },
+      {
+        error: isFreeBalanceRequest
+          ? "balance_refresh_already_pending"
+          : "top_up_already_pending",
+      },
       { status: 409 }
     );
   }
@@ -249,18 +276,19 @@ export async function POST(request) {
   // requests, which carry no payment amount.
   if (!isFreeBalanceRequest) {
     const platformKey = String(flow.platformKey || "").toLowerCase();
-    const minUsd = minTopUpUsdForPlatform(platformKey);
-    if (typeof minUsd === "number") {
-      const numeric = parseAmountToNumber(amountStr);
-      if (numeric === null) {
-        return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
-      }
-      if (numeric < minUsd) {
-        return NextResponse.json(
-          { error: "below_min_top_up", minTopUpUsd: minUsd },
-          { status: 400 }
-        );
-      }
+    const currency = currencyForRegion(flow.region);
+    const min = minTopUpForAccount(platformKey, currency);
+    const numeric = parseAmountToNumber(amountStr);
+    if (numeric === null || !(numeric > 0)) {
+      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+    }
+    // Europe-region accounts top up in EUR: compare the EUR amount converted
+    // at the fixed rate with the USD floor (same rule as the top-up modal).
+    if (min && !meetsMinTopUp(numeric, currency, min.minUsd)) {
+      return NextResponse.json(
+        { error: "below_min_top_up", minTopUpUsd: min.minUsd, minTopUpLabel: min.label },
+        { status: 400 }
+      );
     }
   }
 

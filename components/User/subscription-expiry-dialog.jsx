@@ -116,6 +116,8 @@ export default function SubscriptionExpiryDialog() {
       const isActive = s === "approved" || s === "active";
       const isExpired = s === "expired";
       if (!isActive && !isExpired) continue;
+      // Already paid the renewal — waiting for review; don't nag.
+      if (doc.pendingRenewalReview === true) continue;
 
       const expMs = tsToMillis(doc.expiresAt ?? doc.subscriptionExpiresAt);
       let stage;
@@ -191,9 +193,12 @@ export default function SubscriptionExpiryDialog() {
       toast.success(
         "Payment proof received. We'll review it and restore access shortly."
       );
-    } catch {
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "";
       toast.error(
-        "Could not record your payment. Please try again or contact support."
+        raw === "renewal_already_submitted"
+          ? "Your renewal payment is already being reviewed."
+          : "Could not record your payment. Please try again or contact support."
       );
     }
     setIsPayOpen(false);
@@ -286,14 +291,7 @@ export default function SubscriptionExpiryDialog() {
         data={{
           subscriptionName,
           amount: withDisplayCurrency(amount),
-          originalAmount:
-            checkout.originalAmount != null
-              ? String(checkout.originalAmount)
-              : undefined,
-          discountMessage:
-            typeof checkout.discountMessage === "string"
-              ? checkout.discountMessage
-              : undefined,
+          // Renewals are full price — no first-month referral discount.
         }}
         onSuccess={handlePaySuccess}
       />

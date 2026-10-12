@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { BANK_DETAILS_FIELDS } from "@/lib/payments/bank-details";
+import { SLASH_USD_FIELDS, WISE_EUR_FIELDS } from "@/lib/payments/bank-details";
 
 const GOLD = "#C5A964";
 const BG = "#2E2A25";
@@ -22,6 +22,7 @@ const WHITE = "#FFFFFF";
  *   description: string,
  *   totalDisplay: string,
  *   paid: boolean,
+ *   paymentCurrency?: 'EUR' | 'USD',
  * }} props
  */
 const InvoicePdfTemplate = ({
@@ -32,7 +33,10 @@ const InvoicePdfTemplate = ({
   description,
   totalDisplay,
   paid,
+  paymentCurrency = "USD",
 }) => {
+  // EUR payments go to Wise, USD payments to Slash.
+  const bankFields = paymentCurrency === "EUR" ? WISE_EUR_FIELDS : SLASH_USD_FIELDS;
   return (
     <div
       style={{
@@ -225,9 +229,9 @@ const InvoicePdfTemplate = ({
               marginBottom: 10,
             }}
           >
-            Bank Payment Details
+            Bank Payment Details ({paymentCurrency === "EUR" ? "EUR · Wise" : "USD · Slash"})
           </div>
-          {BANK_DETAILS_FIELDS.map((f) => (
+          {bankFields.map((f) => (
             <div
               key={f.label}
               style={{ fontSize: 10.5, color: GOLD, lineHeight: 1.7 }}

@@ -7,7 +7,10 @@ import { XIcon, CloudUploadIcon, TrashIcon } from "@/components/icons";
 import BankDetailsCard from "@/components/payments/bank-details-card";
 import DashboardAccountIdHint from "@/components/payments/dashboard-account-id-hint";
 import { PAYMENT_REFERENCE_PLACEHOLDER } from "@/lib/payments/bank-details";
-import { uploadPaymentProof } from "@/lib/user/upload-payment-proof";
+import {
+  humanizePaymentProofError,
+  uploadPaymentProof,
+} from "@/lib/user/upload-payment-proof";
 import { createOrder } from "@/lib/user/orders-client";
 import { formatUsd } from "@/lib/shop/catalog";
 
@@ -150,13 +153,7 @@ export function BuyItemModal({ isOpen, onClose, product, category, onOrdered }) 
     try {
       proof = await uploadPaymentProof(file, { kind: "order" });
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "";
-      const msg =
-        raw === "unsupported_file_type"
-          ? "Unsupported file type. Please upload a PNG, JPEG, WEBP, or PDF."
-          : raw === "file_too_large"
-            ? "File is too large. Please upload a file under 10 MB."
-            : "Could not upload your payment screenshot. Please try again.";
+      const msg = humanizePaymentProofError(err);
       setProofError(msg);
       toast.error(msg);
       setSubmitting(false);
@@ -170,8 +167,17 @@ export function BuyItemModal({ isOpen, onClose, product, category, onOrdered }) 
       });
       toast.success("Order placed! We'll review your payment shortly.");
       onOrdered?.(order);
-    } catch {
-      toast.error("Could not place your order. Please try again.");
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "";
+      toast.error(
+        raw === "subscription_required"
+          ? "The shop is available once your subscription payment has been approved. Subscribe to a plan first, then come back to place your order."
+          : raw === "missing_payment_proof"
+            ? "Your payment screenshot couldn't be verified. Please upload it again."
+            : raw === "unknown_product"
+              ? "This item is no longer available."
+              : "Could not place your order. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }

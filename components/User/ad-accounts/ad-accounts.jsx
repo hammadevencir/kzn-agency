@@ -3,7 +3,7 @@
 import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
 import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlusIcon } from "@/components/icons";
 import AdAccountDetailSheet from "./ad-account-detail-sheet";
@@ -203,6 +203,7 @@ const AdAccountCard = ({
 
 const UserAdAccounts = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     hasActiveSubscription,
     subscribedPlatformIds,
@@ -353,14 +354,7 @@ const UserAdAccounts = () => {
     setPayForExpiredSub({
       subscriptionName: String(terms.subscriptionName || `${platform} plan`),
       amount: withDisplayCurrency(amount),
-      originalAmount:
-        checkout.originalAmount != null
-          ? String(checkout.originalAmount)
-          : undefined,
-      discountMessage:
-        typeof checkout.discountMessage === "string"
-          ? checkout.discountMessage
-          : undefined,
+      // Renewals are full price — no first-month referral discount.
       subscriptionId: doc?.id || null,
       platformId: doc?.platformId || k || null,
     });
@@ -434,25 +428,19 @@ const UserAdAccounts = () => {
    * Notification deep link (`/user/ad-accounts?account=<id>`): open that
    * account's detail sheet as soon as the list has loaded, so a customer
    * clicking "Top-up approved" lands on the account that was credited.
-   * Read from `window.location` rather than `useSearchParams` to keep this page
-   * statically prerenderable.
+   * Uses `useSearchParams` so a notification clicked while already on this
+   * page (no remount) still opens the account.
    */
+  const deepLinkParam = (searchParams?.get(AD_ACCOUNT_DEEP_LINK_PARAM) || "")
+    .trim()
+    .replace(/^#+\s*/, "");
   useEffect(() => {
-    if (deepLinkHandledRef.current || loading || !accounts.length) return;
-
-    let requested = "";
-    try {
-      requested = (
-        new URLSearchParams(window.location.search).get(
-          AD_ACCOUNT_DEEP_LINK_PARAM
-        ) || ""
-      )
-        .trim()
-        .replace(/^#+\s*/, "");
-    } catch {
+    if (!deepLinkParam) {
+      deepLinkHandledRef.current = false;
       return;
     }
-    if (!requested) return;
+    if (deepLinkHandledRef.current || loading || !accounts.length) return;
+    const requested = deepLinkParam;
 
     deepLinkHandledRef.current = true;
 
@@ -477,7 +465,7 @@ const UserAdAccounts = () => {
     }
     setSelectedAccount(match);
     setIsDetailSheetOpen(true);
-  }, [accounts, loading]);
+  }, [accounts, loading, deepLinkParam]);
 
   const openTopUpModalForRow = (row) => {
     const blocked = topUpBlockReason(row, {

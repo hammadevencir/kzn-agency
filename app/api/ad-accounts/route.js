@@ -10,9 +10,11 @@ import {
 import { countWeeklyAdAccountRequests } from "@/lib/ad-accounts/weekly-request-limit";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import {
-  pendingTopUpAdAccountIdsFromSnapshot,
+  pendingRequestsByAdAccountFromSnapshot,
   unsettledTopUpsFromSnapshot,
 } from "@/lib/user/pending-top-up-by-ad-account";
+import { getPlatformRequestConfig } from "@/lib/ad-accounts/platform-request-config";
+import { accountCategoryLabel } from "@/lib/user/plan-scope";
 import { mapAdAccountForTopUpsTable } from "@/lib/user/map-ad-account-for-top-ups";
 import { mapAdAccountPortalRow } from "@/lib/user/map-ad-account-portal";
 import {
@@ -49,7 +51,9 @@ export async function GET(request) {
     db.collection(TOP_UPS_COLLECTION).where("userId", "==", user.uid).get(),
   ]);
 
-  const pendingByAd = pendingTopUpAdAccountIdsFromSnapshot(topUpsSnap);
+  // Paid top-ups and balance refreshes awaiting review, kept apart: a pending
+  // balance refresh must not block (or relabel) a real top-up.
+  const pendingByAd = pendingRequestsByAdAccountFromSnapshot(topUpsSnap);
   const unsettledByAd = unsettledTopUpsFromSnapshot(topUpsSnap);
   const userHasUnsettledPayment = unsettledByAd.size > 0;
   /** @param {string} id @param {Record<string, unknown>} row */
@@ -73,7 +77,7 @@ export async function GET(request) {
       return tb - ta;
     });
     const items = docs.map((d) =>
-      withSettlement(d.id, mapAdAccountPortalRow(d.id, d.data(), pendingByAd.has(d.id)))
+      withSettlement(d.id, mapAdAccountPortalRow(d.id, d.data(), pendingByAd.get(d.id) || false))
     );
     return NextResponse.json({ items });
   }
@@ -88,7 +92,7 @@ export async function GET(request) {
   });
 
   const items = approved.map((d) =>
-    withSettlement(d.id, mapAdAccountForTopUpsTable(d.id, d.data(), pendingByAd.has(d.id)))
+    withSettlement(d.id, mapAdAccountForTopUpsTable(d.id, d.data(), pendingByAd.get(d.id) || false))
   );
 
   return NextResponse.json({ items });
@@ -195,9 +199,13 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+    // Customer-facing package name (internal keys stay vip / white_hat).
+    const label = accountCategoryLabel(cat) || (cat === "vip" ? "Supplements" : "Agency");
     subscriptionForm = {
       ...subscriptionForm,
       type: cat === "vip" ? "VIP" : "White Hat",
+      // Shown with the tier as "Meta Supplements · ESSENTIAL" (planName · planTier).
+      planName: `Meta ${label}`,
     };
     extraFlow = {
       planTier: tier,
@@ -210,12 +218,34 @@ export async function POST(request) {
           ? { ...sf.pricingSnapshot }
           : null,
     };
-    const label = cat === "vip" ? "VIP" : "White Hat";
     checkoutPreview = {
-      subscriptionName: `Meta ${label} — Ad account request (${tier})`,
+      subscriptionName: `Meta ${label} — Ad account request (${tier.toUpperCase()})`,
       amount: "€0",
       originalAmount: null,
       discountMessage: null,
+    };
+  }
+
+  if (platformKeyEarly !== "meta") {
+    // Non-Meta platforms have one fixed price list. Never take pricing, plan
+    // tier or account category from the client — a forged `type: "VIP"` or
+    // `pricingSnapshot.topUpFee: "0%"` would otherwise change the fee.
+    const cfg = getPlatformRequestConfig(platformKeyEarly);
+    subscriptionForm = {
+      ...subscriptionForm,
+      type: "Standard",
+      planName: cfg ? `${cfg.displayName} Agency Account` : "",
+    };
+    extraFlow = {
+      planTier: null,
+      planSnapshot: null,
+      pricingSnapshot: cfg
+        ? {
+            monthlyFee: cfg.monthlyFee,
+            topUpFee: cfg.topUpFee,
+            minTopUp: cfg.minTopUp,
+          }
+        : null,
     };
   }
 

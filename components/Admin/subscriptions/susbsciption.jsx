@@ -201,6 +201,10 @@ function Susbsciption() {
           : '—',
         paymentProof: selectedSubscription.paymentProof || null,
         paymentReference: selectedSubscription.paymentReference || null,
+        // EUR → Wise / USD → Slash, and whether this is a new plan, an
+        // upgrade or a renewal — so admins know what they're approving.
+        paidVia: selectedSubscription.paidVia || null,
+        requestKind: selectedSubscription.requestKind || null,
       }
     : null;
 

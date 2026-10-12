@@ -55,7 +55,13 @@ export async function POST(request) {
 
   const size = typeof file.size === "number" ? file.size : 0;
   if (!size || size > CREATIVE_MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: "file_too_large" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: size ? "file_too_large" : "missing_file",
+        message: size ? "File is too large — max 4 MB." : "The file is empty.",
+      },
+      { status: size ? 413 : 400 }
+    );
   }
 
   let buffer;

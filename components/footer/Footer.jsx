@@ -15,7 +15,7 @@ const Footer = () => {
     <footer className="flex flex-col w-full items-center justify-center gradient-bg px-4 py-7">
       <div className="flex flex-col md:flex-row justify-between items-center w-full max-w-7xl gap-4 border-t border-[#404040] lg:gap-5 py-8">
         <Logo />
-        <div className="flex items-center text-sm font-light gap-4 lg:gap-6 ">
+        <div className="flex flex-wrap items-center justify-center text-sm font-light gap-x-4 gap-y-2 lg:gap-6">
           {navLinks.map((link) => (
             <Link
               key={link.href}

@@ -7,6 +7,8 @@ import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import { findShopProduct } from "@/lib/shop/catalog";
 import { ORDERS_COLLECTION, ORDER_STATUS } from "@/lib/orders/constants";
 import { serializeOrder } from "@/lib/orders/server-orders";
+import { isConfirmedSubscriptionDoc, isOwnPaymentProof } from "@/lib/orders/order-guards";
+import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 
 export const runtime = "nodejs";
 
@@ -55,7 +57,12 @@ export async function POST(request) {
   }
 
   const paymentProof = sanitizePaymentProof(body?.paymentProof);
-  if (!paymentProof || !paymentProof.path.startsWith(`payment-proofs/${user.uid}/`)) {
+  if (
+    !paymentProof ||
+    !isOwnPaymentProof(paymentProof, user.uid, {
+      emulatorHost: process.env.FIREBASE_STORAGE_EMULATOR_HOST,
+    })
+  ) {
     return NextResponse.json({ error: "missing_payment_proof" }, { status: 400 });
   }
 
@@ -65,6 +72,23 @@ export async function POST(request) {
   }
 
   const db = getAdminDb();
+
+  // Same rule as the portal lock (hasConfirmedSubscription): the shop is only
+  // for customers whose subscription payment has been approved at least once.
+  let subscribed = false;
+  try {
+    const subs = await db
+      .collection(SUBSCRIPTIONS_COLLECTION)
+      .where("userId", "==", user.uid)
+      .get();
+    subscribed = subs.docs.some((d) => isConfirmedSubscriptionDoc(d.data()));
+  } catch (err) {
+    console.error("[orders] subscription lookup failed", err);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+  if (!subscribed) {
+    return NextResponse.json({ error: "subscription_required" }, { status: 403 });
+  }
 
   let userName = null;
   let userEmail = user.email || null;

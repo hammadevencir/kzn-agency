@@ -18,8 +18,54 @@ import {
   PRIVATE_PRICING_MAX_FILES,
   PRIVATE_PRICING_MAX_FILE_BYTES,
   PRIVATE_PRICING_MAX_TOTAL_BYTES,
+  PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE,
   resolvePrivatePricingContentType,
 } from "@/lib/private-pricing/constants";
+import {
+  COMPRESS_SKIP_BELOW_BYTES,
+  COMPRESS_TARGET_BYTES,
+  compressImageFile,
+} from "@/lib/uploads/compress-image";
+
+/** Originals above this aren't decoded at all (can crash mobile tabs). */
+const MAX_ORIGINAL_IMAGE_BYTES = 40 * 1024 * 1024;
+
+const isImageType = (type) => typeof type === "string" && type.startsWith("image/");
+
+/**
+ * Compress the image files so everything fits in one request under Vercel's
+ * ~4.5 MB body limit. Non-image files (PDF/CSV/XLSX) are sent as-is and eat
+ * into the budget first; images share what is left.
+ * @param {File[]} files
+ * @returns {Promise<File[]>}
+ */
+async function prepareFiles(files) {
+  const typed = files.map((f) => ({
+    file: f,
+    type: resolvePrivatePricingContentType(f.type, f.name),
+  }));
+  const docBytes = typed
+    .filter((t) => !isImageType(t.type))
+    .reduce((n, t) => n + t.file.size, 0);
+  const imageCount = typed.filter((t) => isImageType(t.type)).length;
+  if (imageCount === 0) return files;
+  // Small safety margin for multipart boundaries / text fields.
+  const budget = PRIVATE_PRICING_MAX_TOTAL_BYTES - docBytes - 64 * 1024;
+  const perImage = Math.min(
+    COMPRESS_TARGET_BYTES,
+    Math.max(300 * 1024, Math.floor(budget / imageCount))
+  );
+  return Promise.all(
+    typed.map(async ({ file, type }) => {
+      if (!isImageType(type)) return file;
+      const out = await compressImageFile(file, {
+        targetBytes: perImage,
+        skipBelowBytes: Math.min(COMPRESS_SKIP_BELOW_BYTES, perImage),
+      });
+      return out;
+    })
+  );
+}
 
 const GENERIC_ERROR =
   "We couldn't send your application right now. Please try again, or reach us on WhatsApp or Telegram.";
@@ -122,13 +168,25 @@ const PrivatePricingDialog = ({ isOpen, onClose }) => {
             resolvePrivatePricingContentType(f.type, f.name)
           )
       );
-      const big = form.files.find((f) => f.size > PRIVATE_PRICING_MAX_FILE_BYTES);
-      const total = form.files.reduce((n, f) => n + f.size, 0);
+      // Images are compressed on submit; documents can't be, so check them now.
+      const big = form.files.find((f) => {
+        const type = resolvePrivatePricingContentType(f.type, f.name);
+        return isImageType(type)
+          ? f.size > MAX_ORIGINAL_IMAGE_BYTES
+          : f.size > PRIVATE_PRICING_MAX_FILE_BYTES;
+      });
+      const docTotal = form.files
+        .filter((f) => !isImageType(resolvePrivatePricingContentType(f.type, f.name)))
+        .reduce((n, f) => n + f.size, 0);
       if (bad)
         e.files = `"${bad.name}" is not a supported file. Use PNG, JPG, WEBP, PDF, CSV or XLSX.`;
-      else if (big) e.files = `"${big.name}" is larger than 10 MB.`;
-      else if (total > PRIVATE_PRICING_MAX_TOTAL_BYTES)
-        e.files = "Your files are too large in total (max 30 MB).";
+      else if (big)
+        e.files =
+          resolvePrivatePricingContentType(big.type, big.name) === "application/pdf"
+            ? `"${big.name}": PDF is too large — max 4 MB. Send a screenshot instead or a smaller PDF.`
+            : `"${big.name}" is too large — max 4 MB. Please send a smaller file.`;
+      else if (docTotal > PRIVATE_PRICING_MAX_TOTAL_BYTES)
+        e.files = PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE;
     }
     return e;
   };
@@ -140,6 +198,25 @@ const PrivatePricingDialog = ({ isOpen, onClose }) => {
     setErrors(e);
     setFormError("");
     if (Object.keys(e).length > 0) return;
+
+    setPending(true);
+    setProgress(0);
+    let files;
+    try {
+      files = await prepareFiles(form.files);
+    } catch {
+      files = form.files;
+    }
+    const total = files.reduce((n, f) => n + f.size, 0);
+    if (
+      total > PRIVATE_PRICING_MAX_TOTAL_BYTES ||
+      files.some((f) => f.size > PRIVATE_PRICING_MAX_FILE_BYTES)
+    ) {
+      setPending(false);
+      setErrors((er) => ({ ...er, files: PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE }));
+      document.getElementById("pp-files")?.focus?.();
+      return;
+    }
 
     const fd = new FormData();
     for (const key of [
@@ -156,10 +233,8 @@ const PrivatePricingDialog = ({ isOpen, onClose }) => {
       fd.append(key, form[key]);
     }
     fd.append(PRIVATE_PRICING_HONEYPOT_FIELD, honeypot);
-    for (const f of form.files) fd.append("files", f, f.name);
+    for (const f of files) fd.append("files", f, f.name);
 
-    setPending(true);
-    setProgress(0);
     const { status, data } = await postWithProgress(
       "/api/private-pricing",
       fd,
@@ -173,11 +248,12 @@ const PrivatePricingDialog = ({ isOpen, onClose }) => {
     }
     const message =
       typeof data?.message === "string" && data.message ? data.message : GENERIC_ERROR;
-    if (typeof data?.field === "string" && data.field in emptyForm) {
+    if (status === 413) {
+      // Vercel's own 413 has no JSON body — always show the size hint.
+      setErrors((er) => ({ ...er, files: PRIVATE_PRICING_TOTAL_TOO_LARGE_MESSAGE }));
+    } else if (typeof data?.field === "string" && data.field in emptyForm) {
       setErrors((er) => ({ ...er, [data.field]: message }));
       document.getElementById(`pp-${data.field}`)?.focus?.();
-    } else if (status === 413) {
-      setErrors((er) => ({ ...er, files: "Your files are too large in total (max 30 MB)." }));
     } else {
       setFormError(message);
     }
@@ -415,7 +491,8 @@ const PrivatePricingDialog = ({ isOpen, onClose }) => {
                 <p className="text-quaternary/80 text-[11px] mt-1.5 ml-1">
                   Upload screenshots or reports showing your recent advertising
                   volume. Up to {PRIVATE_PRICING_MAX_FILES} files (PNG, JPG,
-                  WEBP, PDF, CSV, XLSX), 10 MB each.
+                  WEBP, PDF, CSV, XLSX), 4 MB in total — images are
+                  compressed automatically.
                 </p>
                 <FieldError message={errors.files} />
               </div>
