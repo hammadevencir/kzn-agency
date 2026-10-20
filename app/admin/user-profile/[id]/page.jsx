@@ -2,10 +2,12 @@
 
 import { useRouter, useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
+import { Toaster } from "react-hot-toast";
 import AdAccountsSection from "@/components/Admin/usermanagement/account-section";
 import TopUpDetailsSection from "@/components/Admin/usermanagement/deposits-table";
 import { GoBackIcon } from "@/components/icons";
 import UserProfile from "@/components/Admin/usermanagement/user-profile";
+import ShopDiscountCard from "@/components/Admin/usermanagement/shop-discount-card";
 
 function AdminUserProfilePage() {
   const router = useRouter();
@@ -79,6 +81,7 @@ function AdminUserProfilePage() {
 
   return (
     <div className="flex-1 p-8 overflow-y-auto">
+      <Toaster position="top-right" />
       <button
         type="button"
         onClick={handleBackClick}
@@ -104,8 +107,9 @@ function AdminUserProfilePage() {
 
       {userForProfile ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-8">
             <UserProfile user={userForProfile} />
+            <ShopDiscountCard userId={id} discount={profile?.shopDiscount ?? null} />
           </div>
           <div className="lg:col-span-2 space-y-8">
             <AdAccountsSection

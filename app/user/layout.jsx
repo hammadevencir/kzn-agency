@@ -167,7 +167,7 @@ const UserLayout = ({ children }) => {
       />
       
       {/* Main Content Area */}
-      <div className="flex-1 xl:ml-[254px] w-full max-w-full flex flex-col">
+      <div className="flex-1 min-w-0 xl:ml-[254px] w-full max-w-full flex flex-col">
         {/* Header */}
         {needsHeader && <Header />}
         

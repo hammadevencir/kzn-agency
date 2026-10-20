@@ -294,8 +294,8 @@ export default function UserSignup() {
               href="/login"
               className="text-primary hover:text-primary/80 font-medium"
             >
-              Sign In
-            </Link>
+              Sign in
+            </Link>.
           </p>
         </form>
       </div>

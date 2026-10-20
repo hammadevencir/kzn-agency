@@ -61,7 +61,7 @@ const ClientReviews = () => {
       name: "Jaida Fortineaux",
       date: "23 Aug 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 2,
@@ -71,7 +71,7 @@ const ClientReviews = () => {
       name: "Daniel Haines",
       date: "22 Aug 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 3,
@@ -81,7 +81,7 @@ const ClientReviews = () => {
       name: "Brittany Rinker",
       date: "21 Aug 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 4,
@@ -91,7 +91,7 @@ const ClientReviews = () => {
       name: "Ramazan Mutlu",
       date: "12 Aug 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 5,
@@ -100,7 +100,7 @@ const ClientReviews = () => {
       name: "Consumer",
       date: "2 Aug 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 6,
@@ -110,7 +110,7 @@ const ClientReviews = () => {
       name: "Rick",
       date: "29 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 7,
@@ -120,7 +120,7 @@ const ClientReviews = () => {
       name: "Stan",
       date: "29 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 8,
@@ -130,7 +130,7 @@ const ClientReviews = () => {
       name: "Joren Sw",
       date: "28 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 9,
@@ -140,7 +140,7 @@ const ClientReviews = () => {
       name: "Brett Old",
       date: "21 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 10,
@@ -150,7 +150,7 @@ const ClientReviews = () => {
       name: "Joren Sw",
       date: "28 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 11,
@@ -160,7 +160,7 @@ const ClientReviews = () => {
       name: "Brett Old",
       date: "21 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 12,
@@ -170,7 +170,7 @@ const ClientReviews = () => {
       name: "Drew Williams",
       date: "20 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 13,
@@ -180,7 +180,7 @@ const ClientReviews = () => {
       name: "Younes",
       date: "20 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 14,
@@ -189,7 +189,7 @@ const ClientReviews = () => {
       name: "Marthijn Berends",
       date: "20 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 15,
@@ -198,7 +198,7 @@ const ClientReviews = () => {
       name: "Timur Kocabiyik",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 16,
@@ -207,7 +207,7 @@ const ClientReviews = () => {
       name: "mosawersaadat",
       date: "19 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 17,
@@ -216,7 +216,7 @@ const ClientReviews = () => {
       name: "Jeroen Juckers",
       date: "19 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 18,
@@ -226,7 +226,7 @@ const ClientReviews = () => {
       name: "C Perie",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 19,
@@ -236,7 +236,7 @@ const ClientReviews = () => {
       name: "nicholas.chiariello",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 20,
@@ -246,7 +246,7 @@ const ClientReviews = () => {
       name: "Ozan Can Perie",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 21,
@@ -256,7 +256,7 @@ const ClientReviews = () => {
       name: "Ruben Fasel",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 22,
@@ -266,7 +266,7 @@ const ClientReviews = () => {
       name: "Mathio",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 23,
@@ -276,7 +276,7 @@ const ClientReviews = () => {
       name: "Manias",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 24,
@@ -286,7 +286,7 @@ const ClientReviews = () => {
       name: "Fardien Kakozi",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 25,
@@ -296,7 +296,7 @@ const ClientReviews = () => {
       name: "Tom",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
     {
       id: 26,
@@ -305,7 +305,7 @@ const ClientReviews = () => {
       name: "Lovien Sindi",
       date: "18 Jul 2025",
       rating: 5,
-      verified: "Verified by Trust Pilot",
+      verified: "Verified by Trustpilot",
     },
   ];
 

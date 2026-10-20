@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   TopUpsIcon,
   AdAccountsIcon,
@@ -20,7 +21,7 @@ import {
   MailIcon,
   EarningsIcon
 } from '@/components/icons';
-import { Package } from 'lucide-react';
+import { LifeBuoy, Package } from 'lucide-react';
 
 const Sidebar = ({
   activeItem = 'dashboard',
@@ -29,6 +30,8 @@ const Sidebar = ({
   onClose,
   role = 'admin',
   chatUnreadCount = 0,
+  /** Extra count badges by nav id, e.g. `{ tickets: 3 }` (open tickets). */
+  badgeCounts = {},
   /**
    * User portal only: nav ids to show while the customer has no confirmed
    * subscription. `null` shows the full list. See UserLayout.
@@ -48,6 +51,24 @@ const Sidebar = ({
   const handleItemClick = (item) => {
     onItemClick?.(item);
     onClose?.(); // Close mobile menu after clicking an item
+  };
+
+  // Nav items are real links (open in new tab, middle-click, a11y). Every
+  // item lives at /<admin|user>/<id>; only logout stays a button.
+  const basePath = role === 'admin' ? '/admin' : '/user';
+  const hrefFor = (id) => `${basePath}/${id}`;
+  /**
+   * Plain left-click: let the layout's onItemClick navigate as before (and
+   * close the mobile menu). Modified clicks fall through to the browser.
+   * @param {React.MouseEvent} e
+   * @param {string} id
+   */
+  const handleLinkClick = (e, id) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    e.preventDefault();
+    handleItemClick(id);
   };
 
   // Admin navigation items
@@ -126,6 +147,11 @@ const Sidebar = ({
       id: 'orders',
       label: 'Orders',
       icon: Package,
+    },
+    {
+      id: 'tickets',
+      label: 'Tickets',
+      icon: LifeBuoy,
     },
   ];
 
@@ -223,9 +249,9 @@ const Sidebar = ({
       >
         {/* Logo Section */}
         <div className="shrink-0 p-6 border-b border-border">
-          <button
-            type="button"
-            onClick={() => handleItemClick('dashboard')}
+          <Link
+            href={hrefFor('dashboard')}
+            onClick={(e) => handleLinkClick(e, 'dashboard')}
             className="flex w-full items-center justify-center cursor-pointer"
             aria-label="Go to dashboard"
           >
@@ -236,7 +262,7 @@ const Sidebar = ({
               height={40}
               className="object-contain"
             />
-          </button>
+          </Link>
         </div>
 
         {/* Navigation Items — scroll when list is taller than viewport */}
@@ -245,11 +271,15 @@ const Sidebar = ({
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActiveItem = activeItem === item.id;
-              
+              const badge =
+                item.id === 'chat' ? chatUnreadCount : Number(badgeCounts?.[item.id]) || 0;
+
               return (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => handleItemClick(item.id)}
+                  href={hrefFor(item.id)}
+                  onClick={(e) => handleLinkClick(e, item.id)}
+                  aria-current={isActiveItem ? 'page' : undefined}
                   className={`
                     w-full h-[40px] flex items-center px-4 py-3 rounded-lg transition-all duration-200
                     ${
@@ -267,12 +297,12 @@ const Sidebar = ({
                   <span className="text-[15px] font-normal flex-1 text-left">
                     {item.label}
                   </span>
-                  {item.id === 'chat' && chatUnreadCount > 0 ? (
+                  {badge > 0 ? (
                     <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#FA3C67] text-white text-[10px] font-medium flex items-center justify-center">
-                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      {badge > 99 ? '99+' : badge}
                     </span>
                   ) : null}
-                </button>
+                </Link>
               );
             })}
           </nav>
@@ -284,11 +314,20 @@ const Sidebar = ({
             {bottomItems.filter((item) => !hiddenItemIds.includes(item.id)).map((item) => {
               const Icon = item.icon;
               const isActiveItem = activeItem === item.id;
+              const isLink = item.id !== 'logout';
+              const ItemTag = isLink ? Link : 'button';
+              const tagProps = isLink
+                ? {
+                    href: hrefFor(item.id),
+                    onClick: (e) => handleLinkClick(e, item.id),
+                    'aria-current': isActiveItem ? 'page' : undefined,
+                  }
+                : { type: 'button', onClick: () => handleItemClick(item.id) };
 
               return (
-                <button
+                <ItemTag
                   key={item.id}
-                  onClick={() => handleItemClick(item.id)}
+                  {...tagProps}
                   className={`
                     w-full h-[40px] flex items-center px-4 py-3 rounded-lg transition-all duration-200
                     ${
@@ -306,7 +345,7 @@ const Sidebar = ({
                   <span className="text-[15px] font-normal">
                     {item.label}
                   </span>
-                </button>
+                </ItemTag>
               );
             })}
           </nav>

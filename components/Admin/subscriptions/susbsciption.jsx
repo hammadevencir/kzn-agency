@@ -12,12 +12,14 @@ import RejectionModal from '@/components/ui/rejection-modal';
 const STATUS_BY_TAB = {
   'new-requests': 'payment_submitted',
   approved: 'approved',
+  expired: 'expired',
   rejected: 'rejected',
 };
 
 const EMPTY_MESSAGE_BY_TAB = {
   'new-requests': 'No New Requests',
   approved: 'No Approved Requests',
+  expired: 'No Expired Subscriptions',
   rejected: 'No Rejected Requests',
 };
 
@@ -141,7 +143,19 @@ function Susbsciption() {
   };
 
   const getTableHeaders = () => {
-    if (activeTab === 'approved' || activeTab === 'rejected') {
+    if (activeTab === 'approved' || activeTab === 'expired') {
+      return [
+        'User Id',
+        'User Name',
+        'Phone',
+        'Date Submitted',
+        'Subscriptions',
+        'Expiry',
+        'Amount Paid',
+        'Action',
+      ];
+    }
+    if (activeTab === 'rejected') {
       return [
         'User Id',
         'User Name',
@@ -179,6 +193,7 @@ function Susbsciption() {
   const tabs = [
     { id: 'new-requests', label: 'New Requests' },
     { id: 'approved', label: 'Approved' },
+    { id: 'expired', label: 'Expired' },
     { id: 'rejected', label: 'Rejected' },
   ];
 

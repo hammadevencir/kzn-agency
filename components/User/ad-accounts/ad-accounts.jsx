@@ -1,7 +1,5 @@
 "use client";
 
-import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
-import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -11,36 +9,14 @@ import { useBalanceRefresh } from "./balance-refresh";
 import RequestAdAccountModal from "../request-ad-account-modal";
 import TopUpUploadModal from "../detail-modals/top-up-upload-modal";
 import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
-import PayNowModal from "../pay-now-modal";
+import { usePlanRenewal } from "../use-plan-renewal";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
-import { topUpBlockReason } from "@/lib/user/top-up-gate";
+import { topUpBlockReason, withPlanState } from "@/lib/user/top-up-gate";
 import { portalRowToTopUpModalData } from "@/lib/user/portal-row-to-top-up-modal";
-import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
 import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
 import { AD_ACCOUNT_DEEP_LINK_PARAM } from "@/lib/notifications/deep-links";
-import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
-const APPROVAL_BANNER_SEEN_KEY = "kzn_ad_accounts_approval_banner_seen_v1";
 const REJECTION_BANNER_SEEN_KEY = "kzn_ad_accounts_rejection_banner_seen_v1";
-
-/** @returns {Set<string>} */
-function readSeenApprovalIds() {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const raw = localStorage.getItem(APPROVAL_BANNER_SEEN_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return new Set(
-      Array.isArray(arr) ? arr.filter((x) => typeof x === "string" && x) : []
-    );
-  } catch {
-    return new Set();
-  }
-}
-
-/** @param {Set<string>} set */
-function writeSeenApprovalIds(set) {
-  localStorage.setItem(APPROVAL_BANNER_SEEN_KEY, JSON.stringify([...set]));
-}
 
 /** @returns {Set<string>} */
 function readSeenRejectionIds() {
@@ -76,17 +52,25 @@ const AdAccountCard = ({
   isPaused,
   isLowBalanceSuspensionRisk = false,
   topUpInReview = false,
+  planState = null,
   onCardClick,
   onTopUp,
+  onEnablePlan,
 }) => {
+  // The account's plan has lapsed (judged by date — see adAccountPlanState).
+  const planExpired =
+    isPaused !== true && (planState === "expired" || planState === "renewal_review");
   const isNeedsTopUp =
     status === "Needs Top-up" || status === "Payment Not Received";
   const isTopSpending = status === "Top Spending";
-  const useTopUpCta = isLowBalanceSuspensionRisk === true && topUpInReview !== true;
+  const useTopUpCta =
+    !planExpired && isLowBalanceSuspensionRisk === true && topUpInReview !== true;
+  const useEnablePlanCta = isPaused !== true && planState === "expired";
   const isRejected = status === "Rejected";
   const isPendingApproval = status === "Pending approval";
   const isAwaitingPayment = status === "Awaiting payment";
   const showCustomPill =
+    !planExpired &&
     !isNeedsTopUp &&
     !isTopSpending &&
     (isRejected || isPendingApproval || isAwaitingPayment);
@@ -125,7 +109,19 @@ const AdAccountCard = ({
                 {timeLeft} left
               </span>
             ) : null}
-            {isNeedsTopUp ? (
+            {planExpired ? (
+              <div className="flex flex-col items-end gap-1">
+                <span className="px-3 py-1 rounded-full bg-[#FF4D59] text-white text-[11px] font-medium whitespace-nowrap">
+                  Expired
+                </span>
+                {planState === "renewal_review" ? (
+                  <span className="text-[11px] text-[#C5A964] whitespace-nowrap">
+                    Renewal pending approval
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {!planExpired && isNeedsTopUp ? (
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF4D59] text-white">
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                   <circle cx="7" cy="7" r="5.83" stroke="white" strokeWidth="1.2"/>
@@ -136,7 +132,7 @@ const AdAccountCard = ({
                 <span className="text-[11px] font-medium whitespace-nowrap">{status}</span>
               </div>
             ) : null}
-            {isTopSpending ? (
+            {!planExpired && isTopSpending ? (
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#39CB7F] text-white">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M8.5 11H3.5C3.295 11 3.125 10.83 3.125 10.625H8.5C8.705 10.25 8.875 10.42 8.875 10.625Z" fill="white"/>
@@ -187,13 +183,18 @@ const AdAccountCard = ({
       <button
         type="button"
         onClick={() => {
-          if (useTopUpCta) onTopUp?.();
+          if (useEnablePlanCta) onEnablePlan?.();
+          else if (useTopUpCta) onTopUp?.();
           else onCardClick?.();
         }}
         className="w-full py-4 flex items-center justify-center gap-2 text-[#C5A964] border-t border-white/5 transition-colors hover:bg-white/[0.02] mt-auto"
       >
         <span className="text-[15px] font-medium">
-          {useTopUpCta ? "Top-up" : "View Details"}
+          {useEnablePlanCta
+            ? "Enable your plan now"
+            : useTopUpCta
+              ? "Top-up"
+              : "View Details"}
         </span>
         <span className="text-[15px]">→</span>
       </button>
@@ -211,6 +212,7 @@ const UserAdAccounts = () => {
     unpaidPlatformIds,
     subscriptionDocsByPlatform,
     subscriptionDocs,
+    refetch: refetchSubscriptions,
   } = useUserSubscribedPlatforms();
   const subscribedList = Array.from(subscribedPlatformIds);
 
@@ -228,8 +230,6 @@ const UserAdAccounts = () => {
   const [isTopUpSuccessOpen, setIsTopUpSuccessOpen] = useState(false);
 
 
-  const [payForExpiredSub, setPayForExpiredSub] = useState(null);
-
   /** Selected plan tab, or "all". Only meaningful when >1 plan group exists. */
   const [planFilter, setPlanFilter] = useState("all");
 
@@ -238,8 +238,14 @@ const UserAdAccounts = () => {
 
   /** After mount: read localStorage so SSR/hydration match and banner logic is client-only. */
   const [clientReady, setClientReady] = useState(false);
-  /** Bumps when user dismisses the approval banner so unseen ids recompute. */
-  const [approvalBannerSeenVersion, setApprovalBannerSeenVersion] = useState(0);
+  /**
+   * Recent approvals not yet acknowledged — the same server list (and the same
+   * acknowledgement) as the dashboard banner, so dismissing it once sticks on
+   * every device instead of returning on each visit.
+   */
+  const [unseenApprovedAccountIds, setUnseenApprovedAccountIds] = useState(
+    /** @type {string[]} */ ([])
+  );
   /** Same for dismissal of the rejection banner. */
   const [rejectionBannerSeenVersion, setRejectionBannerSeenVersion] = useState(0);
 
@@ -247,18 +253,27 @@ const UserAdAccounts = () => {
     setClientReady(true);
   }, []);
 
-  const unseenApprovedAccountIds = React.useMemo(() => {
-    if (!clientReady || loading) return [];
-    const seen = readSeenApprovalIds();
-    return accounts
-      .filter(
-        (a) =>
-          a.statusRaw === AD_ACCOUNT_STATUS.APPROVED &&
-          a.reviewedAtLabel !== "—"
-      )
-      .map((a) => a.firestoreId)
-      .filter((id) => typeof id === "string" && id && !seen.has(id));
-  }, [clientReady, loading, accounts, approvalBannerSeenVersion]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/user/ad-account-approvals", {
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(data.items)) {
+          setUnseenApprovedAccountIds(
+            data.items.map((x) => x.id).filter((id) => typeof id === "string" && id)
+          );
+        }
+      } catch {
+        /* banner is optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * One entry per plan the user actually owns accounts under, e.g.
@@ -299,18 +314,25 @@ const UserAdAccounts = () => {
   }, [planGroups, planFilter]);
 
   const visibleAccounts = React.useMemo(() => {
-    if (!showPlanTabs || planFilter === "all") return accounts;
-    return accounts.filter((a) => (a.planGroupKey || "other") === planFilter);
-  }, [accounts, planFilter, showPlanTabs]);
+    const list =
+      !showPlanTabs || planFilter === "all"
+        ? accounts
+        : accounts.filter((a) => (a.planGroupKey || "other") === planFilter);
+    return withPlanState(list, subscriptionDocs);
+  }, [accounts, planFilter, showPlanTabs, subscriptionDocs]);
 
   const showApprovalBanner = unseenApprovedAccountIds.length > 0;
 
   const dismissApprovalBanner = () => {
-    if (unseenApprovedAccountIds.length === 0) return;
-    const seen = readSeenApprovalIds();
-    for (const id of unseenApprovedAccountIds) seen.add(id);
-    writeSeenApprovalIds(seen);
-    setApprovalBannerSeenVersion((v) => v + 1);
+    const ids = unseenApprovedAccountIds;
+    if (ids.length === 0) return;
+    setUnseenApprovedAccountIds([]);
+    void fetch("/api/user/ad-account-approvals", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    }).catch(() => {});
   };
 
   const unseenRejectedAccountIds = React.useMemo(() => {
@@ -336,56 +358,10 @@ const UserAdAccounts = () => {
     setRejectionBannerSeenVersion((v) => v + 1);
   };
 
-  const openPayNowForPlatform = (platformKey, platformLabel, subscriptionDoc = null) => {
-    const k = typeof platformKey === "string" ? platformKey.toLowerCase() : "";
-    // Prefer the exact plan subscription the gate matched (a user can hold two
-    // Meta plans; the newest Meta doc may be the other one).
-    const doc = subscriptionDoc || (k ? subscriptionDocsByPlatform?.[k] : null);
-    const checkout =
-      doc && doc.checkout && typeof doc.checkout === "object"
-        ? doc.checkout
-        : {};
-    const terms = payAgainTerms(doc, (doc?.status === "expired" || isSubLapsed(doc)));
-    const amount = terms.amount ?? "—";
-    const platform =
-      platformLabel ||
-      (doc && (doc.flow?.displayPlatform || doc.platformId)) ||
-      "Platform";
-    setPayForExpiredSub({
-      subscriptionName: String(terms.subscriptionName || `${platform} plan`),
-      amount: withDisplayCurrency(amount),
-      // Renewals are full price — no first-month referral discount.
-      subscriptionId: doc?.id || null,
-      platformId: doc?.platformId || k || null,
-    });
-  };
-
-  const handleExpiredPaySuccess = async (paymentProof, paymentReference, paymentMeta) => {
-    const ctx = payForExpiredSub;
-    setPayForExpiredSub(null);
-    if (!ctx?.subscriptionId) return;
-    try {
-      await submitPlatformSubscriptionPayment(
-        ctx.subscriptionId,
-        {
-          amount: ctx.amount || null,
-          subscriptionName: ctx.subscriptionName,
-          platformId: ctx.platformId,
-          renewal: true,
-        },
-        paymentProof || null,
-        paymentReference || null,
-        paymentMeta || null
-      );
-      toast.success(
-        "Payment proof received. We'll review and restore access shortly."
-      );
-    } catch {
-      toast.error(
-        "Could not record your payment. Please try again or contact support."
-      );
-    }
-  };
+  const { openRenewal: openPayNowForPlatform, renewalModal } = usePlanRenewal({
+    subscriptionDocsByPlatform,
+    onSubmitted: () => void refetchSubscriptions(),
+  });
 
   const loadAccounts = useCallback(async () => {
     setFetchError(null);
@@ -701,8 +677,12 @@ const UserAdAccounts = () => {
               isPaused={a.isPaused}
               isLowBalanceSuspensionRisk={a.isLowBalanceSuspensionRisk === true}
               topUpInReview={a.topUpInReview === true}
+              planState={a.planState}
               onCardClick={() => handleCardClick(a)}
               onTopUp={() => openTopUpModalForRow(a)}
+              onEnablePlan={() =>
+                openPayNowForPlatform(a.platformKey, a.platform, a.planSubscriptionDoc)
+              }
             />
           ))}
         </div>
@@ -743,13 +723,7 @@ const UserAdAccounts = () => {
         allowedPlatformIds={subscribedList}
       />
 
-      <PayNowModal
-        isOpen={payForExpiredSub != null}
-        onClose={() => setPayForExpiredSub(null)}
-        flowType="platformSubscription"
-        data={payForExpiredSub}
-        onSuccess={handleExpiredPaySuccess}
-      />
+      {renewalModal}
 
       {balanceRefreshDialog}
     </div>

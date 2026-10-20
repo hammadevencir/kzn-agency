@@ -13,6 +13,7 @@ import {
 } from "@/lib/user/upload-payment-proof";
 import { createOrder } from "@/lib/user/orders-client";
 import { formatUsd } from "@/lib/shop/catalog";
+import { discountedPriceUsd } from "@/lib/shop/discount";
 
 export const SHOP_USD_ONLY_NOTE =
   "Services other than agency ad-accounts can't be paid to WISE — please pay in USD only.";
@@ -47,7 +48,15 @@ function UsdOnlyNote() {
   );
 }
 
-function OrderSummary({ product, category }) {
+/**
+ * @param {{ product: any, category: any, discount?: { percent: number, note?: string | null } | null }} props
+ *   `discount` — an admin-granted one-off discount; the server applies the same
+ *   percentage when the order is placed.
+ */
+function OrderSummary({ product, category, discount = null }) {
+  const price = discount
+    ? discountedPriceUsd(product.priceUsd, discount.percent)
+    : product.priceUsd;
   return (
     <div className="rounded-[24px] p-5 sm:p-7 border border-[#B89C57]/30 space-y-4">
       <div className="flex justify-between items-start gap-4">
@@ -61,23 +70,36 @@ function OrderSummary({ product, category }) {
       {product.description ? (
         <p className="text-[#8B9197] text-[13px] leading-relaxed">{product.description}</p>
       ) : null}
+      {discount ? (
+        <div className="flex justify-between items-center gap-4 pt-3 border-t border-white/5">
+          <span className="text-[#4ADE80] text-[14px] font-medium">
+            Your discount ({discount.percent}% off)
+            {discount.note ? (
+              <span className="block text-[12px] text-[#8B9197] font-normal">{discount.note}</span>
+            ) : null}
+          </span>
+          <span className="text-[#8B9197] text-[15px] line-through">
+            {formatUsd(product.priceUsd)} USD
+          </span>
+        </div>
+      ) : null}
       <div className="flex justify-between items-center gap-4 pt-3 border-t border-white/5">
         <span className="text-[#8B9197] text-[15px] font-medium">Amount to pay:</span>
-        <span className="text-white text-[20px] font-bold">{formatUsd(product.priceUsd)} USD</span>
+        <span className="text-white text-[20px] font-bold">{formatUsd(price)} USD</span>
       </div>
     </div>
   );
 }
 
 /** Step 1 — "Proceed with the order" summary. */
-export function ProceedOrderModal({ isOpen, onClose, product, category, onProceed }) {
+export function ProceedOrderModal({ isOpen, onClose, product, category, discount = null, onProceed }) {
   if (!product || !category) return null;
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className={contentClass}>
         <ModalHeader title="Proceed with the order" onClose={onClose} />
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 pt-4 custom-scrollbar space-y-6 text-left">
-          <OrderSummary product={product} category={category} />
+          <OrderSummary product={product} category={category} discount={discount} />
           <UsdOnlyNote />
         </div>
         <div className="p-6 sm:p-8 pt-2 shrink-0 flex gap-3 sm:gap-4">
@@ -102,7 +124,7 @@ export function ProceedOrderModal({ isOpen, onClose, product, category, onProcee
 }
 
 /** Step 2 — "Buy the item": USD bank details + proof + reference → order. */
-export function BuyItemModal({ isOpen, onClose, product, category, onOrdered }) {
+export function BuyItemModal({ isOpen, onClose, product, category, discount = null, onOrdered }) {
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [proofError, setProofError] = useState("");
@@ -190,7 +212,7 @@ export function BuyItemModal({ isOpen, onClose, product, category, onOrdered }) 
       <DialogContent showCloseButton={false} className={contentClass}>
         <ModalHeader title="Buy the item" onClose={onClose} />
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 pt-4 custom-scrollbar space-y-8 text-left">
-          <OrderSummary product={product} category={category} />
+          <OrderSummary product={product} category={category} discount={discount} />
           <UsdOnlyNote />
           <BankDetailsCard showTitle />
 

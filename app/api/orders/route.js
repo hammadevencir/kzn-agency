@@ -9,6 +9,11 @@ import { ORDERS_COLLECTION, ORDER_STATUS } from "@/lib/orders/constants";
 import { serializeOrder } from "@/lib/orders/server-orders";
 import { isConfirmedSubscriptionDoc, isOwnPaymentProof } from "@/lib/orders/order-guards";
 import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
+import {
+  SHOP_DISCOUNT_FIELD,
+  discountedPriceUsd,
+  readShopDiscount,
+} from "@/lib/shop/discount";
 
 export const runtime = "nodejs";
 
@@ -36,7 +41,9 @@ export async function GET() {
 /**
  * POST — place an order.
  * Body: { productId, paymentProof, paymentReference }
- * The price is always re-read from the catalog.
+ * The price is always re-read from the catalog. A one-off discount an admin
+ * granted this customer (users/{uid}.shopDiscount) is applied here and used up
+ * in the same transaction.
  */
 export async function POST(request) {
   const user = await requireEndUserSession();
@@ -105,27 +112,42 @@ export async function POST(request) {
 
   const { product, category } = found;
   const ref = db.collection(ORDERS_COLLECTION).doc();
-  await ref.set({
-    userId: user.uid,
-    userEmail,
-    userName,
-    productId: product.id,
-    productName: product.name,
-    category: category.id,
-    categoryTitle: category.title,
-    priceUsd: product.priceUsd,
-    currency: "USD",
-    status: ORDER_STATUS.NEW,
-    paymentProof,
-    paymentReference,
-    deliveryDetails: null,
-    deliveredAt: null,
-    customerConfirmedAt: null,
-    rating: null,
-    ratedAt: null,
-    complaintCount: 0,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+  const userRef = db.collection("users").doc(user.uid);
+  await db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    const discount = readShopDiscount(userSnap.data()?.[SHOP_DISCOUNT_FIELD]);
+    tx.set(ref, {
+      userId: user.uid,
+      userEmail,
+      userName,
+      productId: product.id,
+      productName: product.name,
+      category: category.id,
+      categoryTitle: category.title,
+      priceUsd: discount
+        ? discountedPriceUsd(product.priceUsd, discount.percent)
+        : product.priceUsd,
+      ...(discount
+        ? {
+            originalPriceUsd: product.priceUsd,
+            discountPercent: discount.percent,
+            discountNote: discount.note,
+          }
+        : {}),
+      currency: "USD",
+      status: ORDER_STATUS.NEW,
+      paymentProof,
+      paymentReference,
+      deliveryDetails: null,
+      deliveredAt: null,
+      customerConfirmedAt: null,
+      rating: null,
+      ratedAt: null,
+      complaintCount: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    if (discount) tx.update(userRef, { [SHOP_DISCOUNT_FIELD]: FieldValue.delete() });
   });
 
   const created = await ref.get();

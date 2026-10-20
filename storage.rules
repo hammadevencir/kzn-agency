@@ -39,6 +39,13 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Order delivery files (PDFs / images an admin attaches when delivering).
+    // Uploaded by /api/admin/orders/[id]/files with the Admin SDK; the customer
+    // downloads them via the stored token URL. No direct client access.
+    match /order-deliveries/{allPaths=**} {
+      allow read, write: if false;
+    }
+
     // Chat attachments (writes via Admin SDK only)
     match /chat-attachments/{userId}/{fileName} {
       allow read: if request.auth != null;

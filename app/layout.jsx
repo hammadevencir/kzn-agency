@@ -13,9 +13,9 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Kazan Solutions",
+  title: "KAZAN Solutions",
   description:
-    "At KAZAN Solution, we believe that no problem is too big and no goal is out of reach. With thousands of clients already benefiting from our expertise, we continue to prove that nothing is impossible when you have the right solutions and the right team by your side.",
+    "At KAZAN Solutions, we believe that no problem is too big and no goal is out of reach. With thousands of clients already benefiting from our expertise, we continue to prove that nothing is impossible when you have the right solutions and the right team by your side.",
 };
 
 export default function RootLayout({ children }) {

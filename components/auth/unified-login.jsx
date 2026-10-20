@@ -15,6 +15,10 @@ import {
   mapAuthError,
   signInWithGoogle,
 } from "@/lib/auth/google-sign-in";
+import {
+  PASSWORD_RESET_DONE_MESSAGE,
+  PASSWORD_RESET_DONE_PARAM,
+} from "@/lib/auth/password-reset";
 
 /** Shared sign-in for admin and end users at `/login` (role comes from Firestore). */
 export default function UnifiedLogin() {
@@ -24,6 +28,16 @@ export default function UnifiedLogin() {
   const [pending, setPending] = useState(false);
   const [pendingGoogle, setPendingGoogle] = useState(false);
   const [errors, setErrors] = useState({});
+  const [resetDone, setResetDone] = useState(false);
+
+  // Back from Firebase's password-reset page (see lib/auth/password-reset.js).
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get(PASSWORD_RESET_DONE_PARAM) !== "done") return;
+    setResetDone(true);
+    url.searchParams.delete(PASSWORD_RESET_DONE_PARAM);
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, []);
 
   const validate = () => {
     const e = {};
@@ -101,6 +115,15 @@ export default function UnifiedLogin() {
         <h1 className="text-white text-center text-[18px] font-semibold mb-6">
           Login to your account
         </h1>
+
+        {resetDone ? (
+          <p
+            role="status"
+            className="-mt-2 mb-4 rounded-xl border border-[#39CB7F]/40 bg-[#39CB7F]/10 px-4 py-3 text-center text-[12px] text-[#39CB7F]"
+          >
+            {PASSWORD_RESET_DONE_MESSAGE}
+          </p>
+        ) : null}
 
         <form
           className="flex flex-col gap-4 flex-grow"
@@ -195,13 +218,13 @@ export default function UnifiedLogin() {
           </button>
 
           <p className="text-quaternary text-center text-[12px] mt-auto">
-            Don&apos;t have Account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/user/signup"
               className="text-primary hover:text-primary/80 font-medium"
             >
-              Sign Up
-            </Link>
+              Sign up
+            </Link>.
           </p>
         </form>
       </div>

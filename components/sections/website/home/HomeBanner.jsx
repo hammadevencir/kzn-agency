@@ -46,7 +46,7 @@ const HomeBanner = () => {
           }}
           style={{ willChange: 'transform, opacity' }}
         >
-          At KAZAN Solution, we believe that no problem is too big and no goal
+          At KAZAN Solutions, we believe that no problem is too big and no goal
           is out of reach. With thousands of clients already benefiting from our
           expertise, we continue to prove that nothing is impossible when you
           have the right solutions and the right team by your side.

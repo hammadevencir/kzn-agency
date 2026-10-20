@@ -16,7 +16,8 @@ import TopUpUploadModal from '@/components/User/detail-modals/top-up-upload-moda
 import TopUpSuccessModal from '@/components/User/detail-modals/top-up-success-modal';
 import { useUserAdAccountsCount } from '@/lib/hooks/useUserAdAccountsCount';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
-import { topUpBlockReason } from '@/lib/user/top-up-gate';
+import { topUpBlockReason, withPlanState } from '@/lib/user/top-up-gate';
+import { usePlanRenewal } from '@/components/User/use-plan-renewal';
 import { useSubscriptionCheckoutPersistence } from '@/lib/hooks/useSubscriptionCheckoutPersistence';
 import { describeSubscriptionRequestError } from '@/lib/user/subscriptions-client';
 import { getPlatformSubscriptionCheckout } from '@/lib/subscriptions/platform-subscription-pricing';
@@ -25,6 +26,7 @@ import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
 import { validateReferralCodeForCheckout } from '@/lib/user/affiliates-client';
 import { applyRefereeDiscountToCheckoutPreview, REFEREE_DISCOUNT_PERCENT } from '@/lib/affiliates/pricing';
 import Pagination from '@/components/common-admin-manager/pagination';
+import { EnablePlanButton } from '@/components/common-admin-manager/data-table';
 import { getActiveMetaAccountCategory } from '@/lib/meta/get-active-meta-account-category';
 import { consumeMetaUpgradeExitToDashboard } from '@/lib/meta/meta-upgrade-session';
 import DashboardAnnouncements from '@/components/User/dashboard-announcements';
@@ -37,6 +39,7 @@ function formatStat(n) {
 /** @param {string} status */
 function statusPillClass(status) {
   if (status === 'Paused') return 'bg-[#F5B301]';
+  if (status === 'Expired') return 'bg-[#FA3C67]';
   if (status === 'Needs Top-up') return 'bg-[#FA3C67]';
   if (status === 'Top Spending') return 'bg-[#39CB7F]';
   if (status === 'Rejected') return 'bg-[#FA3C67]';
@@ -257,15 +260,20 @@ function DashboardContent() {
   const isReview = searchParams.get('status') === 'review';
   const { approvedCount, loading: loadingAds, user } = useUserAdAccountsCount();
   const {
-    hasActiveSubscription,
+    hasConfirmedSubscription,
     subscribedPlatformIds,
     activeMetaCategories,
     subscriptionDocs,
+    subscriptionDocsByPlatform,
     expiredPlatformIds,
     unpaidPlatformIds,
     loading: loadingSubs,
     refetch: refetchSubscriptions,
   } = useUserSubscribedPlatforms();
+  const { openRenewal, renewalModal } = usePlanRenewal({
+    subscriptionDocsByPlatform,
+    onSubmitted: () => void refetchSubscriptions(),
+  });
   const { afterPlatformSelected, afterPayDone } = useSubscriptionCheckoutPersistence();
 
   const welcomeName =
@@ -319,8 +327,11 @@ function DashboardContent() {
 
   const portalAccountsPage = useMemo(() => {
     const start = (dashTopUpsPage - 1) * dashTopUpsPageSize;
-    return portalAccounts.slice(start, start + dashTopUpsPageSize);
-  }, [portalAccounts, dashTopUpsPage, dashTopUpsPageSize]);
+    return withPlanState(
+      portalAccounts.slice(start, start + dashTopUpsPageSize),
+      subscriptionDocs
+    );
+  }, [portalAccounts, dashTopUpsPage, dashTopUpsPageSize, subscriptionDocs]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -408,11 +419,14 @@ function DashboardContent() {
   }, []);
 
   const loading = loadingAds || loadingSubs;
+  // "Ever confirmed", not "active right now": a customer whose plans lapsed
+  // still has a dashboard (with "Enable your plan now"), not the
+  // "Get a subscription first" screen meant for brand-new signups.
   const showFullDashboard =
-    !loading && hasActiveSubscription && approvedCount >= 1;
+    !loading && hasConfirmedSubscription && approvedCount >= 1;
   const showAdAccountEmpty =
-    !loading && hasActiveSubscription && approvedCount === 0;
-  const showSubscriptionEmpty = !loading && !hasActiveSubscription;
+    !loading && hasConfirmedSubscription && approvedCount === 0;
+  const showSubscriptionEmpty = !loading && !hasConfirmedSubscription;
 
   useEffect(() => {
     if (!showFullDashboard) return;
@@ -565,7 +579,9 @@ function DashboardContent() {
     });
     if (blocked) {
       toast.error(blocked.message);
-      if (blocked.kind === 'expired' || blocked.kind === 'unpaid') {
+      if (blocked.kind === 'expired') {
+        openRenewal(blocked.platformKey, row.platform, blocked.subscriptionDoc);
+      } else if (blocked.kind === 'unpaid') {
         router.push('/user/subscriptions');
       }
       return;
@@ -788,7 +804,14 @@ function DashboardContent() {
                           ? String(row.balance)
                           : '—';
                       const isPaused = row.isPaused === true;
-                      const status = isPaused ? 'Paused' : String(row.status ?? '—');
+                      const planExpired =
+                        !isPaused &&
+                        (row.planState === 'expired' || row.planState === 'renewal_review');
+                      const status = isPaused
+                        ? 'Paused'
+                        : planExpired
+                          ? 'Expired'
+                          : String(row.status ?? '—');
                       const actionLabel = isPaused
                         ? 'Paused'
                         : row.primaryAction === 'topup'
@@ -812,7 +835,7 @@ function DashboardContent() {
                             {String(row.dateCreated ?? '—')}
                           </td>
                           <td className="py-6 px-4 text-[#8B9197] text-[14px] font-medium">
-                            —
+                            {String(row.lastTopup ?? '—')}
                           </td>
                           <td className="py-6 px-4 text-[#8B9197] text-[14px] font-medium">
                             {balance}
@@ -867,6 +890,18 @@ function DashboardContent() {
                               <span className="text-quaternary font-semibold flex items-center justify-end w-full text-[14px] cursor-not-allowed">
                                 Paused
                               </span>
+                            ) : row.planState === 'renewal_review' ? (
+                              <span className="text-quaternary font-semibold flex items-center justify-end w-full text-[14px]">
+                                Renewal in review
+                              </span>
+                            ) : row.planState === 'expired' ? (
+                              <div className="flex justify-end">
+                                <EnablePlanButton
+                                  onClick={() =>
+                                    openRenewal(row.platformKey, row.platform, row.planSubscriptionDoc)
+                                  }
+                                />
+                              </div>
                             ) : (
                               <button
                                 type="button"
@@ -945,6 +980,8 @@ function DashboardContent() {
         isOpen={isTopUpSuccessOpen}
         onClose={() => setIsTopUpSuccessOpen(false)}
       />
+
+      {renewalModal}
 
       <SubscriptionSuccessModal
         isOpen={isSubSuccessOpen}

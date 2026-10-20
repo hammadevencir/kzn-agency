@@ -1,7 +1,7 @@
 import Subscriptions from "@/components/User/subscriptions/subscriptions";
 
 export const metadata = {
-  title: "Subscriptions | KZN Agency",
+  title: "Subscriptions | KAZAN Solutions",
   description: "Manage your active and expired subscriptions.",
 };
 

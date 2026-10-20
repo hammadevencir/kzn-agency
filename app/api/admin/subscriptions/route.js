@@ -4,10 +4,15 @@ import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { mapSubscriptionAdminRow } from "@/lib/admin/map-request-rows";
 import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
+import { subscriptionLifecycle } from "@/lib/subscriptions/expiry";
 
 /**
  * List subscriptions for admin review.
- * ?status=payment_submitted|approved|rejected
+ * ?status=payment_submitted|approved|expired|rejected
+ *
+ * "approved" lists plans still in date; "expired" lists plans past their expiry
+ * date (or swept to `expired`) — judged by date, so the list is right even
+ * before the expiry sweep has run.
  */
 export async function GET(request) {
   const admin = await requireAdminSession();
@@ -19,7 +24,7 @@ export async function GET(request) {
   const status = searchParams.get("status");
   if (
     !status ||
-    !["payment_submitted", "approved", "rejected"].includes(status)
+    !["payment_submitted", "approved", "expired", "rejected"].includes(status)
   ) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
   }
@@ -55,6 +60,17 @@ export async function GET(request) {
       seen.add(d.id);
       docs.push(d);
     }
+  } else if (status === "approved" || status === "expired") {
+    const snap = await db
+      .collection(SUBSCRIPTIONS_COLLECTION)
+      .where("status", "in", ["approved", "active", "expired"])
+      .get();
+    docs = snap.docs.filter((d) => {
+      const lifecycle = subscriptionLifecycle(d.data());
+      return status === "approved"
+        ? lifecycle === "active"
+        : lifecycle === "expired" || lifecycle === "renewal_review";
+    });
   } else {
     const snap = await db
       .collection(SUBSCRIPTIONS_COLLECTION)

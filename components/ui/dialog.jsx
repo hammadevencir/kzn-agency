@@ -45,12 +45,38 @@ function DialogOverlay({
   );
 }
 
+/**
+ * Whether a <DialogDescription> appears in the JSX passed as children (walks
+ * nested elements; can't see inside other components' render output).
+ * @param {React.ReactNode} node
+ * @returns {boolean}
+ */
+function containsDescription(node) {
+  let found = false;
+  React.Children.forEach(node, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    if (child.type === DialogDescription || child.type === DialogPrimitive.Description) {
+      found = true;
+      return;
+    }
+    if (child.props?.children) found = containsDescription(child.props.children);
+  });
+  return found;
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
   ...props
 }) {
+  // Radix warns ("Missing Description or aria-describedby") when a dialog has
+  // no description. Opting out explicitly is its documented fix; dialogs that
+  // render a <DialogDescription> keep the link for screen readers.
+  const describedBy =
+    "aria-describedby" in props || containsDescription(children)
+      ? {}
+      : { "aria-describedby": undefined };
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -60,6 +86,7 @@ function DialogContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           className
         )}
+        {...describedBy}
         {...props}>
         {children}
         {showCloseButton && (

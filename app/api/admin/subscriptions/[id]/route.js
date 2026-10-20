@@ -17,6 +17,7 @@ import {
   subscriptionPlatformKey,
 } from "@/lib/subscriptions/require-active-subscription";
 import {
+  accountCategoryLabel,
   readPlanScope,
   subscriptionsForAdAccountScope,
 } from "@/lib/user/plan-scope";
@@ -106,6 +107,10 @@ async function moveAdAccountsToUpgradedPlan(db, subscriptionId, oldData, newFlow
       "flow.accountCategory": next.category,
       updatedAt: FieldValue.serverTimestamp(),
     };
+    // Old accounts can still carry "Meta White Hat" / "Meta VIP" as their name.
+    if (platformKey === "meta" && next.category) {
+      patch["flow.planName"] = `Meta ${accountCategoryLabel(next.category)}`;
+    }
     if (newFlow.planSnapshot && typeof newFlow.planSnapshot === "object") {
       patch["flow.planSnapshot"] = newFlow.planSnapshot;
     }

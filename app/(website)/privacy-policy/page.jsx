@@ -2,7 +2,7 @@ import React from "react";
 import LegalPage from "@/components/sections/website/legal/LegalPage";
 
 export const metadata = {
-  title: "Privacy Policy | Kazan Solutions",
+  title: "Privacy Policy | KAZAN Solutions",
   description: "How Kazan Solutions collects, uses and protects your personal data.",
 };
 

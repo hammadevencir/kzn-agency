@@ -14,6 +14,7 @@ import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatfor
 import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
 import PayNowModal from "./pay-now-modal";
 import { withDisplayCurrency } from "@/lib/payments/format-amount";
+import { readPlanScope } from "@/lib/user/plan-scope";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -131,9 +132,15 @@ export default function SubscriptionExpiryDialog() {
 
       const flow =
         doc.flow && typeof doc.flow === "object" ? doc.flow : {};
-      const platform = String(
+      const basePlatform = String(
         flow.displayPlatform || doc.platformId || "Platform"
       );
+      // Name the exact plan ("Meta · Agency · START") — a customer can hold
+      // two Meta plans and must know which one this is about.
+      const scope = readPlanScope(flow, doc.platformId);
+      const platform = scope.planLabel
+        ? `${basePlatform} · ${scope.planLabel}`
+        : basePlatform;
 
       if (!best || stageRank(stage) > stageRank(best.stage)) {
         best = { id: doc.id, stage, platform, doc };

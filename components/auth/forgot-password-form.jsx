@@ -6,6 +6,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { Loader2, MailCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase/client";
+import { PASSWORD_RESET_CONTINUE_PATH } from "@/lib/auth/password-reset";
 
 function mapAuthError(code, message) {
   switch (code) {
@@ -44,7 +45,7 @@ export default function ForgotPasswordForm() {
     setPending(true);
     try {
       await sendPasswordResetEmail(auth, email.trim(), {
-        url: `${window.location.origin}/login/reset-password`,
+        url: `${window.location.origin}${PASSWORD_RESET_CONTINUE_PATH}`,
       });
       setSent(true);
       toast.success("Password reset link has been sent to your email.");

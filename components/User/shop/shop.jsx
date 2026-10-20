@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRightIcon, ArrowLeftIcon } from "@/components/icons";
@@ -142,6 +142,21 @@ export default function UserShop() {
   /** @type {[{ product: any, category: any } | null, Function]} */
   const [selection, setSelection] = useState(null);
   const [step, setStep] = useState(/** @type {'proceed' | 'buy' | null} */ (null));
+  /** One-off discount an admin granted this customer (applied server-side too). */
+  const [discount, setDiscount] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user/shop-discount", { credentials: "include", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) setDiscount(data?.discount ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const activeCategory = SHOP_CATEGORIES.find((c) => c.id === activeCategoryId) || null;
 
@@ -216,6 +231,7 @@ export default function UserShop() {
         onClose={closeOrder}
         product={selection?.product}
         category={selection?.category}
+        discount={discount}
         onProceed={() => setStep("buy")}
       />
       <BuyItemModal
@@ -223,6 +239,7 @@ export default function UserShop() {
         onClose={closeOrder}
         product={selection?.product}
         category={selection?.category}
+        discount={discount}
         onOrdered={() => {
           closeOrder();
           router.push("/user/orders");

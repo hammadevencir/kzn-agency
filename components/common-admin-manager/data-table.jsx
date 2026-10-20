@@ -36,6 +36,20 @@ function getInitial(name) {
   return s.length > 0 ? s.charAt(0).toUpperCase() : '?';
 }
 
+/** Re-enable a lapsed subscription (user Subscriptions / Top-up tables). */
+export function EnablePlanButton({ onClick, className = "" }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#C5A964] hover:bg-[#D4BB7D] text-black text-[12.5px] font-semibold whitespace-nowrap transition-colors ${className}`}
+    >
+      Enable your plan now
+      <ArrowRightIcon className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 function AvatarCell({ photoURL, name, size = 32 }) {
   const hasPhoto = photoURL && photoURL !== '/avatar.jpg' && String(photoURL).trim().length > 0;
   const sizeClass = size === 32 ? 'w-6 h-6 md:w-8 md:h-8' : 'w-7 h-7';
@@ -94,6 +108,8 @@ const DataTable = ({
   /** user-top-ups: renders a refresh icon next to the balance. */
   onRefreshBalance,
   refreshingBalance = false,
+  /** user-subscriptions / user-top-ups: "Enable your plan now" on a lapsed plan. */
+  onEnablePlan,
   onPause,
   onReactivate,
   onRestore,
@@ -840,6 +856,15 @@ const DataTable = ({
             {row.currentBalance}
           </span>
         );
+      case "Expiry":
+        return (
+          <span className="font-light text-quaternary inline-flex flex-col">
+            <span>{row.expiry || "—"}</span>
+            {row.lifecycle === "renewal_review" ? (
+              <span className="text-[11px] text-[#C5A964]">Renewal in review</span>
+            ) : null}
+          </span>
+        );
       case "Amount Paid":
         return (
           <span className="font-light text-quaternary">{row.amountPaid}</span>
@@ -888,8 +913,9 @@ const DataTable = ({
         const label = row.statusLabel || row.status;
         const isPositive = variant === "success";
         return (
+          <div key="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex flex-col gap-1">
           <div
-            key="status"
             className={`flex items-center gap-2 px-4 py-1.5 rounded-full w-fit ${pillClass}`}
           >
             {isPositive ? (
@@ -912,6 +938,14 @@ const DataTable = ({
               </svg>
             )}
             <span className="text-[13.5px] font-medium text-white">{label}</span>
+          </div>
+          {row.statusNote ? (
+            <span className="text-[11px] text-[#C5A964] pl-1">{row.statusNote}</span>
+          ) : null}
+          </div>
+          {row.canEnablePlan && typeof onEnablePlan === "function" ? (
+            <EnablePlanButton onClick={() => onEnablePlan(row)} />
+          ) : null}
           </div>
         );
       case "Actions":
@@ -997,6 +1031,22 @@ const DataTable = ({
       }
       case "Status": {
         const paused = row.isPaused === true;
+        // The account's plan has lapsed (by date, even before the sweep runs).
+        const planExpired =
+          !paused &&
+          (row.planState === "expired" || row.planState === "renewal_review");
+        if (planExpired) {
+          return (
+            <div key="status" className="flex flex-col gap-1">
+              <span className="px-4 py-1.5 rounded-full w-fit bg-[#FF4D59] text-[13px] font-medium text-white">
+                Expired
+              </span>
+              {row.planState === "renewal_review" ? (
+                <span className="text-[11px] text-[#C5A964] pl-1">Renewal pending approval</span>
+              ) : null}
+            </div>
+          );
+        }
         const notReceived = !paused && row.paymentNotReceived === true;
         const s = row.status?.toLowerCase() || "";
         const isActive =
@@ -1045,6 +1095,16 @@ const DataTable = ({
       }
       case "Actions": {
         const paused = row.isPaused === true;
+        if (!paused && row.planState === "expired" && typeof onEnablePlan === "function") {
+          return <EnablePlanButton key="actions" onClick={() => onEnablePlan(row)} />;
+        }
+        if (!paused && row.planState === "renewal_review") {
+          return (
+            <span key="actions" className="text-[14px] text-quaternary">
+              Renewal in review
+            </span>
+          );
+        }
         if (!paused && row.paymentNotReceived === true) {
           return row.receiptUrl ? (
             <a

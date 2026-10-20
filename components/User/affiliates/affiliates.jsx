@@ -164,7 +164,13 @@ const Affiliates = () => {
       .filter((id) => typeof id === 'string' && id && !seen.has(id));
   }, [clientReady, loading, rewardClaims, claimRejectedBannerSeenVersion]);
 
-  const showClaimApprovedBanner = unseenApprovedClaimIds.length > 0;
+  // An older approval must not be announced while a newer claim is still
+  // pending — the page would say "approved" and "pending" at the same time.
+  const showClaimApprovedBanner =
+    unseenApprovedClaimIds.length > 0 &&
+    !rewardClaims.some(
+      (c) => c.status === 'pending' || c.status === 'payment_submitted'
+    );
   const showClaimRejectedBanner = unseenRejectedClaimIds.length > 0;
 
   const dismissClaimApprovedBanner = () => {
@@ -247,7 +253,7 @@ const Affiliates = () => {
             <strong className="text-white/90">{REFERRER_SUBSCRIPTION_COMMISSION_PERCENT}%</strong>{' '}
             of their subscription payment monthly. You can earn passive income through our
             dashboard by referring new people. We take care of keeping your referrals satisfied
-            while you keep earning money easy.
+            while you keep earning money easily.
           </p>
         </div>
         <button 

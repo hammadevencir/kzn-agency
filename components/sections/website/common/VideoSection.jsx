@@ -151,7 +151,7 @@ const VideoSection = ({ renderStars }) => {
                 consistent without any performance dips or spend issues. Results
                 don't lie, thank you guys!
               </span>
-              <span className="text-nowrap text-[#7E808A] text-md">Verified by Trust Pilot</span>
+              <span className="text-nowrap text-[#7E808A] text-md">Verified by Trustpilot</span>
             </div>
           </div>
         </div>

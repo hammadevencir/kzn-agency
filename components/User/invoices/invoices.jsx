@@ -91,6 +91,19 @@ function statusTextClass(status) {
 }
 
 /**
+ * Invoice number from the record's own Firestore id, so it never changes. The
+ * old row-position numbers (TXN-001 = newest) shifted with every new invoice.
+ * @param {{ firestoreId?: string }} invoice
+ * @param {number} fallbackIndex
+ */
+function invoiceNumberFor(invoice, fallbackIndex) {
+  const id = typeof invoice?.firestoreId === "string" ? invoice.firestoreId : "";
+  return id
+    ? `TXN-${id.slice(0, 8)}`
+    : `TXN-${String(fallbackIndex + 1).padStart(3, "0")}`;
+}
+
+/**
  * @param {{
  *   invoice: any,
  *   txnId: string,
@@ -266,8 +279,7 @@ const InvoicesTable = ({
             </thead>
             <tbody className="divide-y divide-white/5">
               {pageRows.map((invoice, i) => {
-                const globalIndex = start + i;
-                const txnId = `TXN-${String(globalIndex + 1).padStart(3, "0")}`;
+                const txnId = invoiceNumberFor(invoice, start + i);
                 const subLine =
                   typeof invoice.subscriptionLine === "string" &&
                   invoice.subscriptionLine.trim()
@@ -367,8 +379,7 @@ const InvoicesTable = ({
             </thead>
             <tbody className="divide-y divide-white/5">
               {pageRows.map((invoice, rowIdx) => {
-                const globalIndex = start + rowIdx;
-                const txnId = `TXN-${String(globalIndex + 1).padStart(3, "0")}`;
+                const txnId = invoiceNumberFor(invoice, start + rowIdx);
                 const acctId =
                   typeof invoice.topUpAccountIdDisplay === "string" &&
                   invoice.topUpAccountIdDisplay.trim()

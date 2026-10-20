@@ -1,7 +1,11 @@
 "use client";
 
 import React from "react";
-import { RATING_LEVELS, ratingLevelForAverage } from "@/lib/orders/constants";
+import {
+  RATING_LEVELS,
+  ratingLevelForAverage,
+  satisfactionScore,
+} from "@/lib/orders/constants";
 
 /**
  * Satisfaction meter: count per smiley + a green→red stacked bar.
@@ -24,6 +28,9 @@ export default function SmileyDistribution({
   className = "",
 }) {
   const avgLevel = ratingLevelForAverage(average);
+  // Shown as a score out of 5 where 5 is best — the stored scale runs the
+  // other way (1 = very happy), and "Angry · 5.0" read like a top score.
+  const score = satisfactionScore(average);
 
   return (
     <div className={`bg-tertiary border border-white/5 rounded-2xl p-5 md:p-6 space-y-4 ${className}`}>
@@ -40,7 +47,8 @@ export default function SmileyDistribution({
           >
             <span className="text-[18px]" aria-hidden>{avgLevel.emoji}</span>
             <span className="text-[13px] font-semibold" style={{ color: avgLevel.color }}>
-              {avgLevel.label} · {average.toFixed(1)}
+              {avgLevel.label}
+              {score != null ? ` · ${score.toFixed(1)}/5` : ""}
             </span>
           </div>
         ) : null}
@@ -82,7 +90,7 @@ export default function SmileyDistribution({
       </div>
       <p className="text-[12px] text-quaternary">
         {total > 0
-          ? `${total} rating${total === 1 ? "" : "s"} (1 = very happy, 5 = angry)`
+          ? `${total} rating${total === 1 ? "" : "s"}`
           : "No ratings yet."}
       </p>
     </div>

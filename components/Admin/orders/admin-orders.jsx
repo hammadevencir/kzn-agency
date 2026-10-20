@@ -12,11 +12,19 @@ import SmileyDistribution from "@/components/orders/smiley-distribution";
 import SmileyRating from "@/components/orders/smiley-rating";
 import {
   MAX_DELIVERY_DETAILS_LENGTH,
+  MAX_DELIVERY_FILES,
   ORDER_STATUS,
   ratingLevel,
   ratingLevelForAverage,
+  satisfactionScore,
 } from "@/lib/orders/constants";
 import { formatUsd } from "@/lib/shop/catalog";
+import {
+  UPLOAD_MAX_FILE_BYTES,
+  compressImageFile,
+  formatBytes,
+  isCompressibleImage,
+} from "@/lib/uploads/compress-image";
 
 const TABS = [
   { id: ORDER_STATUS.NEW, label: "New orders" },
@@ -50,7 +58,7 @@ function AverageChip({ average, total }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap" style={{ color: level.color }}>
       <span aria-hidden>{level.emoji}</span>
-      <span className="font-semibold">{average.toFixed(1)}</span>
+      <span className="font-semibold">{satisfactionScore(average)?.toFixed(1)}/5</span>
       <span className="text-quaternary text-[11px]">({total})</span>
     </span>
   );
@@ -85,7 +93,143 @@ function Row({ label, children }) {
   );
 }
 
-function OrderDetailModal({ order, onClose, onUpdated }) {
+const FILE_ERRORS = {
+  file_too_large: "File is too large — max 4 MB per file. Put a download link in the delivery details instead.",
+  unsupported_file_type: "Unsupported file type. Use PDF, images, ZIP, TXT or CSV.",
+  too_many_files: `An order can have at most ${MAX_DELIVERY_FILES} files.`,
+};
+
+/**
+ * Delivery attachments (PDFs / pictures) the customer can download once the
+ * order is delivered. Each file goes through our API (Admin SDK), so files are
+ * capped at 4 MB like every other upload on Vercel.
+ */
+function DeliveryFiles({ order, onChange }) {
+  const [uploading, setUploading] = useState(false);
+  const files = Array.isArray(order.deliveryFiles) ? order.deliveryFiles : [];
+  const canEdit = order.status !== ORDER_STATUS.CANCELLED;
+
+  const upload = async (list) => {
+    if (!list?.length) return;
+    setUploading(true);
+    let latest = null;
+    try {
+      for (const original of Array.from(list)) {
+        let file = original;
+        if (isCompressibleImage(file) && file.size > UPLOAD_MAX_FILE_BYTES) {
+          file = await compressImageFile(file);
+        }
+        if (file.size > UPLOAD_MAX_FILE_BYTES) {
+          toast.error(`${original.name}: ${FILE_ERRORS.file_too_large}`);
+          continue;
+        }
+        const form = new FormData();
+        form.append("file", file, file.name || original.name);
+        const res = await fetch(`/api/admin/orders/${encodeURIComponent(order.id)}/files`, {
+          method: "POST",
+          body: form,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const code = res.status === 413 ? "file_too_large" : data?.error;
+          toast.error(`${original.name}: ${FILE_ERRORS[code] || "upload failed"}`);
+          if (code === "too_many_files") break;
+          continue;
+        }
+        latest = data.item;
+      }
+      if (latest) {
+        onChange(latest);
+        toast.success("File(s) attached.");
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const remove = async (file) => {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(order.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "remove_file", path: file.path }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error("Could not remove the file.");
+      return;
+    }
+    onChange(data.item);
+  };
+
+  if (!canEdit && files.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[14px] font-semibold text-white">Delivery files</p>
+      {files.length ? (
+        <ul className="space-y-1.5">
+          {files.map((f) => (
+            <li
+              key={f.path || f.url}
+              className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2 text-[13px]"
+            >
+              <a
+                href={f.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#C5A964] hover:underline truncate min-w-0"
+              >
+                {f.name}
+              </a>
+              <span className="flex items-center gap-3 shrink-0">
+                <span className="text-quaternary text-[11px]">{formatBytes(f.size)}</span>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => void remove(f)}
+                    className="text-red-400 text-[12px] hover:underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[12px] text-quaternary">No files attached.</p>
+      )}
+      {canEdit && files.length < MAX_DELIVERY_FILES ? (
+        <label className="inline-flex items-center gap-2 h-[38px] px-3 rounded-xl border border-[#B89C57]/60 text-[#C5A964] text-[13px] font-semibold hover:bg-[#B89C57]/10 cursor-pointer">
+          {uploading ? "Uploading…" : "Attach files (PDF, images…)"}
+          <input
+            type="file"
+            multiple
+            disabled={uploading}
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.zip,.txt,.csv,application/pdf,image/*,application/zip,text/plain,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const input = e.target;
+              void upload(input.files).finally(() => {
+                input.value = "";
+              });
+            }}
+          />
+        </label>
+      ) : null}
+      <p className="text-[11px] text-quaternary">
+        Max 4 MB per file, {MAX_DELIVERY_FILES} files per order. The customer can download them once the order is delivered.
+      </p>
+    </div>
+  );
+}
+
+function OrderDetailModal({ order: orderProp, onClose, onUpdated, onFilesChanged }) {
+  // Local copy so attaching files updates the modal without closing it.
+  const [order, setOrder] = useState(orderProp);
+  useEffect(() => {
+    setOrder(orderProp);
+  }, [orderProp]);
   const [mode, setMode] = useState(/** @type {'view' | 'deliver' | 'cancel'} */ ("view"));
   const [details, setDetails] = useState("");
   const [reason, setReason] = useState("");
@@ -160,6 +304,13 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
             {order.customerConfirmedAt ? (
               <Row label="Customer confirmed">{formatDateTime(order.customerConfirmedAt)}</Row>
             ) : null}
+            {order.deliveryUpdateCount ? (
+              <Row label="Update requests">
+                <span className="text-[#F2C46D]">
+                  {order.deliveryUpdateCount} (last {formatDateTime(order.deliveryUpdateAt)})
+                </span>
+              </Row>
+            ) : null}
             {order.complaintCount ? (
               <Row label="Complaints">
                 <span className="text-red-400">
@@ -178,6 +329,16 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
             {order.rating ? (
               <Row label="Rating">
                 <SmileyRating value={order.rating} readOnly size="sm" label="Customer rating" />
+                {order.ratingChangedAt ? (
+                  <span className="block text-[12px] text-quaternary mt-1">
+                    Changed {formatDateTime(order.ratingChangedAt)}
+                  </span>
+                ) : null}
+              </Row>
+            ) : null}
+            {order.feedbackText ? (
+              <Row label="Feedback">
+                <span className="whitespace-pre-wrap">{order.feedbackText}</span>
               </Row>
             ) : null}
             {order.userId ? (
@@ -203,6 +364,14 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
             </div>
           ) : null}
 
+          <DeliveryFiles
+            order={order}
+            onChange={(item) => {
+              setOrder(item);
+              onFilesChanged?.();
+            }}
+          />
+
           <div className="space-y-2">
             <p className="text-[14px] font-semibold text-white">Payment proof</p>
             <PaymentProofViewer proof={order.paymentProof} className="min-h-[160px]" />
@@ -224,6 +393,7 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
               />
               <p className="text-[12px] text-quaternary">
                 The customer gets a &quot;your service is delivered&quot; notification.
+                Attach PDFs or pictures under Delivery files.
               </p>
             </div>
           ) : null}
@@ -262,7 +432,12 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void act({ action: "accept" }, "Order moved to Pending.")}
+                    onClick={() =>
+                      void act(
+                        { action: "accept" },
+                        "Order moved to Pending. The customer has been messaged."
+                      )
+                    }
                     className="h-[44px] px-4 rounded-xl border border-[#B89C57] text-[#C5A964] text-[14px] font-semibold hover:bg-[#B89C57]/10 disabled:opacity-50"
                   >
                     Accept → Pending
@@ -386,7 +561,7 @@ export default function AdminOrders() {
           total={overall.total}
           average={overall.average}
           title="Customer satisfaction"
-          subtitle="Average smiley score across all rated orders (1 = very happy, 5 = angry)"
+          subtitle="Average smiley score across all rated orders (score out of 5, 5 = very happy)"
         />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StatsList
@@ -489,7 +664,13 @@ export default function AdminOrders() {
                 <tbody>
                   {visible.map((o) => (
                     <tr key={o.id} className="border-b border-border/50 text-white">
-                      <td className="py-3 pr-4 whitespace-nowrap">{o.orderNumber}</td>
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        {o.orderNumber}
+                        {o.deliveryUpdateAt &&
+                        (o.status === ORDER_STATUS.NEW || o.status === ORDER_STATUS.PENDING) ? (
+                          <span className="block text-[11px] text-[#F2C46D]">Update requested</span>
+                        ) : null}
+                      </td>
                       <td className="py-3 pr-4">
                         {customerLabel(o)}
                         <span className="block text-[11px] text-quaternary">{o.userEmail}</span>
@@ -536,6 +717,7 @@ export default function AdminOrders() {
           setSelected(null);
           setRefreshKey((k) => k + 1);
         }}
+        onFilesChanged={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );

@@ -11,6 +11,10 @@ import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PasswordField } from "@/components/ui/password-field";
 import { auth } from "@/lib/firebase/client";
+import {
+  PASSWORD_RESET_CONTINUE_PATH,
+  PASSWORD_RESET_DONE_MESSAGE,
+} from "@/lib/auth/password-reset";
 
 function mapAuthError(code, message) {
   switch (code) {
@@ -54,6 +58,12 @@ export default function ResetPasswordForm() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
+    // Emails sent before the continue URL changed return here from Firebase's page
+    // with no code: the password was already changed there.
+    if (!mode && !oobCode) {
+      router.replace(PASSWORD_RESET_CONTINUE_PATH);
+      return;
+    }
     if (mode !== "resetPassword" || !oobCode) {
       setStatus("invalid");
       return;
@@ -67,7 +77,7 @@ export default function ResetPasswordForm() {
         toast.error(mapAuthError(err?.code, err?.message));
         setStatus("invalid");
       });
-  }, [mode, oobCode]);
+  }, [mode, oobCode, router]);
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
@@ -83,7 +93,7 @@ export default function ResetPasswordForm() {
     try {
       await confirmPasswordReset(auth, oobCode, password);
       setStatus("done");
-      toast.success("Password updated. You can now log in.");
+      toast.success(PASSWORD_RESET_DONE_MESSAGE);
     } catch (err) {
       toast.error(mapAuthError(err?.code, err?.message));
     } finally {
@@ -121,7 +131,7 @@ export default function ResetPasswordForm() {
         {status === "done" ? (
           <div className="flex flex-col flex-grow">
             <p className="text-white text-[12px] text-center mb-6">
-              Your password has been updated.
+              {PASSWORD_RESET_DONE_MESSAGE}
             </p>
             <button
               type="button"

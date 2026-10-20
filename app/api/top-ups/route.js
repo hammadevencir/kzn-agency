@@ -50,12 +50,13 @@ export async function GET(request) {
   const adAccountIdFilter = (searchParams.get("adAccountId") || "").trim();
 
   const db = getAdminDb();
-  let query = db
+  let baseQuery = db
     .collection(TOP_UPS_COLLECTION)
     .where("userId", "==", user.uid);
   if (adAccountIdFilter) {
-    query = query.where("adAccountId", "==", adAccountIdFilter);
+    baseQuery = baseQuery.where("adAccountId", "==", adAccountIdFilter);
   }
+  let query = baseQuery;
   // Optional date range (YYYY-MM-DD, inclusive, UTC day bounds widened by the
   // client's offset — `tz` = Date#getTimezoneOffset()) for the history filter.
   const tzOffsetMin = Number.parseInt(searchParams.get("tz") || "0", 10) || 0;
@@ -73,12 +74,29 @@ export async function GET(request) {
     query = query.where("createdAt", "<", Timestamp.fromMillis(toStartMs + 86400000));
   }
 
-  const snap = await query
-    .orderBy("createdAt", "desc")
-    .limit(fromMs != null || toStartMs != null ? 500 : 200)
-    .get();
+  const limit = fromMs != null || toStartMs != null ? 500 : 200;
+  /** @type {import("firebase-admin/firestore").QueryDocumentSnapshot[]} */
+  let docs;
+  try {
+    docs = (await query.orderBy("createdAt", "desc").limit(limit).get()).docs;
+  } catch (err) {
+    // A missing composite index (FAILED_PRECONDITION) used to surface as a 500
+    // and an empty history. Fall back to the equality-only query (no index
+    // needed) and filter / sort in memory until the index is deployed.
+    console.error("[top-ups] indexed history query failed, using fallback", err);
+    const all = (await baseQuery.get()).docs;
+    const createdMs = (d) => d.data().createdAt?.toMillis?.() ?? 0;
+    const toMs = toStartMs != null ? toStartMs + 86400000 : null;
+    docs = all
+      .filter((d) => {
+        const ms = createdMs(d);
+        return (fromMs == null || ms >= fromMs) && (toMs == null || ms < toMs);
+      })
+      .sort((a, b) => createdMs(b) - createdMs(a))
+      .slice(0, limit);
+  }
 
-  const items = snap.docs.map((d) => {
+  const items = docs.map((d) => {
     const data = d.data();
     const flow =
       data.flow && typeof data.flow === "object" ? data.flow : {};

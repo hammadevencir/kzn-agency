@@ -18,6 +18,7 @@ import { attachReadStateToNotificationItems } from "@/lib/notifications/read-sta
 import { relativeTime, tsMs } from "@/lib/notifications/helpers";
 import { buildAdminChatNotificationItems } from "@/lib/notifications/chat-notifications";
 import { buildAdminOrderNotificationItems } from "@/lib/orders/server-orders";
+import { buildAdminTicketNotificationItems } from "@/lib/tickets/server-tickets";
 import {
   PRIVATE_PRICING_ADMIN_HREF,
   PRIVATE_PRICING_COLLECTION,
@@ -230,6 +231,8 @@ export async function GET() {
 
   // Shop orders still in "New" (visible to every admin sub-role).
   items.push(...(await buildAdminOrderNotificationItems(db)));
+  // Open support tickets (complaints, feedback, delivery-update requests).
+  items.push(...(await buildAdminTicketNotificationItems(db)));
 
   items.sort((a, b) => b.timeMs - a.timeMs);
 

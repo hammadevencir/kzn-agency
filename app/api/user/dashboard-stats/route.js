@@ -1,23 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
-import {
-  AD_ACCOUNTS_COLLECTION,
-  AD_ACCOUNT_STATUS,
-} from "@/lib/ad-accounts/constants";
-import {
-  SUBSCRIPTIONS_COLLECTION,
-  SUBSCRIPTION_STATUS,
-} from "@/lib/subscriptions/constants";
+import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
+import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
-
-function countApprovedReferralDocs(rows) {
-  return rows.filter(
-    (d) =>
-      d.status === AD_ACCOUNT_STATUS.APPROVED ||
-      d.status === SUBSCRIPTION_STATUS.APPROVED
-  ).length;
-}
+import { countReferredUsers } from "@/lib/affiliates/referrals-overview";
 
 function isCurrentMonth(ts) {
   if (ts == null) return false;
@@ -59,8 +46,8 @@ export async function GET() {
 
   const refAdData = refAdSnap.docs.map((d) => d.data());
   const refSubData = refSubSnap.docs.map((d) => d.data());
-  const activeReferrals =
-    countApprovedReferralDocs(refAdData) + countApprovedReferralDocs(refSubData);
+  // Same rule as the Affiliates page: referred people, not purchases.
+  const activeReferrals = countReferredUsers([...refAdData, ...refSubData]).active;
 
   const topUpsThisMonth = topSnap.docs.filter((d) =>
     isCurrentMonth(d.data()?.createdAt)

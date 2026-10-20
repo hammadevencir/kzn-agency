@@ -2,7 +2,7 @@ import React from "react";
 import LegalPage from "@/components/sections/website/legal/LegalPage";
 
 export const metadata = {
-  title: "User Notice | Kazan Solutions",
+  title: "User Notice | KAZAN Solutions",
   description: "The terms that apply when you create and use a Kazan Solutions account.",
 };
 

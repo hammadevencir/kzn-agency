@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
+import { SHOP_DISCOUNT_FIELD, readShopDiscount } from "@/lib/shop/discount";
 import {
   AD_ACCOUNTS_COLLECTION,
   AD_ACCOUNT_STATUS,
@@ -234,6 +235,17 @@ export async function GET(_request, context) {
     subscriptions,
     adAccounts,
     topUps: topUpRows,
+    /** One-off shop discount waiting for the customer's next order (or null). */
+    shopDiscount: (() => {
+      const d = readShopDiscount(fs?.[SHOP_DISCOUNT_FIELD]);
+      return d
+        ? {
+            percent: d.percent,
+            note: d.note,
+            expiresAt: d.expiresAtMs ? new Date(d.expiresAtMs).toISOString() : null,
+          }
+        : null;
+    })(),
   };
 
   return NextResponse.json({ profile });

@@ -1,7 +1,5 @@
 "use client";
 
-import { payAgainTerms } from "@/lib/meta/meta-plan-catalog";
-import { isSubscriptionExpired as isSubLapsed } from "@/lib/subscriptions/expiry";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import DataTable from "@/components/common-admin-manager/data-table";
@@ -14,12 +12,11 @@ import {
 } from "@/lib/date-range";
 import TopUpUploadModal from "../detail-modals/top-up-upload-modal";
 import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
-import PayNowModal from "../pay-now-modal";
+import { usePlanRenewal } from "../use-plan-renewal";
 import { useBalanceRefresh } from "../ad-accounts/balance-refresh";
 import { TOP_UP_STATUS } from "@/lib/top-ups/constants";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
-import { submitPlatformSubscriptionPayment } from "@/lib/user/subscriptions-client";
-import { topUpBlockReason } from "@/lib/user/top-up-gate";
+import { topUpBlockReason, withPlanState } from "@/lib/user/top-up-gate";
 import { withDisplayCurrency } from "@/lib/payments/format-amount";
 
 const STATUS_LABEL = {
@@ -48,6 +45,7 @@ const UserTopUps = () => {
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [historyRange, setHistoryRange] = useState(EMPTY_DATE_RANGE);
 
@@ -61,58 +59,21 @@ const UserTopUps = () => {
     unpaidPlatformIds,
     subscriptionDocsByPlatform,
     subscriptionDocs,
+    refetch: refetchSubscriptions,
   } = useUserSubscribedPlatforms();
-  const [payForExpiredSub, setPayForExpiredSub] = useState(null);
+  const { openRenewal: openPayNowForPlatform, renewalModal } = usePlanRenewal({
+    subscriptionDocsByPlatform,
+    onSubmitted: () => void refetchSubscriptions(),
+  });
 
-  const openPayNowForPlatform = (platformKey, platformLabel, subscriptionDoc = null) => {
-    const k = typeof platformKey === "string" ? platformKey.toLowerCase() : "";
-    // Prefer the exact plan subscription the gate matched (a user can hold two
-    // Meta plans; the newest Meta doc may be the other one).
-    const doc = subscriptionDoc || (k ? subscriptionDocsByPlatform?.[k] : null);
-    const checkout =
-      doc && doc.checkout && typeof doc.checkout === "object"
-        ? doc.checkout
-        : {};
-    const terms = payAgainTerms(doc, (doc?.status === "expired" || isSubLapsed(doc)));
-    const amount = terms.amount ?? "—";
-    const platform =
-      platformLabel ||
-      (doc && (doc.flow?.displayPlatform || doc.platformId)) ||
-      "Platform";
-    setPayForExpiredSub({
-      subscriptionName: String(terms.subscriptionName || `${platform} plan`),
-      amount: withDisplayCurrency(amount),
-      // Renewals are full price — no first-month referral discount.
-      subscriptionId: doc?.id || null,
-      platformId: doc?.platformId || k || null,
-    });
-  };
+  /** Rows with the state of their plan (expired plans show "Enable your plan now"). */
+  const tableRows = useMemo(
+    () => withPlanState(rows, subscriptionDocs),
+    [rows, subscriptionDocs]
+  );
 
-  const handleExpiredPaySuccess = async (paymentProof, paymentReference, paymentMeta) => {
-    const ctx = payForExpiredSub;
-    setPayForExpiredSub(null);
-    if (!ctx?.subscriptionId) return;
-    try {
-      await submitPlatformSubscriptionPayment(
-        ctx.subscriptionId,
-        {
-          amount: ctx.amount || null,
-          subscriptionName: ctx.subscriptionName,
-          platformId: ctx.platformId,
-          renewal: true,
-        },
-        paymentProof || null,
-        paymentReference || null,
-        paymentMeta || null
-      );
-      toast.success(
-        "Payment proof received. We'll review and restore access shortly."
-      );
-    } catch {
-      toast.error(
-        "Could not record your payment. Please try again or contact support."
-      );
-    }
+  const handleEnablePlan = (row) => {
+    openPayNowForPlatform(row.platformKey, row.platform, row.planSubscriptionDoc);
   };
 
   const loadAccounts = useCallback(async () => {
@@ -136,6 +97,7 @@ const UserTopUps = () => {
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
+    setHistoryError(false);
     try {
       // Ask the server for the selected range so older dates aren't cut off
       // by the default page size.
@@ -147,9 +109,12 @@ const UserTopUps = () => {
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.items)) {
         setHistory(data.items);
+      } else {
+        // Don't show "No top-up requests yet" when the request failed.
+        setHistoryError(true);
       }
     } catch {
-      /* ignore */
+      setHistoryError(true);
     } finally {
       setHistoryLoading(false);
     }
@@ -236,9 +201,10 @@ const UserTopUps = () => {
         ) : (
           <DataTable
             headers={headers}
-            data={rows}
+            data={tableRows}
             type="user-top-ups"
             onTopUp={handleTopUp}
+            onEnablePlan={handleEnablePlan}
             onRefreshBalance={(row) => void refreshBalance(row)}
             refreshingBalance={balanceRefreshing}
             searchable={false}
@@ -264,6 +230,19 @@ const UserTopUps = () => {
 
         {historyLoading ? (
           <p className="text-sm text-quaternary">Loading top-ups…</p>
+        ) : historyError ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-red-400">
+              We couldn&apos;t load your top-up history.
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadHistory()}
+              className="text-sm text-[#C5A964] hover:underline"
+            >
+              Try again
+            </button>
+          </div>
         ) : visibleHistory.length === 0 ? (
           <p className="text-sm text-quaternary">
             {history.length > 0 && isDateRangeActive(historyRange)
@@ -341,13 +320,7 @@ const UserTopUps = () => {
         onClose={() => setIsSuccessOpen(false)}
       />
 
-      <PayNowModal
-        isOpen={payForExpiredSub != null}
-        onClose={() => setPayForExpiredSub(null)}
-        flowType="platformSubscription"
-        data={payForExpiredSub}
-        onSuccess={handleExpiredPaySuccess}
-      />
+      {renewalModal}
 
       {balanceRefreshDialog}
     </div>

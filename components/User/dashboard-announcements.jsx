@@ -42,23 +42,33 @@ function AnnouncementBanner({ announcement, onDismiss }) {
   );
 }
 
+/**
+ * The dashboard mounts this once while it loads and again once loaded; reuse
+ * one recent request instead of fetching twice.
+ */
+let recent = /** @type {{ at: number, promise: Promise<unknown[] | null> } | null} */ (null);
+const REUSE_MS = 5000;
+
+function fetchAnnouncements({ force = false } = {}) {
+  if (!force && recent && Date.now() - recent.at < REUSE_MS) return recent.promise;
+  const promise = fetch("/api/user/announcements", { credentials: "include" })
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      return res.ok && Array.isArray(data.announcements) ? data.announcements : null;
+    })
+    .catch(() => []);
+  recent = { at: Date.now(), promise };
+  return promise;
+}
+
 export default function DashboardAnnouncements() {
   const [announcements, setAnnouncements] = useState(
     /** @type {Array<{ id: string, title: string, body: string }>} */ ([])
   );
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/user/announcements", { credentials: "include" });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setAnnouncements(
-          Array.isArray(data.announcements) ? data.announcements : []
-        );
-      }
-    } catch {
-      setAnnouncements([]);
-    }
+  const load = useCallback(async (opts) => {
+    const list = await fetchAnnouncements(opts);
+    if (list) setAnnouncements(list);
   }, []);
 
   useEffect(() => {
@@ -75,8 +85,10 @@ export default function DashboardAnnouncements() {
         body: JSON.stringify({ announcementId }),
       });
     } catch {
-      void load();
+      void load({ force: true });
     }
+    // A remount right after dismissing must not show the stale list again.
+    recent = null;
   };
 
   if (announcements.length === 0) return null;

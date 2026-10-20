@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
 import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
-import {
-  SUBSCRIPTIONS_COLLECTION,
-  SUBSCRIPTION_STATUS,
-} from "@/lib/subscriptions/constants";
-import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
+import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { ensureAffiliateProfile } from "@/lib/affiliates/server-referral";
-import { mergeReferralPurchaseRows } from "@/lib/affiliates/referrals-overview";
+import {
+  countReferredUsers,
+  mergeReferralPurchaseRows,
+} from "@/lib/affiliates/referrals-overview";
 
 const REWARD_CLAIMS_COLLECTION = "reward-claims";
 
@@ -38,26 +37,6 @@ function formatDateLabel(ts) {
   });
 }
 
-function countApproved(dataList) {
-  return dataList.filter(
-    (d) =>
-      d.status === AD_ACCOUNT_STATUS.APPROVED ||
-      d.status === SUBSCRIPTION_STATUS.APPROVED
-  ).length;
-}
-
-function countPending(dataList) {
-  return dataList.filter((d) => {
-    const s = d.status;
-    return (
-      s !== AD_ACCOUNT_STATUS.APPROVED &&
-      s !== SUBSCRIPTION_STATUS.APPROVED &&
-      s !== AD_ACCOUNT_STATUS.REJECTED &&
-      s !== SUBSCRIPTION_STATUS.REJECTED
-    );
-  }).length;
-}
-
 export async function GET() {
   const user = await requireEndUserSession();
   if (!user) {
@@ -83,8 +62,10 @@ export async function GET() {
 
   const referrals = mergeReferralPurchaseRows(adSnap.docs, subSnap.docs);
 
-  const activeCount = countApproved(adData) + countApproved(subData);
-  const pendingCount = countPending(adData) + countPending(subData);
+  const { active: activeCount, pending: pendingCount } = countReferredUsers([
+    ...adData,
+    ...subData,
+  ]);
 
   const claimsSnap = await db
     .collection(REWARD_CLAIMS_COLLECTION)

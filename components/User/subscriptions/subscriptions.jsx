@@ -11,6 +11,7 @@ import SubscriptionDetailSheet from "../detail-modals/subscription-detail-sheet"
 import { mapUserSubscriptionRow } from "@/lib/user/map-user-subscription-row";
 import { assignAdAccountsToSubscriptions } from "@/lib/user/plan-scope";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
+import { usePlanRenewal } from "../use-plan-renewal";
 
 /** @param {unknown} raw */
 function formatBalanceDisplay(raw) {
@@ -83,6 +84,16 @@ const UserSubscriptions = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { openRenewal, renewalModal } = usePlanRenewal({
+    onSubmitted: () => void refetchSubscriptions(),
+  });
+
+  /** "Enable your plan now" — renew that exact subscription doc. */
+  const handleEnablePlan = (row) => {
+    const doc = subscriptionDocs.find((d) => d.id === row.firestoreId) || null;
+    if (!doc) return;
+    openRenewal(row.platformId || null, row.platform || null, doc);
+  };
 
   useEffect(() => {
     let unsubAds = () => {};
@@ -217,6 +228,7 @@ const UserSubscriptions = () => {
             data={tableRows}
             type="user-subscriptions"
             onViewDetails={handleViewDetails}
+            onEnablePlan={handleEnablePlan}
             searchable={false}
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
@@ -229,6 +241,8 @@ const UserSubscriptions = () => {
         onClose={handleCloseDetail}
         data={detailPayload}
       />
+
+      {renewalModal}
     </div>
   );
 };

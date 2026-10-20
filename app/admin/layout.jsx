@@ -18,6 +18,33 @@ import {
 } from '@/lib/auth/admin-permissions';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 
+const TICKET_COUNT_POLL_MS = 60_000;
+
+/** Open support tickets, for the sidebar badge (polled once a minute). */
+function useOpenTicketCount(enabled) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/admin/tickets?countOnly=1', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok) setCount(Number(data?.counts?.open) || 0);
+      } catch {
+        /* badge is optional */
+      }
+    };
+    void load();
+    const timer = setInterval(load, TICKET_COUNT_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [enabled]);
+  return count;
+}
+
 const AdminLayout = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,6 +52,7 @@ const AdminLayout = ({ children }) => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.ADMIN);
   const isLoginPage = pathname.includes('/login');
+  const openTicketCount = useOpenTicketCount(!isLoginPage);
 
   // Admin sub-role (manager | support). While loading, hide restricted items
   // so customer-service logins never see them flash.
@@ -63,6 +91,7 @@ const AdminLayout = ({ children }) => {
     if (pathname.includes('/announcements')) return 'announcements';
     if (pathname.includes('/create-article')) return 'create-article';
     if (pathname.includes('/orders')) return 'orders';
+    if (pathname.includes('/tickets')) return 'tickets';
     if (pathname === '/admin' || pathname.startsWith('/admin/dashboard')) return 'dashboard';
     return 'dashboard';
   };
@@ -102,6 +131,8 @@ const AdminLayout = ({ children }) => {
       router.push('/admin/create-article');
     } else if (item === 'orders') {
       router.push('/admin/orders');
+    } else if (item === 'tickets') {
+      router.push('/admin/tickets');
     }
   };
 
@@ -145,11 +176,12 @@ const AdminLayout = ({ children }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         role="admin"
         chatUnreadCount={chatUnreadCount}
+        badgeCounts={{ tickets: openTicketCount }}
         hiddenItemIds={hiddenNavIds}
       />
       
       {/* Main Content Area */}
-      <div className="flex-1 xl:ml-[254px] w-full max-w-full flex flex-col">
+      <div className="flex-1 min-w-0 xl:ml-[254px] w-full max-w-full flex flex-col">
         {/* Header - Show on all pages except login */}
         {needsHeader && <Header />}
         

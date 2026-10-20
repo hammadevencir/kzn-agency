@@ -21,8 +21,24 @@ function tsToIso(ts) {
 }
 
 /**
- * GET — list of approved ad accounts the user has not yet acknowledged.
- * These drive the post-approval banner on the dashboard.
+ * An approval stops being news after this long, or once the account has had a
+ * top-up (the banner asks the customer to top up within 72 hours) — otherwise an
+ * unacknowledged approval from weeks ago stays pinned to the top.
+ */
+const APPROVAL_BANNER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** @param {Record<string, unknown>} data */
+function isFreshApproval(data) {
+  if (data.approvalAcknowledgedAt) return false;
+  if (data.lastTopUpAt) return false;
+  const reviewed = /** @type {any} */ (data.reviewedAt);
+  const ms = reviewed && typeof reviewed.toMillis === "function" ? reviewed.toMillis() : 0;
+  return ms > 0 && Date.now() - ms <= APPROVAL_BANNER_MAX_AGE_MS;
+}
+
+/**
+ * GET — recent approved ad accounts the user has not yet acknowledged.
+ * These drive the post-approval banners on the dashboard and Ad Accounts page.
  */
 export async function GET() {
   const user = await requireEndUserSession();
@@ -39,7 +55,7 @@ export async function GET() {
       .get();
 
     const items = snap.docs
-      .filter((d) => !d.data()?.approvalAcknowledgedAt)
+      .filter((d) => isFreshApproval(d.data() || {}))
       .map((d) => {
         const data = d.data() || {};
         return {

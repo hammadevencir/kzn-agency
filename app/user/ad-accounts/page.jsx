@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import UserAdAccounts from "@/components/User/ad-accounts/ad-accounts";
 
 export const metadata = {
-  title: "Ad Accounts | KZN Agency",
+  title: "Ad Accounts | KAZAN Solutions",
   description: "Manage your Meta and TikTok ad accounts.",
 };
 

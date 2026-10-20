@@ -34,7 +34,29 @@ function SheetOverlay({ className, ...props }) {
   )
 }
 
+/**
+ * Whether a <SheetDescription> appears in the JSX passed as children.
+ * @param {React.ReactNode} node
+ */
+function containsDescription(node) {
+  let found = false;
+  React.Children.forEach(node, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    if (child.type === SheetDescription || child.type === SheetPrimitive.Description) {
+      found = true;
+      return;
+    }
+    if (child.props?.children) found = containsDescription(child.props.children);
+  });
+  return found;
+}
+
 function SheetContent({ className, children, side = "right", showCloseButton = true, ...props }) {
+  // See DialogContent: opt out of Radix's description link when there is none.
+  const describedBy =
+    "aria-describedby" in props || containsDescription(children)
+      ? {}
+      : { "aria-describedby": undefined };
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -53,6 +75,7 @@ function SheetContent({ className, children, side = "right", showCloseButton = t
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
+        {...describedBy}
         {...props}
       >
         {children}

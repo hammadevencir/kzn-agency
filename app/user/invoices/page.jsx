@@ -2,7 +2,7 @@ import React from "react";
 import UserInvoices from "@/components/User/invoices/invoices";
 
 export const metadata = {
-  title: "Invoices | KZN Agency",
+  title: "Invoices | KAZAN Solutions",
   description:
     "View invoices for platform subscriptions, ad account requests, and top-ups.",
 };

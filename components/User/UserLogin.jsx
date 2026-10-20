@@ -194,13 +194,13 @@ export default function UserLogin() {
           </button>
 
           <p className="text-quaternary text-center text-[12px] mt-auto">
-            Don&apos;t have Account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/user/signup"
               className="text-primary hover:text-primary/80 font-medium"
             >
-              Sign Up
-            </Link>
+              Sign up
+            </Link>.
           </p>
         </form>
       </div>
