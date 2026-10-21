@@ -81,6 +81,8 @@ const UserSubscriptions = () => {
   const [adAccountDocs, setAdAccountDocs] = useState(
     /** @type {({ id: string } & Record<string, unknown>)[]} */ ([])
   );
+  /** First ad-account snapshot arrived (until then counts would read "0"). */
+  const [adsLoaded, setAdsLoaded] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,8 +121,12 @@ const UserSubscriptions = () => {
             ...d.data(),
           }));
           setAdAccountDocs(list);
+          setAdsLoaded(true);
         },
-        () => setAdAccountDocs([])
+        () => {
+          setAdAccountDocs([]);
+          setAdsLoaded(true);
+        }
       );
     });
 
@@ -147,14 +153,16 @@ const UserSubscriptions = () => {
     return subscriptionDocs.map((doc) => {
       const { id, ...data } = doc;
       const own = adAccountsBySubscriptionId[id] || [];
-      return mapUserSubscriptionRow(
+      const row = mapUserSubscriptionRow(
         id,
         data,
         own.length,
         own.some((a) => a.paused === true)
       );
+      // Don't flash "0" ad accounts before the accounts have loaded.
+      return adsLoaded ? row : { ...row, adAccounts: "—" };
     });
-  }, [subscriptionDocs, adAccountsBySubscriptionId]);
+  }, [subscriptionDocs, adAccountsBySubscriptionId, adsLoaded]);
 
   const detailPayload = useMemo(() => {
     if (!selectedSubscription) return null;

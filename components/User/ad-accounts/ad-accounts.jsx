@@ -12,6 +12,7 @@ import TopUpSuccessModal from "../detail-modals/top-up-success-modal";
 import { usePlanRenewal } from "../use-plan-renewal";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { topUpBlockReason, withPlanState } from "@/lib/user/top-up-gate";
+import { subscriptionLifecycle } from "@/lib/subscriptions/expiry";
 import { portalRowToTopUpModalData } from "@/lib/user/portal-row-to-top-up-modal";
 import { AD_ACCOUNT_STATUS } from "@/lib/ad-accounts/constants";
 import { AD_ACCOUNT_DEEP_LINK_PARAM } from "@/lib/notifications/deep-links";
@@ -510,7 +511,16 @@ const UserAdAccounts = () => {
         toast.error(
           "Your platform subscription has expired. Please renew to request ad accounts."
         );
-        openPayNowForPlatform(first, null);
+        // Renew a plan that's actually lapsed — with two plans, the newest doc
+        // can be one whose renewal is already under review.
+        const renewable = subscriptionDocs.find(
+          (d) => subscriptionLifecycle(d) === "expired"
+        );
+        openPayNowForPlatform(
+          renewable ? renewable.platformId || first : first,
+          null,
+          renewable || null
+        );
         return;
       }
       toast.error("Subscribe to a platform first, then you can request ad accounts.");
