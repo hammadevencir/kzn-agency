@@ -10,6 +10,7 @@ import { motion } from "motion/react";
 import Logo from "./Logo";
 import { links } from "./Links";
 import ContactDialog from "@/components/sections/website/ContactDialog";
+import ThemeToggle from "@/components/common/theme-toggle";
 
 const Header = () => {
   const pathname = usePathname();
@@ -41,7 +42,7 @@ const Header = () => {
     >
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10"
+        className="kz-site-header-bg pointer-events-none absolute inset-0 -z-10"
         initial={false}
         animate={{ opacity: isScrolled ? 1 : 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -119,6 +120,7 @@ const Header = () => {
             ease: [0.25, 0.46, 0.45, 0.94] 
           }}
         >
+          <ThemeToggle className="text-white hover:text-primary" size={20} />
           <Link href="/user/signup">
             <Button variant="outline">Sign Up</Button>
           </Link>
@@ -128,7 +130,7 @@ const Header = () => {
         </motion.div>
         
         <motion.div 
-          className="flex md:hidden"
+          className="flex md:hidden items-center gap-1"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ 
@@ -137,6 +139,7 @@ const Header = () => {
             ease: [0.25, 0.46, 0.45, 0.94] 
           }}
         >
+          <ThemeToggle className="text-white hover:text-primary" size={20} />
           <HeaderSheet />
         </motion.div>
       </div>

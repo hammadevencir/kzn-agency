@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { NotificationIcon } from '@/components/icons';
-import { Moon, Sun, X } from 'lucide-react';
-import { useUserTheme } from '@/lib/theme/use-user-theme';
+import { X } from 'lucide-react';
+import ThemeToggle from '@/components/common/theme-toggle';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
 import { showNotificationToast } from '@/components/common-admin-manager/notification-toast';
@@ -134,7 +134,6 @@ const Header = ({
   const markReadEndpoint = detectMarkReadEndpoint(pathname);
   const isAdminArea = Boolean(pathname?.startsWith('/admin'));
   const adminRole = useAdminRole({ enabled: isAdminArea });
-  const { theme, setTheme } = useUserTheme();
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -309,16 +308,8 @@ const Header = ({
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-4">
-        {/* Light / dark switch (customer and admin dashboards). */}
-        <button
-          type="button"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          title={theme === 'light' ? 'Dark mode' : 'Light mode'}
-          className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-        >
-          {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
-        </button>
+        {/* Light / dark switch (one choice for the whole site). */}
+        <ThemeToggle className="text-gray-400 hover:text-white hover:bg-white/5" />
 
         {/* Notification Container */}
         <div className="relative" ref={dropdownRef}>

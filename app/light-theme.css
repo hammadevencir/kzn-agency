@@ -1,9 +1,10 @@
 /*
- * Light theme ("Cool Slate", client choice 2026-10-26) for the customer and
- * admin dashboards. Maps the dark colour classes the pages use to their light
- * equivalents; dark mode is untouched. A new dark colour class on a dashboard
- * page needs a line here too. Active only while <html data-theme="light"> (set
- * by the customer / admin layout from the saved preference). The sidebar keeps the dark look
+ * Light theme ("Cool Slate", client choice 2026-10-26) for the whole site:
+ * website, login and the customer / admin dashboards. Maps the dark colour
+ * classes the pages use to their light equivalents; dark mode is untouched.
+ * A new dark colour class on a page needs a line here too. Active only while
+ * <html data-theme="light"> (saved choice, applied before first paint by the
+ * root layout). The sidebar keeps the dark look
  * ([data-keep-dark]). Unlayered on purpose so it wins over Tailwind utilities.
  */
 
@@ -46,6 +47,8 @@ html[data-theme="light"] .bg-\[\#161D26\]:not([data-keep-dark] *), html[data-the
 html[data-theme="light"] .bg-\[\#0D1216\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#0B1219\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#0D151C\]:not([data-keep-dark] *) { background-color: #F4F6F8; }
+html[data-theme="light"] .bg-\[\#F8F8F808\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#0D0D10\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#11191F\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#151E25\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#151D24\]:not([data-keep-dark] *),
@@ -84,7 +87,17 @@ html[data-theme="light"] .hover\:bg-white\/5:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:bg-\[\#1C242D\]:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:bg-\[\#162028\]:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:bg-gray-800:hover:not([data-keep-dark] *),
-html[data-theme="light"] .hover\:bg-\[\#1A222C\]:hover:not([data-keep-dark] *) { background-color: #F7F9FB; }
+html[data-theme="light"] .hover\:bg-\[\#1A222C\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-gray-700\/50:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-gray-700\/30:hover:not([data-keep-dark] *) { background-color: #F7F9FB; }
+html[data-theme="light"] .from-\[\#0D0D10\]:not([data-keep-dark] *) { --tw-gradient-from: #FFFFFF; }
+html[data-theme="light"] .to-\[\#18181D\]:not([data-keep-dark] *) { --tw-gradient-to: #EEF1F4; }
+html[data-theme="light"] .kz-site { background-color: #F4F6F8; }
+html[data-theme="light"] .gradient-bg { background: radial-gradient(45.34% 45.34% at 50.83% -0.05%, #FFFFFF 0%, #F4F6F8 100%); }
+html[data-theme="light"] .making-gradient-bg { background: linear-gradient(23.95deg, rgba(17, 25, 31, 0.03) 30.95%, rgba(17, 25, 31, 0.06) 83.96%); }
+html[data-theme="light"] .achievements-card, html[data-theme="light"] .card-gradient-bg { background: linear-gradient(23.95deg, #FFFFFF 30.95%, #F4F6F8 83.96%); border-color: #DFE4EA; box-shadow: 0 1px 3px rgba(17, 25, 31, 0.06); }
+html[data-theme="light"] .achievements-card-icon { background-color: #EEF1F4; border-color: #DFE4EA; box-shadow: none; }
+html[data-theme="light"] .kz-site-header-bg { background: rgba(255, 255, 255, 0.92) !important; box-shadow: 0 1px 0 #DFE4EA; backdrop-filter: blur(8px); }
 
 html[data-theme="light"] .text-white:not([data-keep-dark] *),
 html[data-theme="light"] .text-white\/90:not([data-keep-dark] *),
@@ -104,7 +117,10 @@ html[data-theme="light"] .text-\[\#9CA3AF\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#B0B0B0\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#4E5660\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#8B8069\]:not([data-keep-dark] *),
-html[data-theme="light"] .text-\[\#686049\]:not([data-keep-dark] *) { color: #5B6670; }
+html[data-theme="light"] .text-\[\#686049\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#7E808A\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-yellow-100\/50:not([data-keep-dark] *) { color: #5B6670; }
+html[data-theme="light"] .text-\[\#D4B060\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#C5A964\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#CBAF69\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#B89C57\]:not([data-keep-dark] *),
@@ -118,7 +134,8 @@ html[data-theme="light"] .hover\:text-\[\#D4BB7D\]:hover:not([data-keep-dark] *)
 html[data-theme="light"] .hover\:text-\[\#C5A964\]:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:text-\[\#d8be7b\]:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:text-\[\#d4b978\]:hover:not([data-keep-dark] *),
-html[data-theme="light"] .hover\:text-\[\#C5A964\]\/80:hover:not([data-keep-dark] *) { color: #6E5316; }
+html[data-theme="light"] .hover\:text-\[\#C5A964\]\/80:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-primary:hover:not([data-keep-dark] *) { color: #6E5316; }
 html[data-theme="light"] .hover\:text-gray-300:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:text-white\/70:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:text-white:hover:not([data-keep-dark] *) { color: #11191F; }
@@ -136,6 +153,10 @@ html[data-theme="light"] .text-\[\#FF8FA7\]:not([data-keep-dark] *) { color: #B4
 html[data-theme="light"] .text-\[\#F5B301\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#F5A524\]:not([data-keep-dark] *) { color: #8A5A00; }
 
+html[data-theme="light"] .border-\[\#F8F8F80D\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#404040\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-gray-800\/50:not([data-keep-dark] *),
+html[data-theme="light"] .border-gray-700\/50:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/5:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/10:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/15:not([data-keep-dark] *),
@@ -154,6 +175,7 @@ html[data-theme="light"] .border-border\/60:not([data-keep-dark] *),
 html[data-theme="light"] .border-border\/20:not([data-keep-dark] *) { border-color: #DFE4EA; }
 html[data-theme="light"] .divide-white\/5:not([data-keep-dark] *) > :not(:last-child),
 html[data-theme="light"] .divide-white\/10:not([data-keep-dark] *) > :not(:last-child) { border-color: #DFE4EA; }
+html[data-theme="light"] .hover\:border-gray-700\/50:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:border-white\/10:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:border-white\/20:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:border-\[\#B0B0B0\]\/40:hover:not([data-keep-dark] *) { border-color: #C9D1DA; }
@@ -165,9 +187,9 @@ html[data-theme="light"] .placeholder\:text-quaternary::placeholder,
 html[data-theme="light"] .placeholder-gray-400::placeholder { color: #8A949E; }
 
 /* White text (and white icons) on solid coloured backgrounds stays white. */
-html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500).text-white,
-html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500) .text-white,
-html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500).text-white\/90 { color: #ffffff; }
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500, .bg-\[\#D4B060\], .bg-\[\#5865F2\], .bg-\[\#25D366\], .bg-\[\#0088CC\], .bg-\[\#1DA1F2\]).text-white,
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500, .bg-\[\#D4B060\], .bg-\[\#5865F2\], .bg-\[\#25D366\], .bg-\[\#0088CC\], .bg-\[\#1DA1F2\]) .text-white,
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500, .bg-\[\#D4B060\], .bg-\[\#5865F2\], .bg-\[\#25D366\], .bg-\[\#0088CC\], .bg-\[\#1DA1F2\]).text-white\/90 { color: #ffffff; }
 
 /* Inline icons drawn in white follow the text colour, so they show on light
    cards and stay white inside coloured pills and buttons. */

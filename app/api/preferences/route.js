@@ -10,7 +10,9 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const snap = await getAdminDb().collection("users").doc(user.uid).get();
-  const theme = snap.exists && snap.data()?.uiTheme === "light" ? "light" : "dark";
+  const saved = snap.exists ? snap.data()?.uiTheme : null;
+  // null: never chosen on this account (the device's choice is kept).
+  const theme = saved === "light" || saved === "dark" ? saved : null;
   return NextResponse.json({ theme });
 }
 

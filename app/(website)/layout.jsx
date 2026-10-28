@@ -10,7 +10,7 @@ import AreYouReady from "@/components/sections/website/common/AreYouReady";
 
 const WebsiteLayout = ({ children }) => {
   return (
-    <div className="text-white bg-secondary flex flex-col w-full h-full max-w-screen overflow-x-hidden relative">
+    <div className="kz-site text-white bg-secondary flex flex-col w-full h-full max-w-screen overflow-x-hidden relative">
       <Header />
       {children}
       <ComparisonSection />
