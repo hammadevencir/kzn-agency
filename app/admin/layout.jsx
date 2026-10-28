@@ -17,6 +17,7 @@ import {
   hiddenAdminSections,
 } from '@/lib/auth/admin-permissions';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
+import { useDashboardTheme } from '@/lib/theme/use-dashboard-theme';
 
 const TICKET_COUNT_POLL_MS = 60_000;
 
@@ -73,6 +74,9 @@ const AdminLayout = ({ children }) => {
     loginPath: '/login',
     enabled: !isLoginPage,
   });
+
+  // Colour theme (light / dark), see lib/theme/use-dashboard-theme.js.
+  useDashboardTheme(!isLoginPage);
 
   // Determine active item based on current path (specific routes before dashboard)
   const getActiveItem = () => {

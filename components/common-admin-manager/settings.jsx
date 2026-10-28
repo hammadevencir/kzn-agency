@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AppearanceCard from '@/components/common/appearance-card';
 import {
   EmailAuthProvider,
   onAuthStateChanged,
@@ -607,6 +608,8 @@ export default function Settings({ role = 'admin' }) {
           </>
         )}
       </div>
+
+      <AppearanceCard />
     </div>
   );
 }

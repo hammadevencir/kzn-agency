@@ -33,7 +33,7 @@ export function statusTone(label) {
   return { tone: "neutral" };
 }
 
-// Colours live in app/user/light-theme.css (solid in dark, soft tint in light).
+// Colours: globals.css (solid, dark theme) and app/light-theme.css (soft tint, light theme).
 const TONE_CLASS = {
   success: "kz-pill--success",
   warning: "kz-pill--warning",

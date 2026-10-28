@@ -246,7 +246,7 @@ const Sidebar = ({
       
       {/* Sidebar */}
       <div
-        // Stays dark in the customer light theme (app/user/light-theme.css).
+        // Stays dark in the light theme (app/light-theme.css).
         data-keep-dark=""
         className={`
           w-[254px] h-screen bg-tertiary flex flex-col overflow-hidden fixed left-0 top-0 z-50

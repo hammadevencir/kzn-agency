@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { requireEndUserSession } from "@/lib/auth/require-user-session";
+import { getSessionUser } from "@/lib/auth/require-user-session";
 
-/** GET — the customer's UI preferences (currently the colour theme). */
+/** GET — the signed-in customer's or admin's UI preferences (the colour theme). */
 export async function GET() {
-  const user = await requireEndUserSession();
+  const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -16,7 +16,7 @@ export async function GET() {
 
 /** PUT { theme: 'dark' | 'light' } */
 export async function PUT(request) {
-  const user = await requireEndUserSession();
+  const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

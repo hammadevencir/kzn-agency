@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import "./globals.css";
+import "./light-theme.css";
 import { Inter, Syne } from "next/font/google";
 import { USER_THEME_BOOT_SCRIPT } from "@/lib/theme/user-theme-constants";
 

@@ -16,12 +16,7 @@ import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
 import { HELP_CENTER_ENABLED } from '@/lib/features';
-import {
-  applyThemeToDocument,
-  readStoredTheme,
-  setUserTheme,
-} from '@/lib/theme/user-theme';
-import './light-theme.css';
+import { useDashboardTheme } from '@/lib/theme/use-dashboard-theme';
 
 /**
  * Sections a customer can reach before we've confirmed a subscription payment:
@@ -63,31 +58,8 @@ const UserLayout = ({ children }) => {
     enabled: !isAuthPage,
   });
 
-  // Colour theme: the saved choice on this device first, then the one on the
-  // profile (it follows the customer across devices). Leaving the customer
-  // area (logout, admin) drops it.
-  useEffect(() => {
-    if (isAuthPage) {
-      applyThemeToDocument(null);
-      return undefined;
-    }
-    const startTheme = readStoredTheme();
-    applyThemeToDocument(startTheme);
-    let cancelled = false;
-    void fetch('/api/user/preferences', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled || !d || (d.theme !== 'light' && d.theme !== 'dark')) return;
-        // The customer switched while this was loading: their click wins.
-        if (readStoredTheme() !== startTheme) return;
-        if (d.theme !== startTheme) setUserTheme(d.theme, { persist: false });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      applyThemeToDocument(null);
-    };
-  }, [isAuthPage]);
+  // Colour theme (light / dark), see lib/theme/use-dashboard-theme.js.
+  useDashboardTheme(!isAuthPage);
 
   const {
     hasConfirmedSubscription,

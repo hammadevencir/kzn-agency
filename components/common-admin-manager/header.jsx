@@ -309,18 +309,16 @@ const Header = ({
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-4">
-        {/* Light / dark switch — customer area only. */}
-        {!isAdminArea ? (
-          <button
-            type="button"
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            title={theme === 'light' ? 'Dark mode' : 'Light mode'}
-            className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
-          </button>
-        ) : null}
+        {/* Light / dark switch (customer and admin dashboards). */}
+        <button
+          type="button"
+          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+          className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+        >
+          {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+        </button>
 
         {/* Notification Container */}
         <div className="relative" ref={dropdownRef}>

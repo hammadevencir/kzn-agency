@@ -23,7 +23,7 @@ import { establishSession } from "@/lib/auth/establish-session";
 import { ROLE } from "@/lib/auth/constants";
 import { emitAuthProfileUpdated } from "@/lib/auth/emit-auth-profile-updated";
 import BillingDetailsCard from "./billing-details-card";
-import AppearanceCard from "./appearance-card";
+import AppearanceCard from "@/components/common/appearance-card";
 
 const AVATAR_STORAGE_PATH = "avatar";
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;

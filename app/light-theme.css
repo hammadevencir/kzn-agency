@@ -1,9 +1,9 @@
 /*
- * Light theme ("Cool Slate", client choice 2026-10-26) for the customer area.
- * Maps the dark colour classes the customer pages use to their light
- * equivalents; dark mode is untouched. A new dark colour class on a customer
- * page needs a line here too. Active only while <html data-theme="light"> (set by the user
- * layout from the saved preference). The sidebar keeps the dark look
+ * Light theme ("Cool Slate", client choice 2026-10-26) for the customer and
+ * admin dashboards. Maps the dark colour classes the pages use to their light
+ * equivalents; dark mode is untouched. A new dark colour class on a dashboard
+ * page needs a line here too. Active only while <html data-theme="light"> (set
+ * by the customer / admin layout from the saved preference). The sidebar keeps the dark look
  * ([data-keep-dark]). Unlayered on purpose so it wins over Tailwind utilities.
  */
 
@@ -71,7 +71,8 @@ html[data-theme="light"] .bg-white\/5:not([data-keep-dark] *),
 html[data-theme="light"] .bg-white\/10:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#151E25\]\/30:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#161D26\]\/30:not([data-keep-dark] *),
-html[data-theme="light"] .bg-\[\#3E3E3E\]:not([data-keep-dark] *) { background-color: #EEF1F4; }
+html[data-theme="light"] .bg-\[\#3E3E3E\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-white\/20:not([data-keep-dark] *) { background-color: #EEF1F4; }
 html[data-theme="light"] .bg-\[\#3B321D\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#3B3423\]:not([data-keep-dark] *),
 html[data-theme="light"] .bg-\[\#2E281E\]:not([data-keep-dark] *),
@@ -82,7 +83,8 @@ html[data-theme="light"] .bg-\[\#6B5A3A\]:not([data-keep-dark] *) { background-c
 html[data-theme="light"] .hover\:bg-white\/5:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:bg-\[\#1C242D\]:hover:not([data-keep-dark] *),
 html[data-theme="light"] .hover\:bg-\[\#162028\]:hover:not([data-keep-dark] *),
-html[data-theme="light"] .hover\:bg-gray-800:hover:not([data-keep-dark] *) { background-color: #F7F9FB; }
+html[data-theme="light"] .hover\:bg-gray-800:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-\[\#1A222C\]:hover:not([data-keep-dark] *) { background-color: #F7F9FB; }
 
 html[data-theme="light"] .text-white:not([data-keep-dark] *),
 html[data-theme="light"] .text-white\/90:not([data-keep-dark] *),
@@ -128,7 +130,9 @@ html[data-theme="light"] .text-\[\#FF4D59\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#FA3C67\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#FF9599\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#FF5A7E\]:not([data-keep-dark] *),
-html[data-theme="light"] .text-red-400:not([data-keep-dark] *) { color: #B42332; }
+html[data-theme="light"] .text-red-400:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#e66767\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#FF8FA7\]:not([data-keep-dark] *) { color: #B42332; }
 html[data-theme="light"] .text-\[\#F5B301\]:not([data-keep-dark] *),
 html[data-theme="light"] .text-\[\#F5A524\]:not([data-keep-dark] *) { color: #8A5A00; }
 
@@ -136,6 +140,7 @@ html[data-theme="light"] .border-white\/5:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/10:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/15:not([data-keep-dark] *),
 html[data-theme="light"] .border-white\/20:not([data-keep-dark] *),
+html[data-theme="light"] .border-white\/25:not([data-keep-dark] *),
 html[data-theme="light"] .border-\[\#373D45\]:not([data-keep-dark] *),
 html[data-theme="light"] .border-\[\#3B424D\]:not([data-keep-dark] *),
 html[data-theme="light"] .border-\[\#232A33\]:not([data-keep-dark] *),
@@ -156,7 +161,8 @@ html[data-theme="light"] .placeholder-\[\#4E5660\]::placeholder,
 html[data-theme="light"] .placeholder\:text-\[\#8B9197\]::placeholder,
 html[data-theme="light"] .placeholder-white\/50::placeholder,
 html[data-theme="light"] .placeholder\:text-\[\#8B9197\]\/50::placeholder,
-html[data-theme="light"] .placeholder\:text-quaternary::placeholder { color: #8A949E; }
+html[data-theme="light"] .placeholder\:text-quaternary::placeholder,
+html[data-theme="light"] .placeholder-gray-400::placeholder { color: #8A949E; }
 
 /* White text (and white icons) on solid coloured backgrounds stays white. */
 html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500).text-white,
@@ -177,7 +183,8 @@ html[data-theme="light"] svg:not([data-keep-dark] svg) [fill="#F9F6F0"] { fill: 
 /* Light artwork (the white-hat illustration) gets a soft outline on white. */
 html[data-theme="light"] .kz-light-outline { filter: drop-shadow(0 1px 1px rgba(17, 25, 31, 0.45)); }
 
-/* Status pills (components/common/status-pill.jsx): soft tints in light mode. */
+/* Status pills (components/common/status-pill.jsx): soft tints in light mode
+   (the solid dark-mode colours are in globals.css). */
 html[data-theme="light"] .kz-pill--success:not([data-keep-dark] *) { background: #E6F4EC; color: #1E7A4C; }
 html[data-theme="light"] .kz-pill--warning:not([data-keep-dark] *) { background: #F8F0DC; color: #8C6A1F; }
 html[data-theme="light"] .kz-pill--danger:not([data-keep-dark] *) { background: #FBE9EB; color: #B42332; }

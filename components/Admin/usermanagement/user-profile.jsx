@@ -89,29 +89,27 @@ const UserProfile = ({ user }) => {
           subs.map((sub) => (
             <div
               key={sub.id}
-              className="bg-[#161D26] p-5 border-white/5 rounded-2xl border space-y-4"
+              className="bg-[#161D26] p-5 border-white/5 rounded-2xl border space-y-3"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="bg-[#1C262F] p-3 rounded-xl shrink-0">
-                    <Image
-                      src={sub.platformIconPath || "/platforms/meta.svg"}
-                      alt={sub.platformLabel || "Platform"}
-                      width={28}
-                      height={28}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-white font-semibold text-lg break-words">
-                      {sub.platformLabel}
-                    </h4>
-                    <p className="text-quaternary text-sm font-light">
-                      Ad Accounts:{" "}
-                      {String(sub.adAccountsOnPlatform ?? 0).padStart(2, "0")}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="bg-[#1C262F] p-2.5 rounded-xl shrink-0">
+                  <Image
+                    src={sub.platformIconPath || "/platforms/meta.svg"}
+                    alt={sub.platformLabel || "Platform"}
+                    width={24}
+                    height={24}
+                  />
                 </div>
-                <div className="text-right flex flex-col items-end gap-2 shrink-0">
+                <h4 className="text-white font-semibold text-base leading-snug min-w-0 break-words">
+                  {sub.platformLabel}
+                </h4>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-quaternary text-sm font-light">
+                  Ad Accounts:{" "}
+                  {String(sub.adAccountsOnPlatform ?? 0).padStart(2, "0")}
+                </p>
+                <div className="flex items-center gap-2">
                   <span className="text-[#C5A964] font-medium text-sm">
                     {sub.amountLabel}
                   </span>
