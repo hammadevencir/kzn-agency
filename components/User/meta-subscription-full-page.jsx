@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -13,6 +13,13 @@ import {
   ChevronLeftIcon,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import PayNowModal from "@/components/User/pay-now-modal";
 import SubscriptionSuccessModal from "@/components/User/subscription-success-modal";
 import { useSubscriptionCheckoutPersistence } from "@/lib/hooks/useSubscriptionCheckoutPersistence";
@@ -89,6 +96,7 @@ export default function MetaSubscriptionFullPage({ category }) {
   const [subPayData, setSubPayData] = useState(null);
   const [isSubSuccessOpen, setIsSubSuccessOpen] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [isSwitchConfirmOpen, setIsSwitchConfirmOpen] = useState(false);
 
   const plans = metaPlansForCategory(category);
   const isVip = category === "vip";
@@ -134,6 +142,20 @@ export default function MetaSubscriptionFullPage({ category }) {
     : undefined;
   const upgradeReviewPending =
     activeMetaDocSameCategory?.pendingUpgradeReview === true;
+  /** Customer already has this package line → the page switches packages. */
+  const isSwitchMode = Boolean(activeMetaDocSameCategory);
+
+  // A lapsed plan in this category is renewed from Subscriptions — buying
+  // here would create a second plan (one plan per category).
+  const expiredMetaDocSameCategory = activeMetaDocSameCategory
+    ? null
+    : subscriptionDocs.find(
+        (d) =>
+          isMetaDoc(d) &&
+          metaCategoryForDoc(d) === category &&
+          (d.status === "approved" || d.status === "active" || d.status === "expired") &&
+          !isSubscriptionActive(d)
+      ) || null;
 
   // Derive the "current plan" highlight from the same-category doc directly,
   // so users with subscriptions in BOTH categories see the correct highlight on
@@ -154,15 +176,35 @@ export default function MetaSubscriptionFullPage({ category }) {
     return match ? match.name : null;
   }, [category, rawTier]);
 
-  useEffect(() => {
-    if (!currentPlanName) return;
-    setSelectedPlan((prev) => (prev == null ? currentPlanName : prev));
-  }, [currentPlanName]);
+  const selectedPlanInfo = selectedPlan ? findMetaPlan(category, selectedPlan) : null;
+  const currentPlanInfo = currentPlanName ? findMetaPlan(category, currentPlanName) : null;
+  const canCheckout =
+    Boolean(selectedPlan) &&
+    selectedPlan !== currentPlanName &&
+    !upgradeReviewPending &&
+    !expiredMetaDocSameCategory;
+
+  /** @param {string} name */
+  const handleSelectPlan = (name) => {
+    if (name === currentPlanName) {
+      toast("This is your current package. Choose another package to switch.");
+      return;
+    }
+    setSelectedPlan(name);
+  };
+
+  const handlePrimaryClick = () => {
+    if (isSwitchMode) {
+      setIsSwitchConfirmOpen(true);
+      return;
+    }
+    void handleSubscribe();
+  };
 
   const handleSubscribe = async () => {
     if (upgradeReviewPending) {
       toast.error(
-        "You already have a subscription upgrade awaiting admin approval."
+        "Your package switch is already waiting for admin approval."
       );
       return;
     }
@@ -211,8 +253,15 @@ export default function MetaSubscriptionFullPage({ category }) {
         meta: { category, planTier: plan.name },
         upgradeSubscriptionId,
       });
-    } catch {
-      toast.error("Could not start subscription. Please try again.");
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "";
+      toast.error(
+        code === "same_plan" ||
+          code === "renew_existing_plan" ||
+          code === "upgrade_already_pending"
+          ? describeSubscriptionRequestError(err)
+          : "Could not start subscription. Please try again."
+      );
       return;
     } finally {
       setCheckoutPending(false);
@@ -273,7 +322,7 @@ export default function MetaSubscriptionFullPage({ category }) {
       <div className="max-w-[1200px] mx-auto bg-[#11191F] rounded-[32px] border border-white/5 overflow-hidden shadow-2xl">
         <div className="p-8 md:p-12">
           <div className="flex flex-col items-center text-center mb-12">
-            <div className="mb-6 scale-110">
+            <div className="mb-6 scale-110 kz-light-outline">
               {isVip ? (
                 <VIPHatIcon width={120} height={80} />
               ) : (
@@ -334,7 +383,7 @@ export default function MetaSubscriptionFullPage({ category }) {
               return (
               <div
                 key={plan.name}
-                onClick={() => setSelectedPlan(plan.name)}
+                onClick={() => handleSelectPlan(plan.name)}
                 className={`
                   bg-[#161D26] rounded-2xl border p-6 flex flex-row items-center gap-6 transition-all duration-300 cursor-pointer min-h-[180px]
                   ${borderClass}
@@ -395,6 +444,29 @@ export default function MetaSubscriptionFullPage({ category }) {
             })}
           </div>
 
+          {upgradeReviewPending ? (
+            <div className="mb-8 rounded-2xl border border-[#C5A964]/40 bg-[#C5A964]/10 p-4 text-center text-[14px] text-[#C5A964]">
+              Your package switch is waiting for admin approval. You can switch again after it is reviewed.
+            </div>
+          ) : expiredMetaDocSameCategory ? (
+            <div className="mb-8 rounded-2xl border border-[#FF4D59]/40 bg-[#FF4D59]/10 p-4 text-center text-[14px] text-white">
+              Your {isVip ? "Supplements" : "Agency"} plan has expired. Renew it from{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/user/subscriptions")}
+                className="text-[#C5A964] font-semibold hover:underline"
+              >
+                Subscriptions
+              </button>{" "}
+              first. You can switch packages once it is active again.
+            </div>
+          ) : isSwitchMode && currentPlanName ? (
+            <div className="mb-8 rounded-2xl border border-white/10 bg-[#1A2228] p-4 text-center text-[14px] text-gray-300">
+              You&apos;re on <span className="text-[#C5A964] font-semibold">{currentPlanName}</span>.
+              Choose a different package above to switch.
+            </div>
+          ) : null}
+
           <div className="text-center">
             <h3 className="text-[18px] font-bold mb-2">
               {isVip
@@ -408,11 +480,11 @@ export default function MetaSubscriptionFullPage({ category }) {
             </p>
             <Button
               type="button"
-              disabled={!selectedPlan || checkoutPending}
-              onClick={() => void handleSubscribe()}
+              disabled={!canCheckout || checkoutPending}
+              onClick={handlePrimaryClick}
               className="bg-[#C5A964] hover:bg-[#D4BB7D] text-[#11191F] disabled:bg-[#484535] disabled:text-gray-500 disabled:opacity-50 px-10 h-14 rounded-xl text-[18px] font-bold transition-all duration-300 shadow-lg shadow-[#C5A964]/10"
             >
-              {checkoutPending ? "Starting…" : "Subscribe"}
+              {checkoutPending ? "Starting…" : isSwitchMode ? "Switch package" : "Subscribe"}
             </Button>
           </div>
         </div>
@@ -464,6 +536,64 @@ export default function MetaSubscriptionFullPage({ category }) {
         onSuccess={handleSubPayDone}
         flowType="platformSubscription"
       />
+
+      <Dialog open={isSwitchConfirmOpen} onOpenChange={setIsSwitchConfirmOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="bg-[#11191F] border border-white/10 text-white rounded-2xl p-8 max-w-md"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white text-center">
+              Switch to a different package?
+            </DialogTitle>
+            <DialogDescription className="text-center text-[14px] text-gray-400 pt-2">
+              You&apos;re switching from{" "}
+              <span className="text-white font-semibold">{currentPlanName || "your current package"}</span>{" "}
+              to <span className="text-[#C5A964] font-semibold">{selectedPlan}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-xl bg-[#161D26] p-4 text-[13px] text-gray-300">
+            <div className="flex justify-between gap-4">
+              <span>New monthly fee</span>
+              <span className="text-white font-semibold">{selectedPlanInfo?.monthlyFee || "—"}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>New top-up fee</span>
+              <span className="text-white font-semibold">
+                {selectedPlanInfo?.topUpFee || "—"}
+                {currentPlanInfo?.topUpFee ? (
+                  <span className="text-gray-500 font-normal"> (now {currentPlanInfo.topUpFee})</span>
+                ) : null}
+              </span>
+            </div>
+          </div>
+          <p className="text-[13px] text-gray-400 text-center">
+            The new package is paid now. Your current package stays active until our team approves the
+            switch; from then the new package runs for 28 days. Remaining days of your current package
+            are not carried over.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              onClick={() => setIsSwitchConfirmOpen(false)}
+              className="flex-1 h-12 rounded-xl bg-transparent border border-[#C5A964] text-[#C5A964] hover:bg-[#C5A964]/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={checkoutPending}
+              onClick={() => {
+                setIsSwitchConfirmOpen(false);
+                void handleSubscribe();
+              }}
+              className="flex-1 h-12 rounded-xl bg-[#C5A964] hover:bg-[#D4BB7D] text-[#11191F] font-bold"
+            >
+              Switch &amp; pay
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <SubscriptionSuccessModal
         isOpen={isSubSuccessOpen}

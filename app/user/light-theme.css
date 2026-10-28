@@ -1,0 +1,185 @@
+/*
+ * Light theme ("Cool Slate", client choice 2026-10-26) for the customer area.
+ * Maps the dark colour classes the customer pages use to their light
+ * equivalents; dark mode is untouched. A new dark colour class on a customer
+ * page needs a line here too. Active only while <html data-theme="light"> (set by the user
+ * layout from the saved preference). The sidebar keeps the dark look
+ * ([data-keep-dark]). Unlayered on purpose so it wins over Tailwind utilities.
+ */
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --background: #F4F6F8;
+  --foreground: #11191F;
+  --card: #FFFFFF;
+  --card-foreground: #11191F;
+  --popover: #FFFFFF;
+  --popover-foreground: #11191F;
+  --secondary: #EEF1F4;
+  --secondary-foreground: #11191F;
+  --tertiary: #FFFFFF;
+  --quaternary: #5B6670;
+  --muted: #EEF1F4;
+  --muted-foreground: #5B6670;
+  --border: #DFE4EA;
+  --input: #EEF1F4;
+}
+html[data-theme="light"] body { background: #F4F6F8; color: #11191F; }
+html[data-theme="light"] [data-keep-dark] {
+  color-scheme: dark;
+  --background: #151E25;
+  --foreground: #ffffff;
+  --card: #11191F;
+  --secondary: #151E25;
+  --tertiary: #11191F;
+  --quaternary: #B0B0B0;
+  --muted: #11191F;
+  --border: #11191F;
+  --input: #151E25;
+}
+/* Cards float on the page with a soft shadow instead of a dark edge. */
+html[data-theme="light"] .bg-tertiary:not([data-keep-dark] *), html[data-theme="light"] .bg-\[\#11191F\]:not([data-keep-dark] *), html[data-theme="light"] .bg-\[\#151E25\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#161D26\]:not([data-keep-dark] *), html[data-theme="light"] .bg-\[\#151D24\]:not([data-keep-dark] *) {
+  box-shadow: 0 1px 3px rgba(17, 25, 31, 0.06);
+}
+
+html[data-theme="light"] .bg-\[\#0D1216\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#0B1219\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#0D151C\]:not([data-keep-dark] *) { background-color: #F4F6F8; }
+html[data-theme="light"] .bg-\[\#11191F\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#151E25\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#151D24\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#161D26\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#111821\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#121920\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1a1f28\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1A2632\]:not([data-keep-dark] *) { background-color: #FFFFFF; }
+html[data-theme="light"] .bg-\[\#1C242C\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#252D32\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#252D33\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#2A3540\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1A2228\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#212930\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1B252E\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#2A313C\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#0E1318\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#232A33\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1A262E\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1C232B\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1C262F\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-white\/5:not([data-keep-dark] *),
+html[data-theme="light"] .bg-white\/10:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#151E25\]\/30:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#161D26\]\/30:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#3E3E3E\]:not([data-keep-dark] *) { background-color: #EEF1F4; }
+html[data-theme="light"] .bg-\[\#3B321D\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#3B3423\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#2E281E\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#2E281C\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1F1D19\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#1F1D16\]:not([data-keep-dark] *),
+html[data-theme="light"] .bg-\[\#6B5A3A\]:not([data-keep-dark] *) { background-color: #F8F0DC; }
+html[data-theme="light"] .hover\:bg-white\/5:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-\[\#1C242D\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-\[\#162028\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:bg-gray-800:hover:not([data-keep-dark] *) { background-color: #F7F9FB; }
+
+html[data-theme="light"] .text-white:not([data-keep-dark] *),
+html[data-theme="light"] .text-white\/90:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#D4D6D9\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-gray-200:not([data-keep-dark] *) { color: #11191F; }
+html[data-theme="light"] .text-white\/80:not([data-keep-dark] *),
+html[data-theme="light"] .text-white\/70:not([data-keep-dark] *),
+html[data-theme="light"] .text-white\/60:not([data-keep-dark] *),
+html[data-theme="light"] .text-gray-300:not([data-keep-dark] *) { color: #3E4A55; }
+html[data-theme="light"] .text-\[\#8B9197\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#8B9197\]\/70:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#8B9197\]\/60:not([data-keep-dark] *),
+html[data-theme="light"] .text-gray-400:not([data-keep-dark] *),
+html[data-theme="light"] .text-gray-500:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#94A3B8\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#9CA3AF\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#B0B0B0\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#4E5660\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#8B8069\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#686049\]:not([data-keep-dark] *) { color: #5B6670; }
+html[data-theme="light"] .text-\[\#C5A964\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#CBAF69\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#B89C57\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#D4BB7D\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#d4b978\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#F2C46D\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#E8D7B0\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-primary:not([data-keep-dark] *),
+html[data-theme="light"] .text-primary\/80:not([data-keep-dark] *) { color: #8C6A1F; }
+html[data-theme="light"] .hover\:text-\[\#D4BB7D\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-\[\#C5A964\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-\[\#d8be7b\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-\[\#d4b978\]:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-\[\#C5A964\]\/80:hover:not([data-keep-dark] *) { color: #6E5316; }
+html[data-theme="light"] .hover\:text-gray-300:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-white\/70:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:text-white:hover:not([data-keep-dark] *) { color: #11191F; }
+html[data-theme="light"] .text-\[\#39CB7F\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#4ADE80\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#22C55E\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#2EE073\]:not([data-keep-dark] *) { color: #1E7A4C; }
+html[data-theme="light"] .text-\[\#FF4D59\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#FA3C67\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#FF9599\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#FF5A7E\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-red-400:not([data-keep-dark] *) { color: #B42332; }
+html[data-theme="light"] .text-\[\#F5B301\]:not([data-keep-dark] *),
+html[data-theme="light"] .text-\[\#F5A524\]:not([data-keep-dark] *) { color: #8A5A00; }
+
+html[data-theme="light"] .border-white\/5:not([data-keep-dark] *),
+html[data-theme="light"] .border-white\/10:not([data-keep-dark] *),
+html[data-theme="light"] .border-white\/15:not([data-keep-dark] *),
+html[data-theme="light"] .border-white\/20:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#373D45\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#3B424D\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#232A33\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#E5E5E529\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#B0B0B0\]\/20:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#161D26\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-\[\#11191F\]:not([data-keep-dark] *),
+html[data-theme="light"] .border-border:not([data-keep-dark] *),
+html[data-theme="light"] .border-border\/50:not([data-keep-dark] *),
+html[data-theme="light"] .border-border\/60:not([data-keep-dark] *),
+html[data-theme="light"] .border-border\/20:not([data-keep-dark] *) { border-color: #DFE4EA; }
+html[data-theme="light"] .divide-white\/5:not([data-keep-dark] *) > :not(:last-child),
+html[data-theme="light"] .divide-white\/10:not([data-keep-dark] *) > :not(:last-child) { border-color: #DFE4EA; }
+html[data-theme="light"] .hover\:border-white\/10:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:border-white\/20:hover:not([data-keep-dark] *),
+html[data-theme="light"] .hover\:border-\[\#B0B0B0\]\/40:hover:not([data-keep-dark] *) { border-color: #C9D1DA; }
+html[data-theme="light"] .placeholder-\[\#4E5660\]::placeholder,
+html[data-theme="light"] .placeholder\:text-\[\#8B9197\]::placeholder,
+html[data-theme="light"] .placeholder-white\/50::placeholder,
+html[data-theme="light"] .placeholder\:text-\[\#8B9197\]\/50::placeholder,
+html[data-theme="light"] .placeholder\:text-quaternary::placeholder { color: #8A949E; }
+
+/* White text (and white icons) on solid coloured backgrounds stays white. */
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500).text-white,
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500) .text-white,
+html[data-theme="light"] :is(.bg-\[\#39CB7F\], .bg-\[\#FF4D59\], .bg-\[\#FA3C67\], .bg-\[\#F5B301\], .bg-\[\#22C55E\], .bg-\[\#E5A23A\], .bg-\[\#28C76F\], .bg-\[\#FF4D4D\], .bg-\[\#8B9197\], .bg-\[\#C5A964\], .bg-\[\#CBAF69\], .bg-\[\#B89C57\], .bg-\[\#C2A866\], .bg-primary, .bg-\[\#3B82F6\], .bg-\[\#00B67A\], .bg-\[\#4B5563\], .bg-black, .bg-black\/40, .bg-black\/50, .bg-black\/70, .bg-red-500, .bg-green-500).text-white\/90 { color: #ffffff; }
+
+/* Inline icons drawn in white follow the text colour, so they show on light
+   cards and stay white inside coloured pills and buttons. */
+html[data-theme="light"] svg:not([data-keep-dark] svg) [stroke="white"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [stroke="#fff"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [stroke="#FFFFFF"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [stroke="#F9F6F0"] { stroke: currentColor; }
+html[data-theme="light"] svg:not([data-keep-dark] svg) [fill="white"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [fill="#fff"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [fill="#FFFFFF"],
+html[data-theme="light"] svg:not([data-keep-dark] svg) [fill="#F9F6F0"] { fill: currentColor; }
+
+/* Light artwork (the white-hat illustration) gets a soft outline on white. */
+html[data-theme="light"] .kz-light-outline { filter: drop-shadow(0 1px 1px rgba(17, 25, 31, 0.45)); }
+
+/* Status pills (components/common/status-pill.jsx): soft tints in light mode. */
+html[data-theme="light"] .kz-pill--success:not([data-keep-dark] *) { background: #E6F4EC; color: #1E7A4C; }
+html[data-theme="light"] .kz-pill--warning:not([data-keep-dark] *) { background: #F8F0DC; color: #8C6A1F; }
+html[data-theme="light"] .kz-pill--danger:not([data-keep-dark] *) { background: #FBE9EB; color: #B42332; }
+html[data-theme="light"] .kz-pill--paused:not([data-keep-dark] *) { background: #FDF3D8; color: #8A5A00; }
+html[data-theme="light"] .kz-pill--neutral:not([data-keep-dark] *) { background: #EEF1F4; color: #3E4A55; }

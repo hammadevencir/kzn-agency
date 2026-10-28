@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { NotificationIcon } from '@/components/icons';
-import { X } from 'lucide-react';
+import { Moon, Sun, X } from 'lucide-react';
+import { useUserTheme } from '@/lib/theme/use-user-theme';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
 import { showNotificationToast } from '@/components/common-admin-manager/notification-toast';
@@ -133,6 +134,7 @@ const Header = ({
   const markReadEndpoint = detectMarkReadEndpoint(pathname);
   const isAdminArea = Boolean(pathname?.startsWith('/admin'));
   const adminRole = useAdminRole({ enabled: isAdminArea });
+  const { theme, setTheme } = useUserTheme();
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -307,10 +309,25 @@ const Header = ({
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-4">
+        {/* Light / dark switch — customer area only. */}
+        {!isAdminArea ? (
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+            className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+          </button>
+        ) : null}
+
         {/* Notification Container */}
         <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={handleToggle}
+            aria-label="Notifications"
             className={`relative p-2 transition-colors rounded-full ${isNotificationsOpen ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
           >
             <NotificationIcon className="text-current" width={24} height={24} />
@@ -419,6 +436,19 @@ const Header = ({
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="border-t border-white/5 p-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNotificationsOpen(false);
+                    router.push(isAdminArea ? '/admin/notifications' : '/user/notifications');
+                  }}
+                  className="w-full rounded-xl py-2.5 text-[13px] font-semibold text-[#C5A964] hover:bg-white/[0.03] transition-colors"
+                >
+                  See all notifications
+                </button>
               </div>
             </div>
           )}

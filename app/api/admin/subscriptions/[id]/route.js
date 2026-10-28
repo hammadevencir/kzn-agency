@@ -4,6 +4,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdminSession } from "@/lib/auth/require-user-session";
 import {
   SUBSCRIPTIONS_COLLECTION,
+  SUBSCRIPTION_DURATION_DAYS,
   SUBSCRIPTION_STATUS,
 } from "@/lib/subscriptions/constants";
 import { creditReferrerCommissionOnApproval } from "@/lib/affiliates/credit-referrer";
@@ -247,14 +248,9 @@ export async function PATCH(request, context) {
         checkout: pu?.checkout ?? data.checkout,
       });
 
-      const nowMs = Date.now();
-      const currentExpiresAtMs = tsToMillis(data?.expiresAt);
-      const nextExpiresMs = computeNextExpiresAtMs({
-        currentExpiresAtMs,
-        purchaseAtMs: subscriptionPurchaseAtMs(data),
-        nowMs,
-      });
-      const expiresAt = new Date(nextExpiresMs);
+      // Package switch (client decision 2026-10-26): the new package runs a
+      // fresh 28 days from approval; unused days of the old package are lost.
+      const expiresAt = new Date(Date.now() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
       const newFlow =
         pu.flow && typeof pu.flow === "object" ? pu.flow : data.flow;
@@ -262,10 +258,11 @@ export async function PATCH(request, context) {
         pu.checkout && typeof pu.checkout === "object"
           ? pu.checkout
           : data.checkout;
+      // Older docs may have no `request` at all; Firestore rejects undefined.
       const newRequest =
         pu.request && typeof pu.request === "object"
           ? pu.request
-          : data.request;
+          : data.request ?? null;
 
       await ref.set(
         {

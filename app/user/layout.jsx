@@ -16,6 +16,12 @@ import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
 import { useUserSubscribedPlatforms } from '@/lib/hooks/useUserSubscribedPlatforms';
 import { HELP_CENTER_ENABLED } from '@/lib/features';
+import {
+  applyThemeToDocument,
+  readStoredTheme,
+  setUserTheme,
+} from '@/lib/theme/user-theme';
+import './light-theme.css';
 
 /**
  * Sections a customer can reach before we've confirmed a subscription payment:
@@ -57,6 +63,32 @@ const UserLayout = ({ children }) => {
     enabled: !isAuthPage,
   });
 
+  // Colour theme: the saved choice on this device first, then the one on the
+  // profile (it follows the customer across devices). Leaving the customer
+  // area (logout, admin) drops it.
+  useEffect(() => {
+    if (isAuthPage) {
+      applyThemeToDocument(null);
+      return undefined;
+    }
+    const startTheme = readStoredTheme();
+    applyThemeToDocument(startTheme);
+    let cancelled = false;
+    void fetch('/api/user/preferences', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d || (d.theme !== 'light' && d.theme !== 'dark')) return;
+        // The customer switched while this was loading: their click wins.
+        if (readStoredTheme() !== startTheme) return;
+        if (d.theme !== startTheme) setUserTheme(d.theme, { persist: false });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      applyThemeToDocument(null);
+    };
+  }, [isAuthPage]);
+
   const {
     hasConfirmedSubscription,
     loading: subsLoading,
@@ -89,6 +121,7 @@ const UserLayout = ({ children }) => {
     if (pathname.includes('/invoices')) return 'invoices';
     if (pathname.includes('/shop') || pathname.includes('/services')) return 'shop';
     if (pathname.includes('/orders')) return 'orders';
+    if (pathname.includes('/tickets')) return 'tickets';
     if (pathname.includes('/affiliates')) return 'affiliates';
     if (pathname.includes('/chat')) return 'chat';
     if (pathname.includes('/help')) return 'help';
@@ -113,6 +146,8 @@ const UserLayout = ({ children }) => {
       router.push('/user/shop');
     } else if (item === 'orders') {
       router.push('/user/orders');
+    } else if (item === 'tickets') {
+      router.push('/user/tickets');
     } else if (item === 'affiliates') {
       router.push('/user/affiliates');
     } else if (item === 'chat') {

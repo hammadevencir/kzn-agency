@@ -31,10 +31,14 @@ const EMPTY_MESSAGE_BY_TAB = {
 export default function TopUp() {
   const searchParams = useSearchParams();
   const filterUserId = (searchParams.get('userId') || '').trim();
+  const filterAdAccountId = (searchParams.get('adAccountId') || '').trim();
+  const initialTab = searchParams.get('tab');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState(
+    initialTab && STATUS_BY_TAB[initialTab] ? initialTab : 'pending'
+  );
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -64,6 +68,9 @@ export default function TopUp() {
       if (filterUserId) {
         list = list.filter((row) => row.userId === filterUserId);
       }
+      if (filterAdAccountId) {
+        list = list.filter((row) => row.adAccountIdRaw === filterAdAccountId);
+      }
       setItems(list);
     } catch {
       setFetchError('network_error');
@@ -71,7 +78,7 @@ export default function TopUp() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, filterUserId]);
+  }, [activeTab, filterUserId, filterAdAccountId]);
 
   useEffect(() => {
     void loadItems();
@@ -132,9 +139,11 @@ export default function TopUp() {
             />
           </div>
 
-          {filterUserId ? (
+          {filterUserId || filterAdAccountId ? (
             <p className="text-[12px] text-quaternary mb-4">
-              Showing top-ups for one user.{' '}
+              {filterAdAccountId
+                ? `Showing top-ups for ad account #${filterAdAccountId.slice(0, 8)}. Check the other tabs for older requests.`
+                : 'Showing top-ups for one user.'}{' '}
               <Link
                 href="/admin/top-ups"
                 className="text-[#C5A964] font-medium hover:text-[#C5A964]/80"

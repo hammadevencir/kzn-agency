@@ -4,9 +4,11 @@ import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { mapBalanceRequestRow } from "@/lib/admin/map-balance-request-row";
 import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
+import { isBalanceRefreshRequest } from "@/lib/user/pending-top-up-by-ad-account";
 
 /**
- * Balance requests = ad-account top-ups pending review vs completed (same as Deposits).
+ * Balance requests = free "refresh my balance" requests (no payment), pending
+ * review vs completed. Paid top-ups are handled on the Top Ups page.
  * Query: ?tab=new|updated
  */
 const TAB_TO_STATUS = {
@@ -35,7 +37,9 @@ export async function GET(request) {
     .where("status", "==", status)
     .get();
 
-  const paired = snap.docs.map((d) => ({
+  const paired = snap.docs
+    .filter((d) => isBalanceRefreshRequest(d.data()))
+    .map((d) => ({
     id: d.id,
     data: d.data(),
     ms: d.data()?.createdAt?.toMillis?.() ?? 0,

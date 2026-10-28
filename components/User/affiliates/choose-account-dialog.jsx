@@ -9,18 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { XIcon } from '@/components/icons';
 import { Infinity } from 'lucide-react';
-
-const CrownIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2.66699 12V6.66667L5.33366 8.66667L8.00033 4L10.667 8.66667L13.3337 6.66667V12H2.66699Z" fill="currentColor"/>
-  </svg>
-);
-
-const FrownIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5.99967 10C5.99967 10 6.66634 9 7.99967 9C9.33301 9 9.99967 10 9.99967 10M5.99967 6H6.00634M9.99967 6H10.0063M14.6663 8C14.6663 11.6819 11.6816 14.6667 7.99967 14.6667C4.31778 14.6667 1.33301 11.6819 1.33301 8C1.33301 4.3181 4.31778 1.33333 7.99967 1.33333C11.6816 1.33333 14.6663 4.3181 14.6663 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+import StatusPill from '@/components/common/status-pill';
 
 const ChooseAccountDialog = ({ isOpen, onClose, onNext }) => {
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -39,8 +28,7 @@ const ChooseAccountDialog = ({ isOpen, onClose, onNext }) => {
           platform: a.platform || 'Unknown',
           lastTopUp: a.lastTopup || '—',
           dateCreated: a.dateCreated || '—',
-          status: (a.status || '').toLowerCase().includes('top') ? 'top' : 'needs',
-          badge: (a.status || '').toLowerCase().includes('top') ? 'Top Spending' : a.status || 'Active',
+          badge: a.status || 'Active',
         }));
         setAccounts(mapped);
         if (mapped.length > 0) setSelectedAccount(mapped[0].id);
@@ -115,14 +103,7 @@ const ChooseAccountDialog = ({ isOpen, onClose, onNext }) => {
                     </div>
                   </div>
                   {/* Badge */}
-                  <div className={`px-2.5 py-1 rounded-full flex items-center gap-1.5 text-[11px] font-bold ${
-                    account.status === 'top' 
-                      ? 'bg-[#22C55E]/10 text-[#2EE073]' 
-                      : 'bg-[#FC3D68]/20 text-[#FF5A7E]'
-                  }`}>
-                    {account.status === 'top' ? <CrownIcon /> : <FrownIcon />}
-                    {account.badge}
-                  </div>
+                  <StatusPill label={account.badge} />
                 </div>
 
                 <div className="flex justify-between items-center w-full mt-2">

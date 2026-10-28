@@ -176,6 +176,22 @@ const AdAccountDetailSheet = ({
               </div>
               <div className="flex justify-between items-center gap-3">
                 <span className="text-quaternary text-[15px] shrink-0">
+                  Ad account name:
+                </span>
+                <span className="text-white text-[15px] font-medium text-right break-words">
+                  {data?.platformAccountName || "—"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-quaternary text-[15px] shrink-0">
+                  Ad account ID:
+                </span>
+                <span className="text-white text-[15px] font-medium text-right break-all">
+                  {data?.platformAccountId || "—"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-quaternary text-[15px] shrink-0">
                   Balance:
                 </span>
                 <span className="text-white text-[15px] font-medium text-right">

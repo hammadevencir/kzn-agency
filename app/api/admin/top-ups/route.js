@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/lib/auth/require-user-session";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { mapTopUpAdminRow } from "@/lib/admin/map-top-up-admin-row";
 import { getUserPhoneMap } from "@/lib/admin/get-user-phone-map";
+import { isBalanceRefreshRequest } from "@/lib/user/pending-top-up-by-ad-account";
 
 /**
  * ?status=payment_submitted|payment_not_received|approved|rejected
@@ -29,7 +30,11 @@ export async function GET(request) {
     .where("status", "==", status)
     .get();
 
-  const paired = snap.docs.map((d) => ({
+  // Free balance refresh requests live in the same collection but are handled
+  // on the Balance Requests page only.
+  const paired = snap.docs
+    .filter((d) => !isBalanceRefreshRequest(d.data()))
+    .map((d) => ({
     id: d.id,
     data: d.data(),
     ms: d.data()?.createdAt?.toMillis?.() ?? 0,

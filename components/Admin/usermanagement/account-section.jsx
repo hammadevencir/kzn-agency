@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import AccountsCard from "./accounts-card";
 
@@ -15,14 +15,6 @@ const AccountSection = ({ accounts = [], loading = false }) => {
   const handleSeeAllClick = () => {
     router.push(`/admin/user-profile/${uid}/tiktok-accounts`);
   };
-
-  const handleViewInTopUps = useCallback(() => {
-    if (!uid) {
-      router.push("/admin/top-ups");
-      return;
-    }
-    router.push(`/admin/top-ups?userId=${encodeURIComponent(uid)}`);
-  }, [router, uid]);
 
   return (
     <div className="bg-[#11191F] p-8 rounded-3xl border border-white/5">
@@ -53,7 +45,6 @@ const AccountSection = ({ accounts = [], loading = false }) => {
               <AccountsCard
                 key={String(account.id)}
                 accountData={account}
-                onViewInTopUps={handleViewInTopUps}
               />
             ))}
           </div>

@@ -30,21 +30,11 @@ import { EnablePlanButton } from '@/components/common-admin-manager/data-table';
 import { getActiveMetaAccountCategory } from '@/lib/meta/get-active-meta-account-category';
 import { consumeMetaUpgradeExitToDashboard } from '@/lib/meta/meta-upgrade-session';
 import DashboardAnnouncements from '@/components/User/dashboard-announcements';
+import StatusPill from '@/components/common/status-pill';
 
 function formatStat(n) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
   return String(n);
-}
-
-/** @param {string} status */
-function statusPillClass(status) {
-  if (status === 'Paused') return 'bg-[#F5B301]';
-  if (status === 'Expired') return 'bg-[#FA3C67]';
-  if (status === 'Needs Top-up') return 'bg-[#FA3C67]';
-  if (status === 'Top Spending') return 'bg-[#39CB7F]';
-  if (status === 'Rejected') return 'bg-[#FA3C67]';
-  if (status === 'Payment Not Received') return 'bg-[#FA3C67]';
-  return 'bg-[#C5A964]';
 }
 
 /** @param {number} total */
@@ -770,7 +760,7 @@ function DashboardContent() {
                     <th className="pb-5 font-medium px-4">Account Name</th>
                     <th className="pb-5 font-medium px-4">Platform</th>
                     <th className="pb-5 font-medium px-4">Date Created</th>
-                    <th className="pb-5 font-medium px-4">Total Spent</th>
+                    <th className="pb-5 font-medium px-4">Last Top-up</th>
                     <th className="pb-5 font-medium px-4">Balance</th>
                     <th className="pb-5 font-medium px-4">Status</th>
                     <th className="pb-5 font-medium px-4 pr-0 text-right">Actions</th>
@@ -792,8 +782,8 @@ function DashboardContent() {
                   ) : (
                     portalAccountsPage.map((row) => {
                       const rid = String(row.firestoreId ?? '');
-                      const clipId = `dash-clip-${rid.slice(0, 12)}`;
                       const accountName =
+                        (row.platformAccountName && String(row.platformAccountName).trim()) ||
                         (row.planLabel && String(row.planLabel).trim()) ||
                         (row.planHint && String(row.planHint).trim()) ||
                         (row.checkoutPlan && String(row.checkoutPlan).trim()) ||
@@ -841,49 +831,7 @@ function DashboardContent() {
                             {balance}
                           </td>
                           <td className="py-6 px-4">
-                            <span
-                              className={`inline-flex items-center gap-2 px-3.5 py-[6px] rounded-full text-[12px] font-semibold tracking-wide text-white ${statusPillClass(status)}`}
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 14 14"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="shrink-0"
-                                aria-hidden
-                              >
-                                <g clipPath={`url(#${clipId})`}>
-                                  <path
-                                    d="M6.99935 12.8332C10.221 12.8332 12.8327 10.2215 12.8327 6.99984C12.8327 3.77818 10.221 1.1665 6.99935 1.1665C3.77769 1.1665 1.16602 3.77818 1.16602 6.99984C1.16602 10.2215 3.77769 12.8332 6.99935 12.8332Z"
-                                    stroke="#F9F6F0"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M5.25 9.91671C5.73745 9.5505 6.3434 9.3335 7 9.3335C7.6566 9.3335 8.26257 9.5505 8.75 9.91671"
-                                    stroke="#F9F6F0"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M4.08398 4.67273C4.08398 4.67273 4.90616 4.59849 5.36491 4.96282M5.36491 4.96282L5.21142 5.44973C5.15088 5.64178 5.30917 5.83317 5.52855 5.83317C5.75911 5.83317 5.91139 5.62514 5.79267 5.44511C5.68743 5.28552 5.54412 5.10515 5.36491 4.96282ZM8.16732 4.67273C8.16732 4.67273 8.98947 4.59849 9.44826 4.96282M9.44826 4.96282L9.29478 5.44973C9.23423 5.64178 9.39249 5.83317 9.61188 5.83317C9.84248 5.83317 9.99473 5.62514 9.87602 5.44511C9.77078 5.28552 9.62746 5.10515 9.44826 4.96282Z"
-                                    stroke="#F9F6F0"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </g>
-                                <defs>
-                                  <clipPath id={clipId}>
-                                    <rect width="14" height="14" fill="white" />
-                                  </clipPath>
-                                </defs>
-                              </svg>
-                              {status}
-                            </span>
+                            <StatusPill label={status} />
                           </td>
                           <td className="py-6 px-4 pr-0">
                             {isPaused ? (

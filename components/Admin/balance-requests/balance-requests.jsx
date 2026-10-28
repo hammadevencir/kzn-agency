@@ -206,7 +206,7 @@ export default function BalanceRequests() {
           }
           const amountLabel =
             Number.isFinite(added) && added > 0
-              ? `$${added.toFixed(2).replace(/\.00$/, "")}`
+              ? `${requestData?.balanceCurrency === "EUR" ? "€" : "$"}${added.toFixed(2).replace(/\.00$/, "")}`
               : "";
           const possessive = name.endsWith('s') ? `${name}’` : `${name}’s`;
           return amountLabel

@@ -12,22 +12,12 @@ import { mapUserSubscriptionRow } from "@/lib/user/map-user-subscription-row";
 import { assignAdAccountsToSubscriptions } from "@/lib/user/plan-scope";
 import { useUserSubscribedPlatforms } from "@/lib/hooks/useUserSubscribedPlatforms";
 import { usePlanRenewal } from "../use-plan-renewal";
+import { formatBalanceAmount } from "@/lib/payments/format-amount";
+import { currencyForRegion } from "@/lib/ad-accounts/regions";
 
-/** @param {unknown} raw */
-function formatBalanceDisplay(raw) {
-  if (raw == null) return "—";
-  let num = NaN;
-  if (typeof raw === "number") {
-    num = raw;
-  } else if (typeof raw === "string") {
-    const cleaned = raw.replace(/[^0-9.\-]/g, "").trim();
-    if (cleaned) num = Number.parseFloat(cleaned);
-  }
-  if (!Number.isFinite(num)) return "—";
-  return `$${num.toLocaleString(undefined, {
-    minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
+/** @param {unknown} raw @param {'EUR' | 'USD'} currency */
+function formatBalanceDisplay(raw, currency) {
+  return formatBalanceAmount(raw, currency, "—");
 }
 
 /** @param {*} ts */
@@ -61,7 +51,7 @@ function adAccountToSheetRow(doc) {
   return {
     accountId: `#${doc.id.slice(0, 8)}`,
     dateCreated: formatFsDate(doc.createdAt),
-    balance: formatBalanceDisplay(doc.currentBalance),
+    balance: formatBalanceDisplay(doc.currentBalance, currencyForRegion(doc.flow?.region)),
   };
 }
 

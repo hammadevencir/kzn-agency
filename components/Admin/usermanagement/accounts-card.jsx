@@ -1,8 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { TikTokIcon } from "@/components/icons";
+import StatusPill from "@/components/common/status-pill";
+import PlatformDetailsDialog from "@/components/Admin/detail-modals/platform-details-dialog";
 
 /**
  * @param {{ accountData?: {
@@ -15,14 +19,26 @@ import { TikTokIcon } from "@/components/icons";
  *   status?: string,
  * }}} props
  */
-const AccountsCard = ({ accountData, onViewInTopUps }) => {
+const AccountsCard = ({ accountData }) => {
   const data = accountData || {};
+  const params = useParams();
+  const uid = typeof params?.id === "string" ? params.id : "";
+  const query = new URLSearchParams();
+  if (uid) query.set("userId", uid);
+  if (data.id) query.set("adAccountId", String(data.id));
+  const topUpsHref = `/admin/top-ups${query.size ? `?${query}` : ""}`;
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [platformDetails, setPlatformDetails] = useState({
+    platformAccountName: data.platformAccountName || null,
+    platformAccountId: data.platformAccountId || null,
+  });
 
   const iconSrc = data.platformIconPath || "/platforms/tiktok.svg";
   const isLocalSvg = iconSrc.startsWith("/");
 
   return (
-    <div className="bg-[#121920] w-[358px] h-[203px] p-6 border border-white/5 rounded-3xl flex flex-col justify-between shrink-0">
+    <div className="bg-[#121920] w-[358px] min-h-[203px] p-6 border border-white/5 rounded-3xl flex flex-col justify-between shrink-0">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-[48px] h-[48px] bg-[#C5A964]/20 rounded-xl flex items-center justify-center border border-[#C5A964]/30 shrink-0 overflow-hidden">
@@ -43,9 +59,7 @@ const AccountsCard = ({ accountData, onViewInTopUps }) => {
               <h3 className="text-white font-bold text-xl truncate">
                 {data.platform || "—"}
               </h3>
-              <span className="bg-[#FF4D4D]/10 text-[#FF4D4D] text-[10px] px-2 py-0.5 rounded-full border border-[#FF4D4D]/20 font-bold uppercase tracking-wider shrink-0">
-                {data.status || "—"}
-              </span>
+              <StatusPill label={data.status || "—"} />
             </div>
             <p className="text-quaternary text-sm font-light truncate">
               ID: {data.accountId || "—"}
@@ -53,24 +67,26 @@ const AccountsCard = ({ accountData, onViewInTopUps }) => {
           </div>
         </div>
 
-        <div className="bg-[#28C76F] text-white text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1.5 uppercase tracking-wider font-bold shrink-0">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M2.5 9.5H9.5M2 3L3.5 5L6 2L8.5 5L10 3V8H2V3Z"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Top Spending
+      </div>
+
+      <div className="flex items-start justify-between gap-3 rounded-xl bg-[#161D26] px-3 py-2 my-3">
+        <div className="min-w-0 text-[12px]">
+          <p className="text-quaternary">
+            Ad account name:{" "}
+            <span className="text-white font-medium">{platformDetails.platformAccountName || "—"}</span>
+          </p>
+          <p className="text-quaternary">
+            Ad account ID:{" "}
+            <span className="text-white font-medium break-all">{platformDetails.platformAccountId || "—"}</span>
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setIsEditOpen(true)}
+          className="shrink-0 text-[12px] font-medium text-[#C5A964] hover:underline"
+        >
+          Edit
+        </button>
       </div>
 
       <div className="flex justify-between items-end border-b border-white/5 pb-4 gap-4">
@@ -89,14 +105,22 @@ const AccountsCard = ({ accountData, onViewInTopUps }) => {
       </div>
 
       <div className="flex justify-center items-center pt-2">
-        <button
-          type="button"
-          onClick={() => onViewInTopUps?.(data)}
-          className="text-[#C5A964] hover:text-[#C5A964]/80 text-sm font-medium transition-colors cursor-pointer"
+        <Link
+          href={topUpsHref}
+          className="text-[#C5A964] hover:text-[#C5A964]/80 text-sm font-medium transition-colors"
         >
           View in Top-ups tab →
-        </button>
+        </Link>
       </div>
+
+      <PlatformDetailsDialog
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        adAccountId={String(data.id || "")}
+        initialName={platformDetails.platformAccountName}
+        initialPlatformId={platformDetails.platformAccountId}
+        onSaved={setPlatformDetails}
+      />
     </div>
   );
 };

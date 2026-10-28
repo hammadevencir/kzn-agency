@@ -19,8 +19,10 @@ import { buildUserChatNotificationItems } from "@/lib/notifications/chat-notific
 import { buildAnnouncementNotificationItems } from "@/lib/announcements/server-announcements";
 import { adAccountDeepLink } from "@/lib/notifications/deep-links";
 import { buildUserOrderNotificationItems } from "@/lib/orders/server-orders";
+import { buildUserTicketNotificationItems } from "@/lib/tickets/server-tickets";
+import { feedLimitFromRequest, mergeWithNotificationLog } from "@/lib/notifications/notification-log";
 
-export async function GET() {
+export async function GET(request) {
   const user = await requireEndUserSession();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -184,11 +186,15 @@ export async function GET() {
   items.push(...chatItems, ...announcementItems);
   // Shop orders: "Hi friend, your (service) is delivered!" (id prefix `order-`).
   items.push(...(await buildUserOrderNotificationItems(db, user.uid)));
+  // Support tickets the team marked as solved.
+  items.push(...(await buildUserTicketNotificationItems(db, user.uid)));
 
   items.sort((a, b) => b.timeMs - a.timeMs);
 
-  const slice = items.slice(0, 25);
+  // Keep read items (chat, announcements) visible: merge with the history.
+  const merged = await mergeWithNotificationLog(db, user.uid, items);
+  const slice = merged.slice(0, feedLimitFromRequest(request));
   const withRead = await attachReadStateToNotificationItems(db, user.uid, slice);
 
-  return NextResponse.json({ items: withRead });
+  return NextResponse.json({ items: withRead, total: merged.length });
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase/admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
 import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
@@ -68,6 +68,21 @@ export async function GET() {
     }
   }
 
+  // Profile photos live on the Auth user (same source as the Invoices list).
+  /** @type {Record<string, string>} */
+  const authPhoto = {};
+  try {
+    const auth = getAdminAuth();
+    for (const group of chunk(uids, 100)) {
+      const res = await auth.getUsers(group.map((uid) => ({ uid })));
+      for (const u of res.users) {
+        if (u.photoURL) authPhoto[u.uid] = u.photoURL;
+      }
+    }
+  } catch (e) {
+    console.error("admin users: photo lookup failed", e);
+  }
+
   function createdMs(ts) {
     if (ts == null) return 0;
     try {
@@ -95,6 +110,9 @@ export async function GET() {
         name,
         email,
         phone,
+        photoURL:
+          authPhoto[uid] ||
+          (typeof data.photoURL === "string" && data.photoURL ? data.photoURL : null),
         joinedDate: formatJoinedDate(data.createdAt),
         lastLogin: formatLastLogin(data.lastLoginAt),
         adAccounts: String(adCount[uid] ?? 0).padStart(2, "0"),

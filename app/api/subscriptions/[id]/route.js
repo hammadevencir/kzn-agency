@@ -14,6 +14,7 @@ import {
 } from "@/lib/subscriptions/constants";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
 import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
+import { readBillingSnapshot } from "@/lib/billing/billing-details";
 
 function checkoutFromBody(checkout) {
   if (!checkout || typeof checkout !== "object") return null;
@@ -93,7 +94,11 @@ export async function PATCH(request, context) {
   const paymentNote = body?.paymentNote
     ? String(body.paymentNote).slice(0, 500)
     : null;
-  const paymentMetaFields = sanitizePaymentMeta(body?.paymentMeta);
+  const paymentMetaFields = {
+    ...sanitizePaymentMeta(body?.paymentMeta),
+    // Invoice "Bill to" as it was when this payment was made.
+    billingSnapshot: await readBillingSnapshot(db, user.uid),
+  };
   /** Server-side price: the client's amount is never trusted. */
   const storedCheckout =
     data?.checkout && typeof data.checkout === "object" ? data.checkout : {};
@@ -126,6 +131,7 @@ export async function PATCH(request, context) {
           paymentNote,
         },
         pendingRenewalReview: true,
+        billingSnapshot: paymentMetaFields.billingSnapshot,
         renewalRejectionReason: FieldValue.delete(),
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -160,6 +166,7 @@ export async function PATCH(request, context) {
           paymentNote,
         },
         pendingUpgradeReview: true,
+        billingSnapshot: paymentMetaFields.billingSnapshot,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }

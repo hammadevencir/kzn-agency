@@ -288,3 +288,11 @@
 button {
   cursor: pointer;
 }
+
+/* Status pills (components/common/status-pill.jsx). The customer light theme
+   softens them in app/user/light-theme.css. */
+.kz-pill--success { background: #39CB7F; color: #fff; }
+.kz-pill--warning { background: #C5A964; color: #fff; }
+.kz-pill--danger { background: #FF4D59; color: #fff; }
+.kz-pill--paused { background: #F5B301; color: #fff; }
+.kz-pill--neutral { background: #8B9197; color: #fff; }

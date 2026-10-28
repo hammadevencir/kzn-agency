@@ -11,9 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/ui/success-modal";
 import AdAccountPlanSection from "./ad-account-plan-section";
+import PlatformDetailsDialog from "./platform-details-dialog";
 
 const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isPlatformEditOpen, setIsPlatformEditOpen] = useState(false);
+  /** Saved in this session (the list reloads later). */
+  const [platformOverride, setPlatformOverride] = useState(null);
 
   const data = requestData || {
     id: "—",
@@ -54,12 +58,23 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
     setShowSuccessModal(false);
   };
 
+  const platformDetails =
+    platformOverride && platformOverride.id === data.firestoreId
+      ? platformOverride
+      : {
+          platformAccountName: data.platformAccountName || null,
+          platformAccountId: data.platformAccountId || null,
+        };
+  const canEditPlatformDetails = Boolean(data.firestoreId);
+
   const adAccountFields = [
     { label: "User", value: displayName },
     { label: "Email", value: displayEmail },
     { label: "Phone", value: displayPhone },
-    { label: "Ad Account Name", value: adAccountName },
-    { label: "Ad Account ID", value: adAccountId },
+    { label: "Plan", value: adAccountName },
+    { label: "Account ID (KZN)", value: adAccountId },
+    { label: "Ad account name", value: platformDetails.platformAccountName || "—" },
+    { label: "Ad account ID", value: platformDetails.platformAccountId || "—" },
     { label: "Current Balance", value: currentBalance },
     { label: "Last Updated", value: balanceLastUpdated },
     ...(data.paused ? [{ label: "Status", value: data.pauseReasonLabel || "Paused" }] : []),
@@ -69,6 +84,14 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
 
   return (
     <>
+      <PlatformDetailsDialog
+        isOpen={isPlatformEditOpen}
+        onClose={() => setIsPlatformEditOpen(false)}
+        adAccountId={data.firestoreId || ""}
+        initialName={platformDetails.platformAccountName}
+        initialPlatformId={platformDetails.platformAccountId}
+        onSaved={(v) => setPlatformOverride({ id: data.firestoreId, ...v })}
+      />
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent
           side="right"
@@ -99,6 +122,17 @@ const AdAccountDetail = ({ isOpen, onClose, requestData }) => {
             {isAdAccountView ? (
               <>
                 <div className="p-5 rounded-2xl bg-[#151E25] space-y-4">
+                  {canEditPlatformDetails ? (
+                    <div className="flex justify-end -mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsPlatformEditOpen(true)}
+                        className="text-[12px] font-medium text-[#C5A964] hover:underline"
+                      >
+                        Edit ad account name / ID
+                      </button>
+                    </div>
+                  ) : null}
                   {adAccountFields.map((field) => (
                     <div
                       key={field.label}

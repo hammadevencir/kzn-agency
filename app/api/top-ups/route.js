@@ -12,6 +12,7 @@ import {
 } from "@/lib/top-ups/constants";
 import { checkAdAccountSubscriptionStatus } from "@/lib/subscriptions/require-active-subscription";
 import { sanitizePaymentProof } from "@/lib/payments/sanitize-proof";
+import { readBillingSnapshot } from "@/lib/billing/billing-details";
 import { computeTopUpPricing, meetsMinTopUp, minTopUpForAccount } from "@/lib/top-ups/fee";
 import { currencyForRegion } from "@/lib/ad-accounts/regions";
 import { isBalanceRefreshRequest } from "@/lib/user/pending-top-up-by-ad-account";
@@ -20,6 +21,9 @@ import {
   minTopUpUsdForPlatform,
   parseAmountToNumber,
 } from "@/lib/ad-accounts/platform-request-config";
+import { getMarketEurUsd } from "@/lib/payments/fx-server";
+import { amountToSendForTopUp, moneyLabel } from "@/lib/payments/fx";
+import { PAYMENT_ACCOUNT_BY_CURRENCY } from "@/lib/payments/bank-details";
 
 function formatTimestamp(ts) {
   if (!ts) return "—";
@@ -111,6 +115,7 @@ export async function GET(request) {
       createdAtMs: data.createdAt?.toMillis?.() ?? 0,
       status: data.status || "pending",
       rejectionReason: data.rejectionReason || null,
+      isBalanceRefresh: isBalanceRefreshRequest(data),
       receiptUrl:
         data.paymentProof && typeof data.paymentProof.url === "string"
           ? data.paymentProof.url
@@ -313,6 +318,71 @@ export async function POST(request) {
   const balanceSnap =
     adData.currentBalance != null ? String(adData.currentBalance) : "—";
 
+  // Payment currency (client decision 2026-10-26): the customer pays in EUR
+  // or USD. Same currency as the account → no currency fee; the other one →
+  // live market rate minus the margin, locked on this request.
+  let pricing = isFreeBalanceRequest ? null : computeTopUpPricing(flow, amountStr);
+  /** @type {Record<string, unknown>} */
+  let paymentCurrencyFields = {};
+  if (pricing) {
+    const accountCurrency = pricing.currency;
+    const payCurrency =
+      body?.paymentCurrency === "EUR" || body?.paymentCurrency === "USD"
+        ? body.paymentCurrency
+        : accountCurrency;
+    const total = pricing.totalToSendUsd;
+    let market = null;
+    if (payCurrency !== accountCurrency) {
+      market = await getMarketEurUsd(db);
+      if (!market) {
+        return NextResponse.json({ error: "fx_unavailable" }, { status: 503 });
+      }
+    }
+    const quote =
+      total != null
+        ? amountToSendForTopUp({
+            totalInAccountCurrency: total,
+            accountCurrency,
+            payCurrency,
+            marketEurUsd: market ? market.eurUsd : null,
+          })
+        : null;
+    if (!quote) {
+      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+    }
+    // The customer confirmed an exact amount; if the rate moved since, ask
+    // them to confirm the new one instead of silently charging more.
+    const expected = Number(body?.expectedAmountToSend);
+    if (
+      quote.crossCurrency &&
+      Number.isFinite(expected) &&
+      Math.abs(expected - quote.amountToSend) > Math.max(0.05, quote.amountToSend * 0.002)
+    ) {
+      return NextResponse.json(
+        {
+          error: "fx_rate_changed",
+          amountToSend: quote.amountToSend,
+          rate: quote.rate,
+        },
+        { status: 409 }
+      );
+    }
+    pricing = {
+      ...pricing,
+      paymentCurrency: payCurrency,
+      amountToSend: quote.amountToSend,
+      amountToSendLabel: moneyLabel(quote.amountToSend, payCurrency),
+      crossCurrency: quote.crossCurrency,
+      fxRateApplied: quote.rate,
+      fxRateMarket: market ? market.eurUsd : null,
+      fxRateAtMs: market ? market.fetchedAtMs : null,
+    };
+    paymentCurrencyFields = {
+      paymentCurrency: payCurrency,
+      paymentAccount: PAYMENT_ACCOUNT_BY_CURRENCY[payCurrency],
+    };
+  }
+
   const docRef = db.collection(TOP_UPS_COLLECTION).doc();
   const subscriptionName = String(
     checkoutPreview.subscriptionName ?? "Ad account top-up"
@@ -353,7 +423,9 @@ export async function POST(request) {
     paymentReference: finalize ? paymentReference : null,
     // Fee + plan computed on the server from the ad account's plan, so admins
     // (and the Financial overview) see exact numbers, not the client's.
-    pricing: isFreeBalanceRequest ? null : computeTopUpPricing(flow, amountStr),
+    pricing,
+    ...paymentCurrencyFields,
+    billingSnapshot: isFreeBalanceRequest ? null : await readBillingSnapshot(db, user.uid),
   };
 
   await docRef.set(payload);

@@ -5,6 +5,7 @@ import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { buildUserInvoiceList } from "@/lib/user/build-user-invoice-list";
+import { sanitizeBillingDetails } from "@/lib/billing/billing-details";
 
 /**
  * All payment records for the signed-in user: platform subscriptions,
@@ -29,8 +30,8 @@ export async function GET() {
     topUpDocs: topUpsSnap.docs,
   });
 
-  /** @type {{ displayName: string, photoURL: string | null, email: string | null }} */
-  let viewer = { displayName: "", photoURL: null, email: user.email };
+  /** @type {{ displayName: string, photoURL: string | null, email: string | null, billing: Record<string, string> | null }} */
+  let viewer = { displayName: "", photoURL: null, email: user.email, billing: null };
   try {
     const auth = getAdminAuth();
     const rec = await auth.getUser(user.uid);
@@ -40,6 +41,7 @@ export async function GET() {
       displayName: String(rec.displayName ?? fs?.displayName ?? "").trim(),
       photoURL: rec.photoURL ?? fs?.photoURL ?? null,
       email: rec.email ?? user.email ?? null,
+      billing: sanitizeBillingDetails(fs?.billing),
     };
   } catch {
     /* keep defaults */

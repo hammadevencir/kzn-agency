@@ -34,7 +34,14 @@ const InvoicePdfTemplate = ({
   totalDisplay,
   paid,
   paymentCurrency = "USD",
+  billToLines = null,
 }) => {
+  // Formal "Bill to" (name, address, contact, VAT) when the customer saved
+  // billing details; otherwise the account name + email.
+  const lines =
+    Array.isArray(billToLines) && billToLines.length > 0
+      ? billToLines
+      : [billToName || "—", billToAddress || "—"];
   // EUR payments go to Wise, USD payments to Slash.
   const bankFields = paymentCurrency === "EUR" ? WISE_EUR_FIELDS : SLASH_USD_FIELDS;
   return (
@@ -114,12 +121,14 @@ const InvoicePdfTemplate = ({
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
             Bill to:
           </div>
-          <div style={{ fontSize: 13, color: WHITE, marginBottom: 2 }}>
-            {billToName || "—"}
-          </div>
-          <div style={{ fontSize: 13, color: LIGHT }}>
-            {billToAddress || "—"}
-          </div>
+          {lines.map((line, i) => (
+            <div
+              key={`${i}-${line}`}
+              style={{ fontSize: 13, color: i === 0 ? WHITE : LIGHT, marginBottom: 2 }}
+            >
+              {line}
+            </div>
+          ))}
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, marginBottom: 6 }}>

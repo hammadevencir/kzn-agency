@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPlatformRequestConfig, parseAmountToNumber } from "@/lib/ad-accounts/platform-request-config";
 import { sanitizePaymentMeta } from "@/lib/payments/sanitize-payment-meta";
+import { readBillingSnapshot } from "@/lib/billing/billing-details";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireEndUserSession } from "@/lib/auth/require-user-session";
@@ -129,6 +130,8 @@ export async function POST(request) {
 
   /** Validated Meta category of this purchase ('' for other platforms). */
   let validatedMetaCategory = "";
+  /** Validated Meta package tier ("ELITE"), '' for other platforms. */
+  let validatedMetaTier = "";
   if (platformId === "meta") {
     const meta = body?.meta && typeof body.meta === "object" ? body.meta : {};
     const catRaw = typeof meta.category === "string" ? meta.category.trim().toLowerCase() : "";
@@ -150,6 +153,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "price_mismatch" }, { status: 400 });
     }
     validatedMetaCategory = catRaw;
+    validatedMetaTier = String(plan.name).toUpperCase();
     const { flow: metaFlowPart } = metaPlanToFlowAndCheckout(catRaw, plan);
     subscriptionForm = {
       platform: displayPlatform,
@@ -392,6 +396,13 @@ export async function POST(request) {
         { status: 409 }
       );
     }
+    // A switch must change the package; renewing the same one goes through
+    // Pay Now on Subscriptions (renewal review), not the plan page.
+    const existingTier =
+      typeof exFlow.planTier === "string" ? exFlow.planTier.trim().toUpperCase() : "";
+    if (validatedMetaTier && existingTier && validatedMetaTier === existingTier) {
+      return NextResponse.json({ error: "same_plan" }, { status: 409 });
+    }
 
     /** @type {Record<string, unknown>} */
     const pendingUpgrade = {
@@ -449,14 +460,23 @@ export async function POST(request) {
       if (edCat !== requestedMetaCategory) continue;
     }
 
-    if (ed.status === SUBSCRIPTION_STATUS.APPROVED || ed.status === "active") {
+    if (
+      ed.status === SUBSCRIPTION_STATUS.APPROVED ||
+      ed.status === "active" ||
+      ed.status === SUBSCRIPTION_STATUS.EXPIRED
+    ) {
       if (isSubscriptionActive(ed)) {
         return NextResponse.json(
           { error: "subscription_already_active" },
           { status: 409 }
         );
       }
-      continue;
+      // One plan per platform (per category for Meta): a lapsed plan is
+      // renewed from Subscriptions instead of buying a second one.
+      return NextResponse.json(
+        { error: "renew_existing_plan", subscriptionId: d.id },
+        { status: 409 }
+      );
     }
 
     if (
@@ -496,7 +516,12 @@ export async function POST(request) {
     paymentSubmittedAt: finalize ? FieldValue.serverTimestamp() : null,
     paymentProof: paymentProof || null,
     paymentReference: finalize ? paymentReference : null,
-    ...(finalize ? sanitizePaymentMeta(body?.paymentMeta) : {}),
+    ...(finalize
+      ? {
+          ...sanitizePaymentMeta(body?.paymentMeta),
+          billingSnapshot: await readBillingSnapshot(db, user.uid),
+        }
+      : {}),
   };
 
   if (referralBlock.referral) {

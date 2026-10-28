@@ -25,6 +25,7 @@ import {
   PRIVATE_PRICING_STATUS,
 } from "@/lib/private-pricing/constants";
 import { ADMIN_SECTION, canAccessAdminSection } from "@/lib/auth/admin-permissions";
+import { feedLimitFromRequest, mergeWithNotificationLog } from "@/lib/notifications/notification-log";
 
 const REWARD_CLAIMS_COLLECTION = "reward-claims";
 
@@ -33,7 +34,7 @@ function displayNameFromEmail(email) {
   return email.split("@")[0] || "User";
 }
 
-export async function GET() {
+export async function GET(request) {
   const sessionUser = await getSessionUser();
   if (!sessionUser || sessionUser.role !== ROLE.ADMIN) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -170,11 +171,14 @@ export async function GET() {
     const created = tsMs(data.paymentSubmittedAt) || tsMs(data.createdAt);
     const email = data.userEmail ? String(data.userEmail) : "a user";
     const amount = data.checkout?.amount || "";
+    const isBalanceRequest = data.requestType === "balance_credit_request";
     items.push({
       id: `topup-${d.id}`,
-      href: "/admin/top-ups",
-      title: "New top-up request",
-      desc: `${displayNameFromEmail(email)} requested a top-up${amount ? ` of ${amount}` : ""}.`,
+      href: isBalanceRequest ? "/admin/balance-requests" : "/admin/top-ups",
+      title: isBalanceRequest ? "New balance request" : "New top-up request",
+      desc: isBalanceRequest
+        ? `${displayNameFromEmail(email)} asked for a balance update.`
+        : `${displayNameFromEmail(email)} requested a top-up${amount ? ` of ${amount}` : ""}.`,
       timeMs: created,
       time: relativeTime(created),
       kind: "info",
@@ -236,12 +240,14 @@ export async function GET() {
 
   items.sort((a, b) => b.timeMs - a.timeMs);
 
-  const slice = items.slice(0, 25);
+  // Keep handled/read items visible: merge with this admin's history.
+  const merged = await mergeWithNotificationLog(db, sessionUser.uid, items);
+  const slice = merged.slice(0, feedLimitFromRequest(request));
   const withRead = await attachReadStateToNotificationItems(
     db,
     sessionUser.uid,
     slice
   );
 
-  return NextResponse.json({ items: withRead });
+  return NextResponse.json({ items: withRead, total: merged.length });
 }

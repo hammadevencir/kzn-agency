@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -13,6 +13,7 @@ import { getSavedReferralCode } from '@/lib/affiliates/referral-storage';
 import { parseAmountToNumber } from '@/lib/ad-accounts/platform-request-config';
 import RequestCreativesUpload from '@/components/User/request-creatives-upload';
 import { AD_ACCOUNT_REGION_OPTIONS } from '@/lib/ad-accounts/regions';
+import { timezoneOptions } from '@/lib/time/timezones';
 
 const SubscriptionRequestModal = ({
   isOpen,
@@ -148,6 +149,8 @@ const SubscriptionRequestModal = ({
     }
   };
 
+  const tzOptions = useMemo(() => timezoneOptions(), []);
+
   const labelStyle = "text-[14px] text-[#8B9197] mb-2 block font-medium";
   const inputStyle = "w-full bg-[#161D26] border-none text-white h-[52px] rounded-2xl px-5 focus:ring-1 focus:ring-[#CBAF69]/30 text-[14px] outline-none transition-all placeholder-[#4E5660]";
   const selectStyle = "w-full bg-[#161D26] border-none text-white h-[52px] rounded-2xl px-5 focus:ring-1 focus:ring-[#CBAF69]/30 text-[14px] outline-none appearance-none cursor-pointer";
@@ -163,15 +166,15 @@ const SubscriptionRequestModal = ({
     return (
       <div key={f.key}>
         <label className={labelStyle}>{f.label}</label>
-        {f.type === 'select' ? (
+        {f.type === 'select' || f.type === 'timezone' ? (
           <div className="relative">
             <select
               className={`${selectStyle} ${errRing}`}
               value={formData[f.key]}
               onChange={(e) => onChange(e.target.value)}
             >
-              <option value="">Select</option>
-              {(f.options || []).map((opt) => (
+              <option value="">{f.type === 'timezone' ? 'Select a time zone' : 'Select'}</option>
+              {(f.type === 'timezone' ? tzOptions : f.options || []).map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -309,13 +312,25 @@ const SubscriptionRequestModal = ({
             {/* Timezone */}
             <div>
               <label className={labelStyle}>Your preferred Time zone</label>
-              <input
-                type="text"
-                placeholder="Answer here"
-                className={`${inputStyle} ${errors.timezone ? 'ring-1 ring-red-500' : ''}`}
-                value={formData.timezone}
-                onChange={(e) => { handleInputChange('timezone', e.target.value); setErrors((p) => ({ ...p, timezone: undefined })); }}
-              />
+              <div className="relative">
+                <select
+                  className={`${selectStyle} ${errors.timezone ? 'ring-1 ring-red-500' : ''}`}
+                  value={formData.timezone}
+                  onChange={(e) => { handleInputChange('timezone', e.target.value); setErrors((p) => ({ ...p, timezone: undefined })); }}
+                >
+                  <option value="">Select a time zone</option>
+                  {tzOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
               {errors.timezone && <p className="text-red-400 text-[11px] mt-1.5 ml-1">{errors.timezone}</p>}
             </div>
 

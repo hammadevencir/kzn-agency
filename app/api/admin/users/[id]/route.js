@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { formatBalanceAmount } from "@/lib/payments/format-amount";
+import { currencyForRegion } from "@/lib/ad-accounts/regions";
+import { assignAdAccountsToSubscriptions, readPlanScope } from "@/lib/user/plan-scope";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
@@ -48,20 +51,9 @@ function formatShortDate(ts) {
   });
 }
 
-function formatBalanceDisplay(raw) {
-  if (raw == null) return "—";
-  let num = NaN;
-  if (typeof raw === "number") {
-    num = raw;
-  } else if (typeof raw === "string") {
-    const cleaned = raw.replace(/[^0-9.\-]/g, "").trim();
-    if (cleaned) num = Number.parseFloat(cleaned);
-  }
-  if (!Number.isFinite(num)) return "—";
-  return `$${num.toLocaleString(undefined, {
-    minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
+/** @param {unknown} raw @param {'EUR' | 'USD'} currency */
+function formatBalanceDisplay(raw, currency) {
+  return formatBalanceAmount(raw, currency, "—");
 }
 
 export async function GET(_request, context) {
@@ -105,7 +97,11 @@ export async function GET(_request, context) {
 
   const topRows = topSnap.docs
     .map((d) => ({ id: d.id, data: d.data() }))
-    .filter((r) => r.data?.status === TOP_UP_STATUS.APPROVED)
+    .filter(
+      (r) =>
+        r.data?.status === TOP_UP_STATUS.APPROVED &&
+        r.data?.requestType !== "balance_credit_request"
+    )
     .sort((a, b) => tsMs(b.data?.createdAt) - tsMs(a.data?.createdAt));
 
   /** @type {Record<string, import("firebase-admin/firestore").Timestamp | undefined>} */
@@ -141,30 +137,41 @@ export async function GET(_request, context) {
       typeof flow.displayPlatform === "string"
         ? flow.displayPlatform
         : platformLabel(pk);
-    const lastTs = lastTopUpByAdId[doc.id] ?? data.updatedAt ?? data.createdAt;
+    // Never fall back to the account's own dates: "—" when it was never topped up.
+    const lastTs = data.lastTopUpAt ?? lastTopUpByAdId[doc.id] ?? null;
     return {
       id: doc.id,
       platform: displayPlat,
       platformKey: normalizePlatformKey(pk),
       platformIconPath: platformIconPath(pk),
       accountId: `#${doc.id.slice(0, 8)}`,
+      /** Real account on the ad platform (set by admin). */
+      platformAccountName:
+        typeof data.platformAccountName === "string" && data.platformAccountName
+          ? data.platformAccountName
+          : null,
+      platformAccountId:
+        typeof data.platformAccountId === "string" && data.platformAccountId
+          ? data.platformAccountId
+          : null,
       status: adAccountStatusLabel(
         typeof data.status === "string" ? data.status : undefined
       ),
       lastTopUp: formatShortDate(lastTs),
       dateCreated: formatShortDate(data.createdAt),
-      currentBalance: formatBalanceDisplay(data.currentBalance),
+      currentBalance: formatBalanceDisplay(data.currentBalance, currencyForRegion(flow.region)),
     };
   });
 
-  const platformAdCounts = {};
-  for (const row of adAccounts) {
-    const k = row.platformKey || "unknown";
-    platformAdCounts[k] = (platformAdCounts[k] || 0) + 1;
-  }
-
   const subDocsSorted = [...subSnap.docs].sort(
     (a, b) => tsMs(b.data()?.createdAt) - tsMs(a.data()?.createdAt)
+  );
+
+  // Which approved ad accounts belong to which subscription (same rule as the
+  // customer's Subscriptions page), so each plan can list its accounts.
+  const { bySubscriptionId } = assignAdAccountsToSubscriptions(
+    subDocsSorted.map((d) => ({ id: d.id, ...d.data() })),
+    adDocsApproved.map((d) => ({ id: d.id, ...d.data() }))
   );
 
   const subscriptions = subDocsSorted.map((doc) => {
@@ -185,13 +192,43 @@ export async function GET(_request, context) {
     const amt =
       showAmount && checkout.amount != null ? String(checkout.amount) : "—";
     const disp = subscriptionStatusDisplay(data);
+    const scope = readPlanScope(data.flow, pid);
+    const accounts = (bySubscriptionId[doc.id] || []).map((ad) => ({
+      id: ad.id,
+      accountId: `#${ad.id.slice(0, 8)}`,
+      name:
+        typeof ad.platformAccountName === "string" && ad.platformAccountName
+          ? ad.platformAccountName
+          : null,
+      platformAccountId:
+        typeof ad.platformAccountId === "string" && ad.platformAccountId
+          ? ad.platformAccountId
+          : null,
+    }));
+    // Admin Subscriptions tab that lists this plan (null: not listed there).
+    const adminTab =
+      disp.kind === "active"
+        ? "approved"
+        : disp.kind === "expired"
+          ? "expired"
+          : disp.kind === "declined"
+            ? "rejected"
+            : rawStatus === SUBSCRIPTION_STATUS.PAYMENT_SUBMITTED
+              ? "new-requests"
+              : null;
     return {
       id: doc.id,
       platformId: pid,
       platformKey: pk,
-      platformLabel: platformLabel(pid),
+      platformLabel: scope.planLabel
+        ? `${platformLabel(pid)} · ${scope.planLabel}`
+        : platformLabel(pid),
       platformIconPath: platformIconPath(pk),
-      adAccountsOnPlatform: platformAdCounts[pk] ?? 0,
+      adAccountsOnPlatform: accounts.length,
+      adAccounts: accounts,
+      adminHref: adminTab
+        ? `/admin/subscriptions?tab=${adminTab}&open=${encodeURIComponent(doc.id)}`
+        : null,
       amountLabel: amt,
       statusKind: disp.kind,
       statusLabel: disp.label,

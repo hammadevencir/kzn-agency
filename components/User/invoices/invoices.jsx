@@ -7,6 +7,7 @@ import TableSearch from "@/components/common-admin-manager/table-search";
 import { rowMatchesQuery } from "@/components/common-admin-manager/data-table";
 import { DownloadIcon } from "@/components/icons";
 import { downloadInvoicePdf } from "@/lib/invoices/generate-invoice-pdf";
+import { billToLines } from "@/lib/billing/billing-details";
 
 /** Design: YYYY-MM-DD (local calendar date) */
 function formatDateYmd(iso) {
@@ -112,7 +113,7 @@ function invoiceNumberFor(invoice, fallbackIndex) {
  *   description: string,
  * }} props
  */
-function DownloadInvoiceButton({ invoice, txnId, billToName, billToAddress, description }) {
+function DownloadInvoiceButton({ invoice, txnId, billToName, billToAddress, billing, description }) {
   const [downloading, setDownloading] = useState(false);
 
   const handleClick = async () => {
@@ -127,7 +128,11 @@ function DownloadInvoiceButton({ invoice, txnId, billToName, billToAddress, desc
         billToName,
         billToAddress,
         description,
-        totalDisplay: formatAmountDisplay(invoice.amount),
+        totalDisplay: formatAmountDisplay(invoice.paidAmountLabel || invoice.amount),
+        billToLines: billToLines(invoice.billTo || billing, {
+          name: billToName,
+          email: billToAddress,
+        }),
         paid: invoice.status === "approved",
         paymentCurrency: invoice.paymentCurrency === "EUR" ? "EUR" : "USD",
         filename: `${txnId}.pdf`,
@@ -320,6 +325,7 @@ const InvoicesTable = ({
                         txnId={txnId}
                         billToName={ruName}
                         billToAddress={ru.email || ""}
+                        billing={ru.billing || null}
                         description={subLine}
                       />
                     </td>
@@ -434,6 +440,7 @@ const InvoicesTable = ({
                         txnId={txnId}
                         billToName={ruName}
                         billToAddress={ru.email || ""}
+                        billing={ru.billing || null}
                         description={
                           acctName !== "—"
                             ? `${invoice.description || "Top up"} — ${acctName}`
@@ -514,6 +521,10 @@ const UserInvoices = ({ apiUrl = "/api/invoices", adminMode = false }) => {
             data.viewer.email === null || data.viewer.email === undefined
               ? null
               : String(data.viewer.email),
+          billing:
+            data.viewer.billing && typeof data.viewer.billing === "object"
+              ? data.viewer.billing
+              : null,
         });
       } else {
         setViewer(defaultViewer);

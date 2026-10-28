@@ -37,7 +37,7 @@ export async function PATCH(request, context) {
   }
 
   const action = body?.action;
-  const VALID_ACTIONS = ["approve", "reject", "update-balance", "pause", "reactivate", "restore", "assign-plan"];
+  const VALID_ACTIONS = ["approve", "reject", "update-balance", "pause", "reactivate", "restore", "assign-plan", "set-platform-details"];
   if (!VALID_ACTIONS.includes(action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
@@ -50,6 +50,30 @@ export async function PATCH(request, context) {
   }
 
   const data = snap.data();
+
+  if (action === "set-platform-details") {
+    // The real account on the ad platform (e.g. the Meta ad account name and
+    // its numeric ID). Admin-only; the customer sees it read-only.
+    const clean = (v, max) =>
+      typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "";
+    const platformAccountName = clean(body?.platformAccountName, 120);
+    const platformAccountId = clean(body?.platformAccountId, 64);
+    await ref.set(
+      {
+        platformAccountName: platformAccountName || null,
+        platformAccountId: platformAccountId || null,
+        platformDetailsUpdatedAt: FieldValue.serverTimestamp(),
+        platformDetailsUpdatedBy: admin.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return NextResponse.json({
+      ok: true,
+      platformAccountName: platformAccountName || null,
+      platformAccountId: platformAccountId || null,
+    });
+  }
 
   if (action === "assign-plan") {
     // Re-link an ad account to one of its owner's subscriptions on the same

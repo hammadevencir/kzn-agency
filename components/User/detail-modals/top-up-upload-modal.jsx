@@ -32,6 +32,8 @@ import { meetsMinTopUp, minTopUpForAccount } from "@/lib/top-ups/fee";
 import BankDetailsCard from "@/components/payments/bank-details-card";
 import DashboardAccountIdHint from "@/components/payments/dashboard-account-id-hint";
 import { PAYMENT_REFERENCE_PLACEHOLDER } from "@/lib/payments/bank-details";
+import { convertAtRate, moneyLabel, rateLabel } from "@/lib/payments/fx";
+import ExchangeRateInfo from "@/components/payments/exchange-rate-info";
 
 const PLATFORM_ICONS = {
   meta: MetaIcon,
@@ -68,6 +70,11 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
   const [proofError, setProofError] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
   const [referenceError, setReferenceError] = useState("");
+  /** 'EUR' | 'USD' | null (null = the account's own currency) */
+  const [payCurrencyChoice, setPayCurrencyChoice] = useState(null);
+  /** Rates with the margin applied: { payEur, payUsd } */
+  const [fxRates, setFxRates] = useState(null);
+  const [fxState, setFxState] = useState("idle"); // idle | loading | ready | unavailable
   const proofInputRef = useRef(null);
 
   const proofImagePreviewUrl = useMemo(() => {
@@ -89,8 +96,29 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       setProofError("");
       setPaymentReference("");
       setReferenceError("");
+      setPayCurrencyChoice(null);
+      setFxRates(null);
+      setFxState("idle");
     }
   }, [isOpen]);
+
+  const loadFxRates = async () => {
+    setFxState("loading");
+    try {
+      const res = await fetch("/api/payments/fx", { credentials: "include" });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.available && json.rates) {
+        setFxRates(json.rates);
+        setFxState("ready");
+      } else {
+        setFxRates(null);
+        setFxState("unavailable");
+      }
+    } catch {
+      setFxRates(null);
+      setFxState("unavailable");
+    }
+  };
 
   if (!data) return null;
 
@@ -115,9 +143,32 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
     enteredAmount != null && enteredAmount > 0
       ? enteredAmount + (feeAmount ?? 0)
       : null;
-  // Europe-region accounts top up in EUR (to Wise); everything else in USD.
+  // Europe-region accounts keep their balance in EUR; everything else in USD.
   const currency = data.topUpCurrency === "EUR" ? "EUR" : "USD";
   const sym = currency === "EUR" ? "€" : "$";
+  // The customer may pay in the other currency (currency fee applies).
+  const payCurrency = payCurrencyChoice || currency;
+  const crossCurrency = payCurrency !== currency;
+  const appliedFxRate = crossCurrency
+    ? payCurrency === "EUR"
+      ? fxRates?.payEur
+      : fxRates?.payUsd
+    : null;
+  const amountToSend =
+    totalToSend == null
+      ? null
+      : !crossCurrency
+        ? Math.round(totalToSend * 100) / 100
+        : appliedFxRate
+          ? convertAtRate(totalToSend, appliedFxRate)
+          : null;
+
+  const choosePayCurrency = (c) => {
+    setPayCurrencyChoice(c);
+    if (c !== currency && fxState !== "ready" && fxState !== "loading") {
+      void loadFxRates();
+    }
+  };
   const formatUsd = (n) =>
     `${sym}${n.toLocaleString("en-US", {
       minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
@@ -167,6 +218,10 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
       toast.error("Please enter your Dashboard Account ID as the payment reference.");
       return;
     }
+    if (crossCurrency && amountToSend == null) {
+      toast.error("The exchange rate isn't available right now. Pay in " + currency + " or try again shortly.");
+      return;
+    }
     setSubmitting(true);
     try {
       const proof = await uploadPaymentProof(proofFile, { kind: "top-up" });
@@ -176,13 +231,23 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
         finalize: true,
         paymentProof: proof,
         paymentReference: paymentReference.trim(),
+        paymentCurrency: payCurrency,
+        expectedAmountToSend: amountToSend ?? undefined,
       });
       toast.success("Top-up request submitted for review.");
       onSuccess();
     } catch (e) {
       const raw = e instanceof Error ? e.message : "";
+      if (raw === "fx_rate_changed") {
+        // Refresh the quote so the customer sees and confirms the new amount.
+        void loadFxRates();
+        toast.error("The exchange rate just changed. Check the new amount to send and submit again.");
+        return;
+      }
       const friendly =
-        raw === "below_min_top_up"
+        raw === "fx_unavailable"
+          ? `The exchange rate isn't available right now. Pay in ${currency} or try again shortly.`
+          : raw === "below_min_top_up"
           ? `Minimum top-up${typeof minTopUp === "number" ? ` is ${minRule.label}` : ""}.`
           : raw === "invalid_amount"
             ? "Enter a valid top-up amount."
@@ -331,19 +396,77 @@ const TopUpUploadModal = ({ isOpen, onClose, onSuccess, data }) => {
                     {formatUsd(feeAmount ?? 0)}
                   </span>
                 </div>
+                {crossCurrency ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[12px] text-quaternary">Exchange rate</span>
+                    <span className="text-[13px] text-white font-medium">
+                      {appliedFxRate
+                        ? rateLabel(payCurrency, appliedFxRate)
+                        : fxState === "loading"
+                          ? "Loading…"
+                          : "Unavailable"}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
                   <span className="text-[12px] text-quaternary">
                     You should send
                   </span>
                   <span className="text-[18px] font-semibold text-[#C5A964]">
-                    {formatUsd(totalToSend)}
+                    {amountToSend != null ? moneyLabel(amountToSend, payCurrency) : "—"}
                   </span>
                 </div>
+                {crossCurrency && amountToSend != null ? (
+                  <p className="text-[11px] text-quaternary">
+                    {formatUsd(enteredAmount)} will be added to your {currency} balance.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
 
-          <BankDetailsCard compact showTitle currency={currency} />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium text-white">
+                Choose your payment currency
+              </label>
+              <ExchangeRateInfo />
+            </div>
+            <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Payment currency">
+              {[
+                { id: "EUR", label: "EUR €", sub: "Wise" },
+                { id: "USD", label: "USD $", sub: "Slash" },
+              ].map((opt) => {
+                const active = payCurrency === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={isPending || submitting}
+                    onClick={() => choosePayCurrency(opt.id)}
+                    className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+                      active
+                        ? "border-[#C5A964] bg-[#C5A964]/10"
+                        : "border-white/10 bg-[#151E25] hover:border-[#C5A964]/50"
+                    }`}
+                  >
+                    <span className="block text-[14px] font-semibold text-white">{opt.label}</span>
+                    <span className="block text-[11px] text-quaternary">
+                      {opt.sub}
+                      {opt.id === currency ? " · no currency fee" : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-quaternary leading-relaxed">
+              Your account balance is in {currency}. To avoid currency conversion fees, pay in {currency}.
+            </p>
+          </div>
+
+          <BankDetailsCard compact showTitle currency={payCurrency} />
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-white">Proof of payment</h3>

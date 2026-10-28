@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Pagination from "./pagination";
 import TableSearch from "./table-search";
 import {
@@ -24,6 +23,7 @@ import {
   RestoreIcon,
 } from "@/components/icons";
 import { RefreshCw } from "lucide-react";
+import StatusPill from "@/components/common/status-pill";
 
 function avatarAltText(label) {
   if (label == null) return "Avatar";
@@ -51,16 +51,23 @@ export function EnablePlanButton({ onClick, className = "" }) {
 }
 
 function AvatarCell({ photoURL, name, size = 32 }) {
-  const hasPhoto = photoURL && photoURL !== '/avatar.jpg' && String(photoURL).trim().length > 0;
+  const [failed, setFailed] = useState(false);
+  const hasPhoto =
+    !failed && photoURL && photoURL !== '/avatar.jpg' && String(photoURL).trim().length > 0;
   const sizeClass = size === 32 ? 'w-6 h-6 md:w-8 md:h-8' : 'w-7 h-7';
   return (
     <div className={`${sizeClass} rounded-full overflow-hidden bg-[#2A3540] flex items-center justify-center flex-shrink-0`}>
       {hasPhoto ? (
-        <Image
+        // Plain <img>: profile photos are external (Google, Firebase Storage)
+        // and next/image only allows configured hosts.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={photoURL}
           alt={avatarAltText(name)}
           width={size}
           height={size}
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
           className="object-cover w-full h-full"
         />
       ) : (
@@ -900,45 +907,14 @@ const DataTable = ({
         const variant =
           row.statusVariant ||
           (row.status?.toLowerCase() === "active" ? "success" : "danger");
-        const pillClass =
-          variant === "success"
-            ? "bg-[#39CB7F]"
-            : variant === "danger"
-              ? "bg-[#FF4D59]"
-              : variant === "paused"
-                ? "bg-[#F5B301]"
-                : variant === "warning"
-                  ? "bg-[#C5A964]"
-                  : "bg-secondary";
         const label = row.statusLabel || row.status;
-        const isPositive = variant === "success";
         return (
           <div key="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <div className="flex flex-col gap-1">
-          <div
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full w-fit ${pillClass}`}
-          >
-            {isPositive ? (
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8.5 11H3.5C3.295 11 3.125 10.83 3.125 10.625C3.125 10.42 3.295 10.25 3.5 10.25H8.5C8.705 10.25 8.875 10.42 8.875 10.625C8.875 10.83 8.705 11 8.5 11Z" fill="white"/>
-                <path d="M10.1741 2.76002L8.17413 4.19002C7.90913 4.38002 7.52913 4.26502 7.41413 3.96002L6.46913 1.44002C6.30913 1.00502 5.69413 1.00502 5.53413 1.44002L4.58413 3.95502C4.46913 4.26502 4.09413 4.38002 3.82913 4.18502L1.82913 2.75502C1.42913 2.47502 0.899133 2.87002 1.06413 3.33502L3.14413 9.16002C3.21413 9.36002 3.40413 9.49002 3.61413 9.49002H8.37913C8.58913 9.49002 8.77913 9.35502 8.84913 9.16002L10.9291 3.33502C11.0991 2.87002 10.5691 2.47502 10.1741 2.76002ZM7.24913 7.37502H4.74913C4.54413 7.37502 4.37413 7.20502 4.37413 7.00002C4.37413 6.79502 4.54413 6.62502 4.74913 6.62502H7.24913C7.45413 6.62502 7.62413 6.79502 7.62413 7.00002C7.62413 7.20502 7.45413 7.37502 7.24913 7.37502Z" fill="white"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath={`url(#userSubStatus_${index})`}>
-                <path d="M6.99935 12.8332C10.221 12.8332 12.8327 10.2215 12.8327 6.99984C12.8327 3.77818 10.221 1.1665 6.99935 1.1665C3.77769 1.1665 1.16602 3.77818 1.16602 6.99984C1.16602 10.2215 3.77769 12.8332 6.99935 12.8332Z" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5.25 9.91671C5.73745 9.5505 6.3434 9.3335 7 9.3335C7.6566 9.3335 8.26257 9.5505 8.75 9.91671" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4.08398 4.67273C4.08398 4.67273 4.90616 4.59849 5.36491 4.96282M5.36491 4.96282L5.21142 5.44973C5.15088 5.64178 5.30917 5.83317 5.52855 5.83317C5.75911 5.83317 5.91139 5.62514 5.79267 5.44511C5.68743 5.28552 5.54412 5.10515 5.36491 4.96282ZM8.16732 4.67273C8.16732 4.67273 8.98947 4.59849 9.44826 4.96282M9.44826 4.96282L9.29478 5.44973C9.23423 5.64178 9.39249 5.83317 9.61188 5.83317C9.84248 5.83317 9.99473 5.62514 9.87602 5.44511C9.77078 5.28552 9.62746 5.10515 9.44826 4.96282Z" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </g>
-                <defs>
-                <clipPath id={`userSubStatus_${index}`}>
-                <rect width="14" height="14" fill="white"/>
-                </clipPath>
-                </defs>
-              </svg>
-            )}
-            <span className="text-[13.5px] font-medium text-white">{label}</span>
-          </div>
+          <StatusPill
+            label={label}
+            tone={["success", "danger", "paused", "warning"].includes(variant) ? variant : "neutral"}
+          />
           {row.statusNote ? (
             <span className="text-[11px] text-[#C5A964] pl-1">{row.statusNote}</span>
           ) : null}
@@ -959,8 +935,8 @@ const DataTable = ({
               <a
                 href={row.metaPlanUpdateHref}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#1A262E] text-[#C5A964] hover:bg-[#C5A964]/12 hover:border-[#C5A964]/40 hover:text-[#d4b978] transition-colors shadow-sm"
-                aria-label="Upgrade or update Meta subscription"
-                title="Upgrade or update subscription"
+                aria-label="Switch Meta package"
+                title="Switch package"
               >
                 <UpgradeIcon width={20} height={20} className="shrink-0" />
               </a>
@@ -1038,9 +1014,7 @@ const DataTable = ({
         if (planExpired) {
           return (
             <div key="status" className="flex flex-col gap-1">
-              <span className="px-4 py-1.5 rounded-full w-fit bg-[#FF4D59] text-[13px] font-medium text-white">
-                Expired
-              </span>
+              <StatusPill label="Expired" />
               {row.planState === "renewal_review" ? (
                 <span className="text-[11px] text-[#C5A964] pl-1">Renewal pending approval</span>
               ) : null}
@@ -1048,50 +1022,12 @@ const DataTable = ({
           );
         }
         const notReceived = !paused && row.paymentNotReceived === true;
-        const s = row.status?.toLowerCase() || "";
-        const isActive =
-          !paused && !notReceived && (s === "active" || s === "top spending");
-        const isPending =
-          !paused &&
-          !notReceived &&
-          (row.topUpInReview === true || row.balanceRefreshPending === true);
-        const pillClass = paused
-          ? "bg-[#F5B301]"
+        const label = paused
+          ? "Paused"
           : notReceived
-            ? "bg-[#FF4D59]"
-          : isPending
-            ? "bg-[#C5A964]/90"
-            : isActive
-              ? "bg-[#39CB7F]"
-              : "bg-[#FF4D59]";
-        const label = paused ? "Paused" : row.status || "—";
-        return (
-          <div
-            key="status"
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full w-fit ${pillClass}`}
-          >
-            {isActive ? (
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8.5 11H3.5C3.295 11 3.125 10.83 3.125 10.625C3.125 10.42 3.295 10.25 3.5 10.25H8.5C8.705 10.25 8.875 10.42 8.875 10.625C8.875 10.83 8.705 11 8.5 11Z" fill="white"/>
-                <path d="M10.1741 2.76002L8.17413 4.19002C7.90913 4.38002 7.52913 4.26502 7.41413 3.96002L6.46913 1.44002C6.30913 1.00502 5.69413 1.00502 5.53413 1.44002L4.58413 3.95502C4.46913 4.26502 4.09413 4.38002 3.82913 4.18502L1.82913 2.75502C1.42913 2.47502 0.899133 2.87002 1.06413 3.33502L3.14413 9.16002C3.21413 9.36002 3.40413 9.49002 3.61413 9.49002H8.37913C8.58913 9.49002 8.77913 9.35502 8.84913 9.16002L10.9291 3.33502C11.0991 2.87002 10.5691 2.47502 10.1741 2.76002ZM7.24913 7.37502H4.74913C4.54413 7.37502 4.37413 7.20502 4.37413 7.00002C4.37413 6.79502 4.54413 6.62502 4.74913 6.62502H7.24913C7.45413 6.62502 7.62413 6.79502 7.62413 7.00002C7.62413 7.20502 7.45413 7.37502 7.24913 7.37502Z" fill="white"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_user_topup_status)">
-                <path d="M6.99935 12.8332C10.221 12.8332 12.8327 10.2215 12.8327 6.99984C12.8327 3.77818 10.221 1.1665 6.99935 1.1665C3.77769 1.1665 1.16602 3.77818 1.16602 6.99984C1.16602 10.2215 3.77769 12.8332 6.99935 12.8332Z" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5.25 9.91671C5.73745 9.5505 6.3434 9.3335 7 9.3335C7.6566 9.3335 8.26257 9.5505 8.75 9.91671" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4.08398 4.67273C4.08398 4.67273 4.90616 4.59849 5.36491 4.96282M5.36491 4.96282L5.21142 5.44973C5.15088 5.64178 5.30917 5.83317 5.52855 5.83317C5.75911 5.83317 5.91139 5.62514 5.79267 5.44511C5.68743 5.28552 5.54412 5.10515 5.36491 4.96282ZM8.16732 4.67273C8.16732 4.67273 8.98947 4.59849 9.44826 4.96282M9.44826 4.96282L9.29478 5.44973C9.23423 5.64178 9.39249 5.83317 9.61188 5.83317C9.84248 5.83317 9.99473 5.62514 9.87602 5.44511C9.77078 5.28552 9.62746 5.10515 9.44826 4.96282Z" stroke="#F9F6F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </g>
-                <defs>
-                <clipPath id="clip0_user_topup_status">
-                <rect width="14" height="14" fill="white"/>
-                </clipPath>
-                </defs>
-              </svg>
-            )}
-            <span className="text-[13px] font-medium text-white">{label}</span>
-          </div>
-        );
+            ? "Payment Not Received"
+            : row.status || "—";
+        return <StatusPill key="status" label={label} />;
       }
       case "Actions": {
         const paused = row.isPaused === true;

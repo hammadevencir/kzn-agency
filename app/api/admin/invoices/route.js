@@ -5,6 +5,7 @@ import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import { AD_ACCOUNTS_COLLECTION } from "@/lib/ad-accounts/constants";
 import { TOP_UPS_COLLECTION } from "@/lib/top-ups/constants";
 import { buildUserInvoiceList } from "@/lib/user/build-user-invoice-list";
+import { sanitizeBillingDetails } from "@/lib/billing/billing-details";
 
 const GET_USERS_CHUNK = 100;
 const FIRESTORE_GET_ALL_CHUNK = 10;
@@ -81,6 +82,7 @@ export async function GET() {
           existing.displayName || String(data?.displayName ?? "").trim(),
         photoURL: existing.photoURL ?? data?.photoURL ?? null,
         email: existing.email ?? data?.email ?? null,
+        billing: sanitizeBillingDetails(data?.billing),
       });
     }
   }

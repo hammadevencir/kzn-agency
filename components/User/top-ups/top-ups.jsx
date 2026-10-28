@@ -272,16 +272,25 @@ const UserTopUps = () => {
                     <td className="py-4 px-4 text-quaternary">{t.adAccountId}</td>
                     <td className="py-4 px-4 text-white">{t.platform}</td>
                     <td className="py-4 px-4 text-white">
-                      {withDisplayCurrency(String(t.amount ?? "—"))}
+                      {t.isBalanceRefresh ? (
+                        <span className="text-quaternary">Balance refresh</span>
+                      ) : (
+                        withDisplayCurrency(String(t.amount ?? "—"))
+                      )}
                     </td>
-                    <td className="py-4 pl-4">
+                    <td className="py-4 pl-4 max-w-[260px]">
                       <span
-                        className={`inline-flex px-3 py-1 rounded-full text-[12px] font-medium text-white ${
+                        className={`inline-flex px-3 py-1 rounded-full text-[12px] font-medium text-white whitespace-nowrap ${
                           STATUS_COLOR[t.status] || "bg-secondary"
                         }`}
                       >
                         {STATUS_LABEL[t.status] || String(t.status || "—")}
                       </span>
+                      {t.rejectionReason ? (
+                        <p className="mt-1.5 text-[12px] leading-snug text-[#FF4D59] break-words">
+                          Reason: {t.rejectionReason}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="py-4 pl-4 text-right">
                       {t.receiptUrl ? (

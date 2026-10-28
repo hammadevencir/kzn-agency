@@ -252,8 +252,13 @@ export async function PATCH(request, context) {
     {
       currentBalance: newBalance,
       balanceUpdatedAt: FieldValue.serverTimestamp(),
-      lastTopUpAt: FieldValue.serverTimestamp(),
-      lastTopUpRequestId: id,
+      // A free balance refresh only updates the balance, it isn't a top-up.
+      ...(data?.requestType === "balance_credit_request"
+        ? {}
+        : {
+            lastTopUpAt: FieldValue.serverTimestamp(),
+            lastTopUpRequestId: id,
+          }),
       updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true }

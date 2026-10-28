@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { PlusIcon } from "@/components/icons";
 import AdAccountDetailSheet from "./ad-account-detail-sheet";
+import StatusPill from "@/components/common/status-pill";
 import { useBalanceRefresh } from "./balance-refresh";
 import RequestAdAccountModal from "../request-ad-account-modal";
 import TopUpUploadModal from "../detail-modals/top-up-upload-modal";
@@ -53,6 +54,10 @@ const AdAccountCard = ({
   isPaused,
   isLowBalanceSuspensionRisk = false,
   topUpInReview = false,
+  balanceRefreshPending = false,
+  balanceUpdatedLabel = null,
+  platformAccountName = null,
+  platformAccountId = null,
   planState = null,
   onCardClick,
   onTopUp,
@@ -61,20 +66,10 @@ const AdAccountCard = ({
   // The account's plan has lapsed (judged by date — see adAccountPlanState).
   const planExpired =
     isPaused !== true && (planState === "expired" || planState === "renewal_review");
-  const isNeedsTopUp =
-    status === "Needs Top-up" || status === "Payment Not Received";
-  const isTopSpending = status === "Top Spending";
   const useTopUpCta =
     !planExpired && isLowBalanceSuspensionRisk === true && topUpInReview !== true;
   const useEnablePlanCta = isPaused !== true && planState === "expired";
-  const isRejected = status === "Rejected";
-  const isPendingApproval = status === "Pending approval";
-  const isAwaitingPayment = status === "Awaiting payment";
-  const showCustomPill =
-    !planExpired &&
-    !isNeedsTopUp &&
-    !isTopSpending &&
-    (isRejected || isPendingApproval || isAwaitingPayment);
+  const showStatusPill = !planExpired && isPaused !== true && status && status !== "—";
 
   return (
     <div className="bg-tertiary border border-white/5 rounded-3xl flex flex-col h-full">
@@ -122,35 +117,7 @@ const AdAccountCard = ({
                 ) : null}
               </div>
             ) : null}
-            {!planExpired && isNeedsTopUp ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF4D59] text-white">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <circle cx="7" cy="7" r="5.83" stroke="white" strokeWidth="1.2"/>
-                  <path d="M5.25 9.33C5.74 8.96 6.34 8.75 7 8.75C7.66 8.75 8.26 8.96 8.75 9.33" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
-                  <circle cx="5.25" cy="5.83" r="0.58" fill="white"/>
-                  <circle cx="8.75" cy="5.83" r="0.58" fill="white"/>
-                </svg>
-                <span className="text-[11px] font-medium whitespace-nowrap">{status}</span>
-              </div>
-            ) : null}
-            {!planExpired && isTopSpending ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#39CB7F] text-white">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M8.5 11H3.5C3.295 11 3.125 10.83 3.125 10.625H8.5C8.705 10.25 8.875 10.42 8.875 10.625Z" fill="white"/>
-                  <path d="M10.1741 2.76002L8.17413 4.19002L6.46913 1.44002L5.53413 1.44002L4.58413 3.95502L3.82913 4.18502L1.82913 2.75502Z" fill="white"/>
-                </svg>
-                <span className="text-[11px] font-medium whitespace-nowrap">Top Spending</span>
-              </div>
-            ) : null}
-            {showCustomPill ? (
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-white max-w-[min(200px,52vw)] ${
-                  isRejected ? "bg-[#FF4D59]" : "bg-[#C5A964]"
-                }`}
-              >
-                <span className="text-[11px] font-medium whitespace-nowrap truncate">{status}</span>
-              </div>
-            ) : null}
+            {showStatusPill ? <StatusPill label={status} /> : null}
           </div>
         </div>
 
@@ -162,10 +129,25 @@ const AdAccountCard = ({
           <div className="space-y-1 text-center md:text-center">
             <p className="text-quaternary text-[12px]">Balance</p>
             <p className="text-white text-[14px]">{balance ?? "—"}</p>
+            {balanceRefreshPending ? (
+              <p className="text-[11px] text-[#C5A964]">Refresh requested</p>
+            ) : balanceUpdatedLabel && balanceUpdatedLabel !== "—" ? (
+              <p className="text-[11px] text-quaternary">Updated {balanceUpdatedLabel}</p>
+            ) : null}
           </div>
           <div className="space-y-1 text-right">
             <p className="text-quaternary text-[12px]">Date Created:</p>
             <p className="text-white text-[14px]">{dateCreated}</p>
+          </div>
+          <div className="space-y-1 col-span-2 md:col-span-2 min-w-0">
+            <p className="text-quaternary text-[12px]">Ad account name</p>
+            <p className="text-white text-[14px] truncate" title={platformAccountName || undefined}>
+              {platformAccountName || "—"}
+            </p>
+          </div>
+          <div className="space-y-1 text-right min-w-0 col-span-2 md:col-span-1">
+            <p className="text-quaternary text-[12px]">Ad account ID</p>
+            <p className="text-white text-[14px] break-all">{platformAccountId || "—"}</p>
           </div>
         </div>
 
@@ -687,6 +669,10 @@ const UserAdAccounts = () => {
               isPaused={a.isPaused}
               isLowBalanceSuspensionRisk={a.isLowBalanceSuspensionRisk === true}
               topUpInReview={a.topUpInReview === true}
+              balanceRefreshPending={a.balanceRefreshPending === true}
+              balanceUpdatedLabel={a.balanceUpdatedLabel}
+              platformAccountName={a.platformAccountName}
+              platformAccountId={a.platformAccountId}
               planState={a.planState}
               onCardClick={() => handleCardClick(a)}
               onTopUp={() => openTopUpModalForRow(a)}

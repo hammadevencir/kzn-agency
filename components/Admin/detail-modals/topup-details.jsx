@@ -113,7 +113,17 @@ const TopUpDetails = ({
             label: `Top-up fee${data.topUpFeeLabel ? ` (${data.topUpFeeLabel})` : ""}:`,
             value: data.topUpFeeAmount,
           },
-          { label: "Total they should send:", value: data.totalToSend || "—" },
+          ...(data.crossCurrency
+            ? [
+                { label: "Total in account currency:", value: data.totalToSend || "—" },
+                {
+                  label: "Paid in:",
+                  value: data.paymentCurrency === "EUR" ? "EUR (Wise)" : "USD (Slash)",
+                },
+                { label: "Exchange rate:", value: data.fxRateLabel || "—" },
+                { label: "Total they should send:", value: data.amountToSendLabel || "—" },
+              ]
+            : [{ label: "Total they should send:", value: data.totalToSend || "—" }]),
         ]
       : []),
     { label: "Balance at request:", value: displayCurrentBalance },

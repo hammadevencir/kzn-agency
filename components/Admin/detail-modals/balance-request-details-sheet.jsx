@@ -40,11 +40,13 @@ function toNumber(raw) {
   return Number.parseFloat(cleaned);
 }
 
-function formatAmountDisplay(raw) {
+function formatAmountDisplay(raw, symbol = "$") {
   if (raw == null || raw === "" || raw === "—") return "—";
+  // Already formatted with its own currency ("€392.07") — keep it.
+  if (typeof raw === "string" && /^[€$]/.test(raw.trim())) return raw.trim();
   const num = toNumber(raw);
   if (Number.isFinite(num)) {
-    return `$${num.toLocaleString(undefined, {
+    return `${symbol}${num.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -158,6 +160,7 @@ export default function BalanceRequestDetailsSheet({
   );
   const dateAddedLabel = formatDateIsoLabel(data.dateAdded || lastUpdated);
 
+  const currencySymbol = data.balanceCurrency === "EUR" ? "€" : "$";
   const requestedAmountLabel = isBalanceCreditRequest
     ? !data.topUpAmount || data.topUpAmount === "—"
       ? "N/A"
@@ -167,7 +170,7 @@ export default function BalanceRequestDetailsSheet({
   const balanceAtRequestDisplay =
     data.balanceAtRequest ??
     (showPendingActions
-      ? formatAmountDisplay(data.currentBalance)
+      ? formatAmountDisplay(data.currentBalance, currencySymbol)
       : "—");
 
   const detailRows = showPendingActions
@@ -398,7 +401,7 @@ export default function BalanceRequestDetailsSheet({
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-[14px]">
-                      $
+                      {currencySymbol}
                     </span>
                     <input
                       id="balance-request-balance"

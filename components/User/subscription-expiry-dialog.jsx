@@ -93,8 +93,23 @@ function bodyForStage(stage, platform) {
   ];
 }
 
-function dismissKey(id, stage) {
-  return `sub-expiry-dismissed:${id}:${stage}`;
+/** Per plan, stage and expiry date — a renewed plan (new date) warns again. */
+function dismissKey(id, stage, expMs) {
+  return `sub-expiry-dismissed:${id}:${stage}:${expMs || 0}`;
+}
+
+/**
+ * Warnings before expiry show once per stage; an expired plan reminds once
+ * per browser session until it is renewed.
+ */
+function dismissStore(stage) {
+  return stage === "expired" ? window.sessionStorage : window.localStorage;
+}
+
+/** "meta|vip" / "tiktok" — a customer holds at most one plan per key. */
+function planSlotKey(doc) {
+  const scope = readPlanScope(doc.flow, doc.platformId);
+  return [scope.platformKey, scope.category].filter(Boolean).join("|");
 }
 
 /**
@@ -109,20 +124,30 @@ export default function SubscriptionExpiryDialog() {
 
   const warning = useMemo(() => {
     const now = Date.now();
-    /** @type {{ id: string, stage: string, platform: string, doc: Record<string, unknown> } | null} */
+    /** @type {{ id: string, stage: string, expMs: number, platform: string, doc: Record<string, unknown> } | null} */
     let best = null;
+
+    // Plans that are paid and running — an old expired doc for the same
+    // platform/category (e.g. before a package switch) must not warn.
+    const runningSlots = new Set();
+    for (const doc of subscriptionDocs) {
+      if (doc.status !== "approved" && doc.status !== "active") continue;
+      const expMs = tsToMillis(doc.expiresAt ?? doc.subscriptionExpiresAt);
+      if (!expMs || expMs > now) runningSlots.add(planSlotKey(doc));
+    }
 
     for (const doc of subscriptionDocs) {
       const s = doc.status;
       const isActive = s === "approved" || s === "active";
       const isExpired = s === "expired";
       if (!isActive && !isExpired) continue;
-      // Already paid the renewal — waiting for review; don't nag.
-      if (doc.pendingRenewalReview === true) continue;
+      // Already paid (renewal or package switch) — waiting for review; don't nag.
+      if (doc.pendingRenewalReview === true || doc.pendingUpgradeReview === true) continue;
 
       const expMs = tsToMillis(doc.expiresAt ?? doc.subscriptionExpiresAt);
       let stage;
       if (isExpired) {
+        if (runningSlots.has(planSlotKey(doc))) continue;
         stage = "expired";
       } else {
         if (!expMs) continue;
@@ -143,7 +168,7 @@ export default function SubscriptionExpiryDialog() {
         : basePlatform;
 
       if (!best || stageRank(stage) > stageRank(best.stage)) {
-        best = { id: doc.id, stage, platform, doc };
+        best = { id: doc.id, stage, expMs: expMs || 0, platform, doc };
       }
     }
 
@@ -156,9 +181,9 @@ export default function SubscriptionExpiryDialog() {
       return;
     }
     if (typeof window === "undefined") return;
-    const key = dismissKey(warning.id, warning.stage);
+    const key = dismissKey(warning.id, warning.stage, warning.expMs);
     try {
-      const dismissed = window.sessionStorage.getItem(key);
+      const dismissed = dismissStore(warning.stage).getItem(key);
       if (dismissed) setDismissedKey(key);
       else setDismissedKey("");
     } catch {
@@ -167,12 +192,12 @@ export default function SubscriptionExpiryDialog() {
   }, [warning]);
 
   if (!warning) return null;
-  const key = dismissKey(warning.id, warning.stage);
+  const key = dismissKey(warning.id, warning.stage, warning.expMs);
   const isOpen = dismissedKey !== key;
 
   const handleClose = () => {
     try {
-      window.sessionStorage.setItem(key, "1");
+      dismissStore(warning.stage).setItem(key, "1");
     } catch {
       // non-fatal
     }

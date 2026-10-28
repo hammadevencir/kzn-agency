@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-function formatCurrency(num) {
+function formatCurrency(num, symbol = "$") {
   if (!Number.isFinite(num)) return "—";
-  return `$${Number(num).toLocaleString(undefined, {
+  return `${symbol}${Number(num).toLocaleString(undefined, {
     minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
     maximumFractionDigits: 2,
   })}`;
@@ -29,6 +29,9 @@ function toNumber(raw) {
 
 const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
   const data = requestData || {};
+  // Balances are kept in the ad account's own currency (EU → EUR, HK → USD).
+  const isEur = data.balanceCurrency === "EUR";
+  const currencySymbol = isEur ? "€" : "$";
 
   const displayName =
     data.name || data.userName || data.affiliateName || "—";
@@ -45,7 +48,7 @@ const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
     ? Number(data.currentBalanceNumeric)
     : toNumber(data.currentBalance);
   const currentBalanceDisplay = Number.isFinite(currentBalanceNum)
-    ? formatCurrency(currentBalanceNum)
+    ? formatCurrency(currentBalanceNum, currencySymbol)
     : "—";
 
   const [balanceInput, setBalanceInput] = useState("");
@@ -177,7 +180,9 @@ const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
                 Add/Update Balance
               </h3>
               <p className="text-[13px] text-quaternary font-light">
-                Enter the new balance in USD.
+                {isEur
+                  ? "Enter the new balance in EUR (Europe ad account)."
+                  : "Enter the new balance in USD."}
               </p>
             </div>
 
@@ -190,7 +195,7 @@ const UpdateBalanceSheet = ({ isOpen, onClose, requestData, onSave }) => {
               </label>
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-[14px]">
-                  $
+                  {currencySymbol}
                 </span>
                 <input
                   id="new-balance"

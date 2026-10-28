@@ -207,6 +207,11 @@ const Sidebar = ({
       label: 'Manage Orders',
       icon: Package,
     },
+    {
+      id: 'tickets',
+      label: 'Manage Tickets',
+      icon: LifeBuoy,
+    },
   ];
 
   // Get navigation items based on role
@@ -241,6 +246,8 @@ const Sidebar = ({
       
       {/* Sidebar */}
       <div
+        // Stays dark in the customer light theme (app/user/light-theme.css).
+        data-keep-dark=""
         className={`
           w-[254px] h-screen bg-tertiary flex flex-col overflow-hidden fixed left-0 top-0 z-50
           transition-transform duration-300 ease-in-out

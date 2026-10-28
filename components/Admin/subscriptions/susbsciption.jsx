@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import DataTable, { rowMatchesQuery } from '@/components/common-admin-manager/data-table';
 import Pagination from '@/components/common-admin-manager/pagination';
@@ -24,7 +25,14 @@ const EMPTY_MESSAGE_BY_TAB = {
 };
 
 function Susbsciption() {
-  const [activeTab, setActiveTab] = useState('new-requests');
+  // Deep link from the admin user profile: ?tab=approved&open=<subscriptionId>
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const openId = (searchParams.get('open') || '').trim();
+  const openedRef = useRef(false);
+  const [activeTab, setActiveTab] = useState(
+    initialTab && STATUS_BY_TAB[initialTab] ? initialTab : 'new-requests'
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +78,18 @@ function Susbsciption() {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, searchQuery]);
+
+  useEffect(() => {
+    if (!openId || openedRef.current || loading) return;
+    const match = items.find((row) => row.firestoreId === openId);
+    openedRef.current = true;
+    if (match) {
+      setSelectedSubscription(match);
+      setIsModalOpen(true);
+    } else {
+      toast('That subscription is not in this tab any more.');
+    }
+  }, [openId, items, loading]);
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
 

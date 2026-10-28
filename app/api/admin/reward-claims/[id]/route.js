@@ -3,6 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth/require-user-session";
 import { ROLE } from "@/lib/auth/constants";
+import { currencyForRegion } from "@/lib/ad-accounts/regions";
+import { EUR_TO_USD_RATE } from "@/lib/payments/bank-details";
 import { AFFILIATE_PROFILES_COLLECTION } from "@/lib/affiliates/constants";
 import {
   AD_ACCOUNTS_COLLECTION,
@@ -155,8 +157,14 @@ export async function PATCH(request, context) {
             throw new Error("ad_account_not_approved");
           }
           const adCurrent = parseAdBalanceUsd(adData?.currentBalance);
+          // EU accounts keep their balance in EUR: convert the USD reward at
+          // the same fixed rate the rest of the app uses.
+          const adIsEur = currencyForRegion(adData?.flow?.region) === "EUR";
+          const creditInAccountCurrency = adIsEur
+            ? Math.round((creditUsd / EUR_TO_USD_RATE) * 100) / 100
+            : creditUsd;
           const newAdBalance =
-            Math.round((adCurrent + creditUsd) * 100) / 100;
+            Math.round((adCurrent + creditInAccountCurrency) * 100) / 100;
 
           t.set(
             adRef,
@@ -169,6 +177,8 @@ export async function PATCH(request, context) {
           );
           claimUpdate.creditedAdAccountId = adAccountId;
           claimUpdate.creditedAmountUsd = creditUsd;
+          claimUpdate.creditedAmount = creditInAccountCurrency;
+          claimUpdate.creditedCurrency = adIsEur ? "EUR" : "USD";
         }
 
         t.set(ref, claimUpdate, { merge: true });
