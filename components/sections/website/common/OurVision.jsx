@@ -82,7 +82,7 @@ const OurVision = () => {
               ease: "easeOut",
             }}
           >
-            our team replies in under 7 minutes on average
+            our team replies within 15 minutes on average
           </motion.span>
           .
         </motion.p>

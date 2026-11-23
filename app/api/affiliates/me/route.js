@@ -88,6 +88,8 @@ export async function GET() {
       id: docSnap.id,
       claimType: typeof d.claimType === "string" ? d.claimType : "—",
       amount: typeof d.amount === "string" ? d.amount : "—",
+      claimBalanceCents:
+        typeof d.claimBalanceCents === "number" ? d.claimBalanceCents : null,
       status: typeof d.status === "string" ? d.status : "pending",
       createdAtLabel: formatDateLabel(d.createdAt),
       reviewedAtLabel: formatDateLabel(d.reviewedAt),

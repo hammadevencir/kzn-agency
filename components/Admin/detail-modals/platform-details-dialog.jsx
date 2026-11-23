@@ -45,6 +45,10 @@ export default function PlatformDetailsDialog({
 
   const handleSave = async () => {
     if (!adAccountId) return;
+    if (!name.trim() || !platformId.trim()) {
+      toast.error("Enter both the ad account name and the ad account ID.");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/ad-accounts/${encodeURIComponent(adAccountId)}`, {
@@ -59,7 +63,11 @@ export default function PlatformDetailsDialog({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error("Could not save the ad account details.");
+        toast.error(
+          data?.error === "missing_platform_details"
+            ? "Enter both the ad account name and the ad account ID."
+            : "Could not save the ad account details."
+        );
         return;
       }
       toast.success("Ad account details saved.");

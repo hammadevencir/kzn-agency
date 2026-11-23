@@ -58,6 +58,12 @@ export async function PATCH(request, context) {
       typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "";
     const platformAccountName = clean(body?.platformAccountName, 120);
     const platformAccountId = clean(body?.platformAccountId, 64);
+    if (!platformAccountName || !platformAccountId) {
+      return NextResponse.json(
+        { error: "missing_platform_details" },
+        { status: 400 }
+      );
+    }
     await ref.set(
       {
         platformAccountName: platformAccountName || null,
@@ -232,6 +238,20 @@ export async function PATCH(request, context) {
   }
 
   if (action === "approve") {
+    const existingName =
+      typeof data?.platformAccountName === "string" ? data.platformAccountName.trim() : "";
+    const existingId =
+      typeof data?.platformAccountId === "string" ? data.platformAccountId.trim() : "";
+    if (!existingName || !existingId) {
+      return NextResponse.json(
+        {
+          error: "missing_platform_details",
+          message:
+            "Save the Meta ad account name and ad account ID before approving.",
+        },
+        { status: 400 }
+      );
+    }
     await creditReferrerCommissionOnApproval(db, ref, data);
     await ref.set(
       {

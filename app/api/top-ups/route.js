@@ -30,10 +30,10 @@ function formatTimestamp(ts) {
   try {
     const ms = typeof ts.toMillis === "function" ? ts.toMillis() : Date.parse(ts);
     if (!ms || Number.isNaN(ms)) return "—";
-    return new Date(ms).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
+    return new Date(ms).toLocaleDateString("en-GB", {
       day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   } catch {
     return "—";
@@ -112,6 +112,7 @@ export async function GET(request) {
       platform: String(flow.displayPlatform || flow.platformKey || "—"),
       amount: data.checkout?.amount || "—",
       date: formatTimestamp(data.createdAt),
+      reviewedAtLabel: formatTimestamp(data.reviewedAt),
       createdAtMs: data.createdAt?.toMillis?.() ?? 0,
       status: data.status || "pending",
       rejectionReason: data.rejectionReason || null,
@@ -243,7 +244,9 @@ export async function POST(request) {
         error:
           subStatus.status === "expired"
             ? "subscription_expired"
-            : "subscription_inactive",
+            : subStatus.status === "renewal_review"
+              ? "subscription_renewal_review"
+              : "subscription_inactive",
         subscriptionStatus: subStatus.status,
       },
       { status: 409 }

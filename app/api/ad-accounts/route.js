@@ -161,7 +161,14 @@ export async function POST(request) {
     );
     if (subStatus.status !== "active") {
       return NextResponse.json(
-        { error: "subscription_inactive" },
+        {
+          error:
+            subStatus.status === "expired"
+              ? "subscription_expired"
+              : subStatus.status === "renewal_review"
+                ? "subscription_renewal_review"
+                : "subscription_inactive",
+        },
         { status: 409 }
       );
     }
@@ -281,7 +288,9 @@ export async function POST(request) {
           error:
             subStatus.status === "expired"
               ? "subscription_expired"
-              : "subscription_inactive",
+              : subStatus.status === "renewal_review"
+                ? "subscription_renewal_review"
+                : "subscription_inactive",
           subscriptionStatus: subStatus.status,
         },
         { status: 409 }

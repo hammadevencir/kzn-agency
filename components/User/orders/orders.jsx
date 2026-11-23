@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import DeleteConfirmationModal from "@/components/ui/delete-confirmation-modal";
@@ -131,6 +130,85 @@ function TrustpilotPrompt({ isOpen, onClose }) {
             Leave a Review
           </a>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Required description so support is not left with an empty "Complaint about order…" line. */
+function ComplaintDialog({ order, onClose, onSubmit }) {
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [existingTicket, setExistingTicket] = useState(false);
+
+  useEffect(() => {
+    setText("");
+    setSending(false);
+    setExistingTicket(false);
+  }, [order?.id]);
+
+  const submit = async () => {
+    if (!text.trim() || sending) return;
+    setSending(true);
+    const result = await onSubmit(order, text.trim());
+    setSending(false);
+    if (result?.ok) onClose();
+    else if (result?.code === "complaint_open") setExistingTicket(true);
+  };
+
+  return (
+    <Dialog open={Boolean(order)} onOpenChange={(o) => !o && !sending && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-[460px] bg-[#0E1318] border border-[#B89C57]/40 p-6 sm:p-8 rounded-[28px] space-y-3"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 p-1 rounded-full text-gray-500 hover:bg-white/5"
+        >
+          <XIcon className="w-6 h-6" />
+        </button>
+        <DialogTitle className="text-[20px] font-bold text-white text-center pt-2">
+          Complaint
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-quaternary leading-relaxed text-center">
+          Tell us what went wrong with {order?.orderNumber}. This opens one ticket for the order.
+        </DialogDescription>
+        {existingTicket ? (
+          <div className="space-y-3 text-center">
+            <p className="text-[14px] text-white">
+              You already have an open complaint for this order.
+            </p>
+            <Link
+              href="/user/tickets"
+              className="w-full h-[48px] rounded-2xl bg-[#CBAF69] hover:bg-[#D4BB7D] text-[#11191F] font-bold flex items-center justify-center"
+            >
+              View ticket
+            </Link>
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              maxLength={MAX_FEEDBACK_LENGTH}
+              rows={5}
+              placeholder="Describe the problem…"
+              aria-label="Complaint details"
+              className="w-full rounded-xl bg-transparent border border-[#373D45] p-3 text-[14px] text-white placeholder:text-quaternary focus:outline-none focus:ring-1 focus:ring-[#CBAF69]"
+            />
+            <button
+              type="button"
+              disabled={!text.trim() || sending}
+              onClick={() => void submit()}
+              className="w-full h-[48px] rounded-2xl bg-[#CBAF69] hover:bg-[#D4BB7D] text-[#11191F] font-bold disabled:opacity-50"
+            >
+              {sending ? "Sending…" : "Send complaint"}
+            </button>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -353,14 +431,23 @@ function OrderCard({ order, busy, onCancel, onConfirm, onRate, onComplaint, onDe
               Delivery Update
             </OncePerDayButton>
           ) : null}
-          <OncePerDayButton
-            lastAt={order.complaintAt}
-            busy={busy}
-            onClick={() => onComplaint(order)}
-            className="h-[40px] px-4 rounded-xl border border-[#B89C57]/60 text-[#C5A964] text-[13px] font-semibold hover:bg-[#B89C57]/10"
-          >
-            Complaint
-          </OncePerDayButton>
+          {order.openComplaintTicketId ? (
+            <Link
+              href="/user/tickets"
+              className="h-[40px] px-4 rounded-xl border border-[#B89C57]/60 text-[#C5A964] text-[13px] font-semibold hover:bg-[#B89C57]/10 flex items-center"
+            >
+              View complaint
+            </Link>
+          ) : (
+            <OncePerDayButton
+              lastAt={order.complaintAt}
+              busy={busy}
+              onClick={() => onComplaint(order)}
+              className="h-[40px] px-4 rounded-xl border border-[#B89C57]/60 text-[#C5A964] text-[13px] font-semibold hover:bg-[#B89C57]/10"
+            >
+              Complaint
+            </OncePerDayButton>
+          )}
         </div>
       ) : null}
     </div>
@@ -368,7 +455,6 @@ function OrderCard({ order, busy, onCancel, onConfirm, onRate, onComplaint, onDe
 }
 
 export default function UserOrders() {
-  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -377,6 +463,7 @@ export default function UserOrders() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [trustpilotOpen, setTrustpilotOpen] = useState(false);
   const [feedbackOrder, setFeedbackOrder] = useState(null);
+  const [complaintOrder, setComplaintOrder] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -415,6 +502,8 @@ export default function UserOrders() {
         );
       } else if (code === "rating_locked") {
         toast.error("Ratings can only be changed within a week of delivery.");
+      } else if (code === "missing_complaint") {
+        toast.error("Describe the problem before sending a complaint.");
       } else {
         toast.error("Something went wrong. Please try again.");
       }
@@ -436,9 +525,39 @@ export default function UserOrders() {
     return Boolean(item);
   };
 
-  const handleComplaint = async (order) => {
-    const item = await run(order, { action: "complaint" });
-    if (item) router.push("/user/chat");
+  const handleComplaint = (order) => {
+    setComplaintOrder(order);
+  };
+
+  const submitComplaint = async (order, text) => {
+    setBusyId(order.id);
+    try {
+      const item = await updateMyOrder(order.id, { action: "complaint", text });
+      if (item) replace(item);
+      toast.success("Complaint sent. Follow it under Manage Tickets.");
+      return { ok: true };
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "";
+      const retryAt = /** @type {any} */ (err)?.data?.retryAt;
+      if (code === "complaint_open") {
+        if (order) {
+          replace({ ...order, openComplaintTicketId: /** @type {any} */ (err)?.data?.ticketId || "open" });
+        }
+        return { ok: false, code };
+      }
+      if (code === "too_soon" && retryAt) {
+        toast.error(
+          `You can send this again in ${formatWait(Date.parse(retryAt) - Date.now())}.`
+        );
+      } else if (code === "missing_complaint") {
+        toast.error("Describe the problem before sending a complaint.");
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+      return { ok: false, code };
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const handleDeliveryUpdate = async (order) => {
@@ -559,6 +678,11 @@ export default function UserOrders() {
         order={feedbackOrder}
         onClose={() => setFeedbackOrder(null)}
         onSubmit={handleFeedback}
+      />
+      <ComplaintDialog
+        order={complaintOrder}
+        onClose={() => setComplaintOrder(null)}
+        onSubmit={submitComplaint}
       />
     </div>
   );

@@ -397,7 +397,7 @@ const Header = ({
                             }
                           : undefined
                       }
-                      className={`flex items-start gap-4 p-4 hover:bg-white/[0.02] rounded-[16px] transition-colors ${isClickable ? 'cursor-pointer' : 'cursor-default'} ${isRead ? 'opacity-[0.58]' : ''}`}
+                      className={`flex items-start gap-4 p-4 hover:bg-white/[0.04] rounded-[16px] transition-colors ${isClickable ? 'cursor-pointer' : 'cursor-default'} ${isRead ? 'opacity-90' : ''}`}
                     >
                       <div className="relative w-[46px] h-[46px] shrink-0">
                         <div className="w-[46px] h-[46px] rounded-full bg-[#1C242C] text-white text-[15px] font-bold flex items-center justify-center shadow-inner">
@@ -414,12 +414,12 @@ const Header = ({
                         >
                           {msg.title}
                         </h4>
-                        <p className="text-[#8B9197] text-[12.5px] leading-relaxed line-clamp-2">
+                        <p className="text-[#D5DCE3] text-[12.5px] leading-relaxed line-clamp-2">
                           {msg.desc}
                         </p>
                       </div>
 
-                      <div className="shrink-0 text-[#8B9197] text-[11.5px] font-medium pt-1 whitespace-nowrap">
+                      <div className="shrink-0 text-[#C5CDD4] text-[11.5px] font-medium pt-1 whitespace-nowrap">
                         {msg.time}
                       </div>
                     </div>

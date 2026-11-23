@@ -112,7 +112,7 @@ const AdAccountCard = ({
                 </span>
                 {planState === "renewal_review" ? (
                   <span className="text-[11px] text-[#C5A964] whitespace-nowrap">
-                    Renewal pending approval
+                    Renewal in review
                   </span>
                 ) : null}
               </div>
@@ -142,12 +142,20 @@ const AdAccountCard = ({
           <div className="space-y-1 col-span-2 md:col-span-2 min-w-0">
             <p className="text-quaternary text-[12px]">Ad account name</p>
             <p className="text-white text-[14px] truncate" title={platformAccountName || undefined}>
-              {platformAccountName || "—"}
+              {platformAccountName ||
+                (String(status || "").toLowerCase() === "approved"
+                  ? "Filled in after delivery"
+                  : "—")}
             </p>
           </div>
           <div className="space-y-1 text-right min-w-0 col-span-2 md:col-span-1">
             <p className="text-quaternary text-[12px]">Ad account ID</p>
-            <p className="text-white text-[14px] break-all">{platformAccountId || "—"}</p>
+            <p className="text-white text-[14px] break-all">
+              {platformAccountId ||
+                (String(status || "").toLowerCase() === "approved"
+                  ? "Filled in after delivery"
+                  : "—")}
+            </p>
           </div>
         </div>
 
@@ -488,15 +496,19 @@ const UserAdAccounts = () => {
 
   const openRequestAccount = () => {
     if (!hasActiveSubscription) {
-      if (expiredPlatformIds && expiredPlatformIds.size > 0) {
-        const first = Array.from(expiredPlatformIds)[0];
+      const renewable = subscriptionDocs.find(
+        (d) => subscriptionLifecycle(d) === "expired"
+      );
+      const renewalInReview = subscriptionDocs.find(
+        (d) => subscriptionLifecycle(d) === "renewal_review"
+      );
+      if (renewable || (expiredPlatformIds && expiredPlatformIds.size > 0)) {
+        const first =
+          expiredPlatformIds && expiredPlatformIds.size > 0
+            ? Array.from(expiredPlatformIds)[0]
+            : null;
         toast.error(
-          "Your platform subscription has expired. Please renew to request ad accounts."
-        );
-        // Renew a plan that's actually lapsed — with two plans, the newest doc
-        // can be one whose renewal is already under review.
-        const renewable = subscriptionDocs.find(
-          (d) => subscriptionLifecycle(d) === "expired"
+          "Your subscription has expired. Renew it to request new ad accounts."
         );
         openPayNowForPlatform(
           renewable ? renewable.platformId || first : first,
@@ -505,8 +517,15 @@ const UserAdAccounts = () => {
         );
         return;
       }
+      if (renewalInReview) {
+        toast.error(
+          "Your renewal is in review. You can request new ad accounts once it's approved."
+        );
+        router.push("/user/subscriptions");
+        return;
+      }
       toast.error("Subscribe to a platform first, then you can request ad accounts.");
-      router.push("/user/dashboard");
+      router.push("/user/subscriptions");
       return;
     }
     setPlatformModalCtx({ intent: "adAccount" });

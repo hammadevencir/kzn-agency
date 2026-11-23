@@ -1016,7 +1016,7 @@ const DataTable = ({
             <div key="status" className="flex flex-col gap-1">
               <StatusPill label="Expired" />
               {row.planState === "renewal_review" ? (
-                <span className="text-[11px] text-[#C5A964] pl-1">Renewal pending approval</span>
+                <span className="text-[11px] text-[#C5A964] pl-1">Renewal in review</span>
               ) : null}
             </div>
           );
@@ -1037,7 +1037,7 @@ const DataTable = ({
         if (!paused && row.planState === "renewal_review") {
           return (
             <span key="actions" className="text-[14px] text-quaternary">
-              Renewal in review
+              —
             </span>
           );
         }

@@ -98,7 +98,7 @@ export function ProceedOrderModal({ isOpen, onClose, product, category, discount
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <DialogContent showCloseButton={false} className={contentClass}>
         <ModalHeader title="Proceed with the order" onClose={onClose} />
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 pt-4 custom-scrollbar space-y-6 text-left">
+        <div className="overflow-y-auto p-6 sm:p-8 pt-4 custom-scrollbar space-y-6 text-left">
           <OrderSummary product={product} category={category} discount={discount} />
           <UsdOnlyNote />
         </div>

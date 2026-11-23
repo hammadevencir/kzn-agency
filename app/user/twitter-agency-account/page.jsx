@@ -52,8 +52,8 @@ export default function TwitterAgencyAccountPage() {
   ];
 
   const benefitsColumn2 = [
-    "Top-ups processed within 5-10 minutes.",
-    "Ad Account delivery within 12-36 hours.",
+    "Top-ups within 15 minutes.",
+    "Ad account delivery within 24–48 hours.",
     "24/7 technical support with expertise.",
     "Higher ad approvals, fewer rejections.",
   ];

@@ -197,11 +197,11 @@ export default function NotificationsPage({ area }) {
                       <span className={`block text-[14px] font-medium ${isRead ? "text-[#9CA3AF]" : "text-white"}`}>
                         {n.title}
                       </span>
-                      <span className="block text-[#8B9197] text-[13px] leading-relaxed mt-0.5 break-words">
+                      <span className="block text-[#D5DCE3] text-[13px] leading-relaxed mt-0.5 break-words">
                         {n.desc}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[#8B9197] text-[12px] whitespace-nowrap pt-0.5">{n.time}</span>
+                    <span className="shrink-0 text-[#C5CDD4] text-[12px] whitespace-nowrap pt-0.5">{n.time}</span>
                   </button>
                 </li>
               );

@@ -18,7 +18,10 @@ import {
   postOrderChatMessageAsUser,
   serializeOrder,
 } from "@/lib/orders/server-orders";
-import { createTicket } from "@/lib/tickets/server-tickets";
+import {
+  createTicket,
+  openComplaintTicketIdsByOrder,
+} from "@/lib/tickets/server-tickets";
 import { TICKET_SOURCE } from "@/lib/tickets/constants";
 
 export const runtime = "nodejs";
@@ -83,6 +86,8 @@ export async function PATCH(request, context) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   const order = snap.data();
+  /** Set when this request opens a complaint ticket, so the order card can link to it. */
+  let openComplaintTicketId = null;
   const number = orderNumber(id);
   const label = `${number} (${order.productName || "order"})`;
   const ticketBase = {
@@ -212,6 +217,24 @@ export async function PATCH(request, context) {
     ) {
       return NextResponse.json({ error: "already_delivered" }, { status: 409 });
     }
+    const complaintText = isComplaint
+      ? typeof body?.text === "string"
+        ? body.text.trim().slice(0, MAX_FEEDBACK_LENGTH)
+        : ""
+      : "";
+    if (isComplaint && !complaintText) {
+      return NextResponse.json({ error: "missing_complaint" }, { status: 400 });
+    }
+    if (isComplaint) {
+      const openComplaints = await openComplaintTicketIdsByOrder(db, user.uid);
+      const existingId = openComplaints.get(id) || null;
+      if (existingId) {
+        return NextResponse.json(
+          { error: "complaint_open", ticketId: existingId },
+          { status: 409 }
+        );
+      }
+    }
     const atField = isComplaint ? "complaintAt" : "deliveryUpdateAt";
     const countField = isComplaint ? "complaintCount" : "deliveryUpdateCount";
     // Once per order per 24 h, enforced in a transaction so rapid clicks (the
@@ -242,19 +265,22 @@ export async function PATCH(request, context) {
       );
     }
     const text = isComplaint
-      ? `Complaint about order ${label}`
+      ? `Complaint about order ${label}: ${complaintText}`
       : `Order ${label}: can I get an update on my delivery?`;
     await postOrderChatMessageAsUser(user.uid, text);
-    await createTicket(
+    const ticketId = await createTicket(
       {
         ...ticketBase,
         source: isComplaint ? TICKET_SOURCE.COMPLAINT : TICKET_SOURCE.DELIVERY_UPDATE,
-        message: text,
+        message: isComplaint ? complaintText : text,
       },
       db
     );
+    if (isComplaint && ticketId) openComplaintTicketId = ticketId;
   }
 
   const updated = await ref.get();
-  return NextResponse.json({ item: serializeOrder(updated) });
+  const item = serializeOrder(updated);
+  if (openComplaintTicketId) item.openComplaintTicketId = openComplaintTicketId;
+  return NextResponse.json({ item });
 }

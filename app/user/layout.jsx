@@ -87,7 +87,8 @@ const UserLayout = ({ children }) => {
   // Determine active item based on current path
   const getActiveItem = () => {
     if (pathname.includes('/dashboard') || pathname === '/user') return 'dashboard';
-    if (pathname.includes('/subscriptions')) return 'subscriptions';
+    if (pathname.includes('/subscriptions') || pathname.includes('/subscribe')) return 'subscriptions';
+    if (pathname.includes('/notifications')) return 'notifications';
     if (pathname.includes('/top-ups')) return 'top-ups';
     if (pathname.includes('/ad-accounts')) return 'ad-accounts';
     if (pathname.includes('/invoices')) return 'invoices';

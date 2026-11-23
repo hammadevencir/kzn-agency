@@ -533,6 +533,19 @@ export default function UserSettings() {
 
               {hasPasswordProvider ? (
                 <>
+                  <style>{`
+                    input[name="currentPassword"]:-webkit-autofill,
+                    input[name="currentPassword"]:-webkit-autofill:hover,
+                    input[name="currentPassword"]:-webkit-autofill:focus,
+                    input[autocomplete="current-password"]:-webkit-autofill,
+                    input[autocomplete="current-password"]:-webkit-autofill:hover,
+                    input[autocomplete="current-password"]:-webkit-autofill:focus {
+                      -webkit-text-fill-color: #fff;
+                      caret-color: #fff;
+                      box-shadow: 0 0 0 1000px #151e25 inset;
+                      transition: background-color 9999s ease-out 0s;
+                    }
+                  `}</style>
                   <div className="">
                     <p className="text-[12px] text-quaternary mb-3">
                       Current password (required to change email or password)

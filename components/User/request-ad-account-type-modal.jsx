@@ -73,7 +73,7 @@ const RequestAdAccountTypeModal = ({
             </DialogTitle>
             <p className="text-quaternary text-[14px]">
               {isMetaSubscription
-                ? "Select Agency or Supplements ad accounts. Your package (Start, Scale, Elite…) is chosen on the next step."
+                ? "Select Agency or Supplements ad accounts. You'll choose Essential, Advanced, or Ultimate on the next step."
                 : "Select which account you want to be created"}
             </p>
           </div>

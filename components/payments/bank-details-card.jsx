@@ -28,6 +28,7 @@ const EUR_COMPACT_HELPER_TEXT =
  *   helperText?: string,
  *   className?: string,
  *   currency?: 'EUR' | 'USD',
+ *   referenceNote?: string,
  * }} props
  */
 export default function BankDetailsCard({
@@ -36,6 +37,7 @@ export default function BankDetailsCard({
   helperText,
   className = "",
   currency = PAYMENT_CURRENCY.USD,
+  referenceNote = PAYMENT_REFERENCE_NOTE,
 }) {
   const isEur = currency === PAYMENT_CURRENCY.EUR;
   const message =
@@ -160,7 +162,7 @@ export default function BankDetailsCard({
             ⚠️ Important Notes:
           </p>
           <p className="text-[12.5px] leading-relaxed text-[#E8D7B0]">
-            {PAYMENT_REFERENCE_NOTE}
+            {referenceNote}
           </p>
         </div>
       </div>

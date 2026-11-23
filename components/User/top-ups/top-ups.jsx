@@ -245,8 +245,8 @@ const UserTopUps = () => {
           </div>
         ) : visibleHistory.length === 0 ? (
           <p className="text-sm text-quaternary">
-            {history.length > 0 && isDateRangeActive(historyRange)
-              ? "No top-ups in this date range."
+            {isDateRangeActive(historyRange)
+              ? "No results for this period."
               : "No top-up requests yet."}
           </p>
         ) : (
@@ -254,9 +254,10 @@ const UserTopUps = () => {
             <table className="w-full min-w-[640px] text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[13px] text-quaternary">
-                  <th className="pb-4 pr-4 font-medium">Date</th>
+                  <th className="pb-4 pr-4 font-medium">Requested</th>
                   <th className="pb-4 px-4 font-medium">Ad Account ID</th>
                   <th className="pb-4 px-4 font-medium">Platform</th>
+                  <th className="pb-4 px-4 font-medium">Type</th>
                   <th className="pb-4 px-4 font-medium">Amount</th>
                   <th className="pb-4 pl-4 font-medium">Status</th>
                   <th className="pb-4 pl-4 font-medium text-right">Receipt</th>
@@ -268,15 +269,25 @@ const UserTopUps = () => {
                     key={t.id}
                     className="border-b border-white/5 last:border-0 text-[14px]"
                   >
-                    <td className="py-4 pr-4 text-quaternary">{t.date || "—"}</td>
+                    <td className="py-4 pr-4 text-quaternary">
+                      <div>{t.date || "—"}</div>
+                      {t.status === "rejected" &&
+                      t.reviewedAtLabel &&
+                      t.reviewedAtLabel !== "—" ? (
+                        <div className="text-[12px] text-[#FF9599] mt-1">
+                          Rejected {t.reviewedAtLabel}
+                        </div>
+                      ) : null}
+                    </td>
                     <td className="py-4 px-4 text-quaternary">{t.adAccountId}</td>
                     <td className="py-4 px-4 text-white">{t.platform}</td>
+                    <td className="py-4 px-4 text-quaternary">
+                      {t.isBalanceRefresh ? "Balance refresh" : "Top-up"}
+                    </td>
                     <td className="py-4 px-4 text-white">
-                      {t.isBalanceRefresh ? (
-                        <span className="text-quaternary">Balance refresh</span>
-                      ) : (
-                        withDisplayCurrency(String(t.amount ?? "—"))
-                      )}
+                      {t.isBalanceRefresh
+                        ? "—"
+                        : withDisplayCurrency(String(t.amount ?? "—"))}
                     </td>
                     <td className="py-4 pl-4 max-w-[260px]">
                       <span
@@ -288,7 +299,7 @@ const UserTopUps = () => {
                       </span>
                       {t.rejectionReason ? (
                         <p className="mt-1.5 text-[12px] leading-snug text-[#FF4D59] break-words">
-                          Reason: {t.rejectionReason}
+                          Reason: {String(t.rejectionReason).replace(/\bPlease sent\b/g, "Please send")}
                         </p>
                       ) : null}
                     </td>

@@ -7,6 +7,7 @@ import { sanitizePaymentReference } from "@/lib/payments/sanitize-reference";
 import { findShopProduct } from "@/lib/shop/catalog";
 import { ORDERS_COLLECTION, ORDER_STATUS } from "@/lib/orders/constants";
 import { serializeOrder } from "@/lib/orders/server-orders";
+import { openComplaintTicketIdsByOrder } from "@/lib/tickets/server-tickets";
 import { isConfirmedSubscriptionDoc, isOwnPaymentProof } from "@/lib/orders/order-guards";
 import { SUBSCRIPTIONS_COLLECTION } from "@/lib/subscriptions/constants";
 import {
@@ -26,13 +27,17 @@ export async function GET() {
 
   const db = getAdminDb();
   // Single-field filter only (sorted in memory) — no composite index needed.
-  const snap = await db
-    .collection(ORDERS_COLLECTION)
-    .where("userId", "==", user.uid)
-    .get();
+  const [snap, openComplaints] = await Promise.all([
+    db.collection(ORDERS_COLLECTION).where("userId", "==", user.uid).get(),
+    openComplaintTicketIdsByOrder(db, user.uid),
+  ]);
 
   const items = snap.docs
-    .map((d) => serializeOrder(d))
+    .map((d) => {
+      const item = serializeOrder(d);
+      item.openComplaintTicketId = openComplaints.get(d.id) || null;
+      return item;
+    })
     .sort((a, b) => Number(b.createdAtMs) - Number(a.createdAtMs));
 
   return NextResponse.json({ items });

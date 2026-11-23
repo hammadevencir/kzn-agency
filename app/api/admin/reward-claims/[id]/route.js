@@ -124,11 +124,24 @@ export async function PATCH(request, context) {
             ? profSnap.data().commissionBalanceCents
             : 0;
 
-        let deduct = claimDeductCents(c);
-        if (deduct == null || deduct < 0) deduct = current;
+        // Claims submitted after the reservation fix already removed this
+        // amount from the profile. Deducting again would take later
+        // commissions. Older claims were not reserved: approve them only
+        // when the live balance still covers the full amount, so a second
+        // claim of the same commission cannot be paid out.
+        const alreadyReserved = c?.balanceReserved === true;
+        let payout = claimDeductCents(c);
+        if (payout == null || payout < 0) {
+          if (alreadyReserved) throw new Error("missing_claim_amount");
+          payout = current;
+        }
+        if (!alreadyReserved && payout > current) {
+          throw new Error("insufficient_balance");
+        }
+        const deduct = alreadyReserved ? 0 : payout;
         const next = Math.max(0, current - deduct);
 
-        const creditUsd = Math.round(deduct) / 100;
+        const creditUsd = Math.round(payout) / 100;
         const claimType =
           typeof c?.claimType === "string" ? c.claimType : "";
         const adAccountId =
@@ -137,6 +150,7 @@ export async function PATCH(request, context) {
         /** @type {Record<string, unknown>} */
         const claimUpdate = {
           status: "approved",
+          fundsStatus: "settled",
           reviewedAt: FieldValue.serverTimestamp(),
           reviewedBy: sessionUser.uid,
           rejectionReason: null,
@@ -211,6 +225,22 @@ export async function PATCH(request, context) {
           { status: 409 }
         );
       }
+      if (msg === "insufficient_balance") {
+        return NextResponse.json(
+          {
+            error: "insufficient_balance",
+            message:
+              "This claim was not reserved, and the affiliate balance no longer covers it. Reject it so the same commission is not paid twice.",
+          },
+          { status: 409 }
+        );
+      }
+      if (msg === "missing_claim_amount") {
+        return NextResponse.json(
+          { error: "missing_claim_amount" },
+          { status: 500 }
+        );
+      }
       throw e;
     }
 
@@ -228,15 +258,73 @@ export async function PATCH(request, context) {
     );
   }
 
-  await ref.set(
-    {
-      status: "rejected",
-      reviewedAt: FieldValue.serverTimestamp(),
-      reviewedBy: sessionUser.uid,
-      rejectionReason: reason,
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const userId =
+    typeof existing?.userId === "string" ? existing.userId : "";
+  const profRef = userId
+    ? db.collection(AFFILIATE_PROFILES_COLLECTION).doc(userId)
+    : null;
+
+  try {
+    await db.runTransaction(async (t) => {
+      const claimSnap = await t.get(ref);
+      if (!claimSnap.exists) throw new Error("claim_not_found");
+      const c = claimSnap.data();
+      if (c?.status && c.status !== "pending") {
+        throw new Error("already_reviewed");
+      }
+
+      const reserved =
+        c?.balanceReserved === true &&
+        c?.fundsStatus !== "released" &&
+        c?.fundsStatus !== "settled";
+
+      if (reserved) {
+        if (!profRef) throw new Error("missing_claim_user");
+        const profSnap = await t.get(profRef);
+        const current =
+          typeof profSnap.data()?.commissionBalanceCents === "number"
+            ? profSnap.data().commissionBalanceCents
+            : 0;
+        const restore = claimDeductCents(c);
+        if (restore == null || restore < 0) {
+          throw new Error("missing_claim_amount");
+        }
+        t.set(
+          profRef,
+          {
+            commissionBalanceCents: current + restore,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      t.set(
+        ref,
+        {
+          status: "rejected",
+          fundsStatus: reserved ? "released" : c?.fundsStatus ?? null,
+          reviewedAt: FieldValue.serverTimestamp(),
+          reviewedBy: sessionUser.uid,
+          rejectionReason: reason,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "already_reviewed") {
+      return NextResponse.json({ error: "already_reviewed" }, { status: 409 });
+    }
+    if (msg === "claim_not_found") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (msg === "missing_claim_amount" || msg === "missing_claim_user") {
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+    throw e;
+  }
+
   return NextResponse.json({ ok: true });
 }

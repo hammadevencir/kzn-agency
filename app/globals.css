@@ -296,3 +296,13 @@ button {
 .kz-pill--danger { background: #FF4D59; color: #fff; }
 .kz-pill--paused { background: #F5B301; color: #fff; }
 .kz-pill--neutral { background: #8B9197; color: #fff; }
+
+/* Keep the dark settings fields dark when the browser autofills a password. */
+input[autocomplete="current-password"]:-webkit-autofill,
+input[autocomplete="current-password"]:-webkit-autofill:hover,
+input[autocomplete="current-password"]:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #151e25 inset;
+  transition: background-color 9999s ease-out 0s;
+}

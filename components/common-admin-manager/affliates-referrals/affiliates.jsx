@@ -70,7 +70,7 @@ export default function Affiliates() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data?.error || 'Could not approve reward claim.');
+        toast.error(data?.message || data?.error || 'Could not approve reward claim.');
         return;
       }
       setIsRewardDetailOpen(false);
@@ -99,7 +99,7 @@ export default function Affiliates() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data?.error || 'Could not reject reward claim.');
+        toast.error(data?.message || data?.error || 'Could not reject reward claim.');
         return;
       }
       setIsRejectionOpen(false);

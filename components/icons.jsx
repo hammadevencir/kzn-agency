@@ -207,15 +207,11 @@ export const EyeClosedIcon = ({ className, width = 20, height = 21 }) => (
 );
 
 export const GoogleIcon = ({ className, width = 32, height = 32 }) => (
-  <svg width={width} height={height} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <g clipPath="url(#clip0_google)">
-      <path d="M32 14H28V10H26V14H22V16H26V20H28V16H32V14ZM10 18H15.658C15.2428 19.169 14.4762 20.181 13.4632 20.8971C12.4503 21.6133 11.2405 21.9985 10 22C6.692 22 4 19.308 4 16C4 16.03 4.004 16.059 4.01 16.089C4.1 12.607 6.945 10 10.395 10C11.829 10 13.209 10.514 14.281 11.448L16.909 8.43201C15.1027 6.86121 12.7888 5.99732 10.395 6.00001C4.881 6.00001 0.395 10.486 0.395 16C0.395 21.514 4.881 26 10.395 26C15.909 26 20.395 21.514 20.395 16V14H10.395V18Z" fill="#F44336"/>
-    </g>
-    <defs>
-      <clipPath id="clip0_google">
-        <rect width="32" height="32" fill="white"/>
-      </clipPath>
-    </defs>
+  <svg width={width} height={height} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+    <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.2-3.5 5.7-6.6 7.1l6.3 5.3C37.4 38.3 44 33 44 24c0-1.3-.1-2.7-.4-3.5z"/>
   </svg>
 );
 

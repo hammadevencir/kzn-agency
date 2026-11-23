@@ -167,6 +167,7 @@ const UserSubscriptions = () => {
             ? selectedSubscription.paymentSubmittedAtLabel
             : selectedSubscription.dateSubmitted,
         amount: selectedSubscription.amountPaid,
+        status: selectedSubscription.paymentInReview ? "In review" : "Paid",
       });
     }
 

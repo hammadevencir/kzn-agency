@@ -116,7 +116,12 @@ export default function AdAccount({ onLogout, showTopUpIcon = false }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data?.error || 'Could not approve this request.');
+        toast.error(
+          data?.message ||
+            (data?.error === "missing_platform_details"
+              ? "Save the Meta ad account name and ID before approving."
+              : data?.error || "Could not approve this request.")
+        );
         return;
       }
       handleCloseRequestModal();

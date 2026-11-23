@@ -44,7 +44,7 @@ const RequestSuccessDialog = ({ isOpen, onClose }) => {
               Request Sent
             </DialogTitle>
             <p className="text-[#8B9197] text-[16px] leading-relaxed mx-auto max-w-[320px]">
-              Your reward claim has been submitted for review. You'll receive a notification upon approval.
+              Your reward claim has been submitted. That amount is held until the team reviews it, and it returns to your balance if the request is declined.
             </p>
           </div>
 

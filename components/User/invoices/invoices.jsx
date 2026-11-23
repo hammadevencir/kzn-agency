@@ -9,16 +9,23 @@ import { DownloadIcon } from "@/components/icons";
 import { downloadInvoicePdf } from "@/lib/invoices/generate-invoice-pdf";
 import { billToLines } from "@/lib/billing/billing-details";
 
-/** Design: YYYY-MM-DD (local calendar date) */
+/** One customer-facing date: "25 Aug 2026". */
 function formatDateYmd(iso) {
   if (!iso) return "—";
   const ms = Date.parse(iso);
   if (Number.isNaN(ms)) return "—";
-  const d = new Date(ms);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return new Date(ms).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Amount already stored on the invoice, keeping its currency symbol. */
+function invoiceAmountText(invoice) {
+  const raw = String(invoice?.paidAmountLabel || invoice?.amount || "").trim();
+  if (!raw || raw === "—") return "—";
+  return formatAmountDisplay(raw);
 }
 
 function getInitial(name) {
@@ -275,6 +282,9 @@ const InvoicesTable = ({
                   Subscription
                 </th>
                 <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pr-4">
+                  Amount
+                </th>
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pr-4">
                   Status
                 </th>
                 <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap">
@@ -312,6 +322,9 @@ const InvoicesTable = ({
                     <td className="py-5 text-white font-light text-[15px] pr-4">
                       {subLine}
                     </td>
+                    <td className="py-5 text-white font-light text-[15px] text-right pr-4 whitespace-nowrap">
+                      {invoiceAmountText(invoice)}
+                    </td>
                     <td
                       className={`py-5 text-[15px] text-right font-light pr-4 ${statusTextClass(
                         invoice.status
@@ -320,6 +333,9 @@ const InvoicesTable = ({
                       {invoice.statusLabel}
                     </td>
                     <td className="py-5 text-right">
+                      {invoice.status === "rejected" ? (
+                        <span className="text-[12px] text-quaternary">—</span>
+                      ) : (
                       <DownloadInvoiceButton
                         invoice={invoice}
                         txnId={txnId}
@@ -328,6 +344,7 @@ const InvoicesTable = ({
                         billing={ru.billing || null}
                         description={subLine}
                       />
+                      )}
                     </td>
                   </tr>
                 );
@@ -374,6 +391,9 @@ const InvoicesTable = ({
                 </th>
                 <th className="py-4 text-quaternary font-normal text-[15px] whitespace-nowrap pr-4">
                   Date Created
+                </th>
+                <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pr-4">
+                  Amount
                 </th>
                 <th className="py-4 text-quaternary font-normal text-[15px] text-right whitespace-nowrap pl-2 pr-4">
                   Status
@@ -427,6 +447,9 @@ const InvoicesTable = ({
                     <td className="py-5 text-white font-light text-[15px] pr-4 whitespace-nowrap">
                       {formatDateYmd(createdIso)}
                     </td>
+                    <td className="py-5 text-white font-light text-[15px] text-right pr-4 whitespace-nowrap">
+                      {invoiceAmountText(invoice)}
+                    </td>
                     <td
                       className={`py-5 text-[15px] text-right font-light pl-2 pr-4 ${statusTextClass(
                         invoice.status
@@ -435,6 +458,9 @@ const InvoicesTable = ({
                       {invoice.statusLabel}
                     </td>
                     <td className="py-5 text-right">
+                      {invoice.status === "rejected" ? (
+                        <span className="text-[12px] text-quaternary">—</span>
+                      ) : (
                       <DownloadInvoiceButton
                         invoice={invoice}
                         txnId={txnId}
@@ -447,6 +473,7 @@ const InvoicesTable = ({
                             : invoice.description || "Top up"
                         }
                       />
+                      )}
                     </td>
                   </tr>
                 );

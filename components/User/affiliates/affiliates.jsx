@@ -228,17 +228,29 @@ const Affiliates = () => {
 
   const balanceDisplay = `$${(balanceCents / 100).toFixed(2)}`;
   /**
-   * One claim under review at a time — otherwise a referrer can submit the same
-   * claim repeatedly before an admin gets to the first one.
+   * One claim under review at a time. The claim API also reserves the full
+   * balance in a transaction, so the same commission cannot be paid twice.
    */
-  const hasPendingClaim = rewardClaims.some(
+  const pendingClaims = rewardClaims.filter(
     (c) => c.status === 'pending' || c.status === 'payment_submitted'
   );
+  const hasPendingClaim = pendingClaims.length > 0;
+  const pendingClaimCents = pendingClaims.reduce((sum, c) => {
+    if (typeof c.claimBalanceCents === 'number' && c.claimBalanceCents > 0) {
+      return sum + c.claimBalanceCents;
+    }
+    const n = parseFloat(String(c.amount || '').replace(/[^0-9.]/g, ''));
+    return sum + (Number.isFinite(n) ? Math.round(n * 100) : 0);
+  }, 0);
+  const pendingClaimLabel =
+    pendingClaimCents > 0
+      ? `$${(pendingClaimCents / 100).toFixed(2)} pending`
+      : 'Request pending';
   const canClaimReward =
     balanceCents >= AFFILIATE_MIN_CLAIM_BALANCE_CENTS && !hasPendingClaim;
   const minClaimBalanceDisplay = `$${(AFFILIATE_MIN_CLAIM_BALANCE_CENTS / 100).toFixed(0)}`;
-  const activeDisplay = String(stats.activeReferrals).padStart(2, '0');
-  const pendingDisplay = String(stats.pendingReferrals).padStart(2, '0');
+  const activeDisplay = String(stats.activeReferrals);
+  const pendingDisplay = String(stats.pendingReferrals);
 
   return (
     <div className="flex-1 p-6 md:p-10 lg:p-12 mb-20 max-w-[1400px]">
@@ -332,7 +344,7 @@ const Affiliates = () => {
               </p>
               {!loading && hasPendingClaim ? (
                 <span className="px-3 py-1 rounded-full bg-[#39CB7F]/15 border border-[#39CB7F]/40 text-[#39CB7F] text-[12px] font-medium whitespace-nowrap">
-                  Your request is pending
+                  {pendingClaimLabel}
                 </span>
               ) : null}
             </div>
@@ -368,22 +380,6 @@ const Affiliates = () => {
               </p>
             ) : null}
           </div>
-          <div className="flex-shrink-1 overflow-hidden min-w-0 flex items-end h-full">
-            <svg width="140" height="60" viewBox="0 0 193 85" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-              <g clipPath="url(#clip0_2066_1522_styled)">
-                <path d="M194.369 0V86.2344H-1.36914V51.0439H0C1.14477 51.0439 2.24945 50.5479 3.43262 49.6162C4.63084 48.6726 5.7746 47.3933 7.01953 45.9941C8.2251 44.6392 9.53233 43.1639 10.957 42.042C12.3968 40.9082 14.0875 40.0274 16.083 40.0273C18.184 40.0273 19.9115 41.1826 21.3232 42.5723C22.7371 43.964 24.0339 45.7926 25.2402 47.4873C26.4844 49.2352 27.6385 50.8498 28.8477 52.04C30.0589 53.2322 31.1276 53.7979 32.167 53.7979C34.8065 53.7977 36.9094 52.3693 39.4219 50.6045C41.8105 48.9267 44.6087 46.9131 48.25 46.9131C50.9923 46.9131 53.1514 45.7572 55.6348 44.3975C58.0524 43.0737 60.7946 41.545 64.333 41.5449C64.6885 41.5449 65.1269 41.394 65.6807 40.9209C66.2419 40.4414 66.8338 39.7035 67.4551 38.7188C68.7015 36.743 69.8847 34.0748 71.123 31.2734C72.3353 28.5312 73.6029 25.6556 74.9795 23.4736C75.6697 22.3797 76.433 21.3845 77.291 20.6514C78.1564 19.9121 79.2025 19.3711 80.417 19.3711C82.6178 19.3712 84.3665 20.8137 85.7412 22.4375C87.1419 24.0921 88.4277 26.2671 89.6357 28.3037C90.8782 30.3982 92.0433 32.354 93.2656 33.7979C94.5139 35.2724 95.5605 35.8955 96.5 35.8955C99.1396 35.8955 101.242 34.467 103.755 32.7021C106.143 31.0244 108.942 29.0109 112.583 29.0107C113.572 29.0107 114.628 28.4149 115.857 27.084C117.073 25.7677 118.232 23.983 119.476 22.0615C120.683 20.196 121.974 18.1938 123.382 16.6699C124.776 15.1606 126.515 13.8623 128.667 13.8623C130.819 13.8624 132.558 15.1607 133.952 16.6699C135.359 18.1937 136.65 20.1962 137.857 22.0615C139.101 23.9829 140.26 25.7677 141.476 27.084C142.705 28.4149 143.761 29.0107 144.75 29.0107C147.39 29.0107 149.492 27.5813 152.005 25.8164C154.393 24.1387 157.192 22.1251 160.833 22.125C161.872 22.125 162.941 21.5586 164.152 20.3662C165.361 19.176 166.516 17.5623 167.76 15.8145C168.966 14.1197 170.263 12.2912 171.677 10.8994C173.088 9.50975 174.816 8.35449 176.917 8.35449C179.464 8.35434 181.526 6.67248 184.07 4.50391C186.427 2.49569 189.266 0 193 0H194.369Z" fill="url(#paint0_linear_2066_1522_styled)" fillOpacity="0.1" stroke="#C5A964" strokeWidth="2.73759"/>
-              </g>
-              <defs>
-                <linearGradient id="paint0_linear_2066_1522_styled" x1="95.56" y1="20.0511" x2="95.56" y2="88.2171" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#C5A964"/>
-                  <stop offset="1" stopColor="white" stopOpacity="0"/>
-                </linearGradient>
-                <clipPath id="clip0_2066_1522_styled">
-                  <rect width="193" height="84.8652" fill="white"/>
-                </clipPath>
-              </defs>
-            </svg>
-          </div>
         </div>
 
         <div className="bg-[#161D26] p-5 border border-quaternary/20 rounded-lg flex flex-row justify-between items-start gap-4 relative overflow-hidden group">
@@ -395,22 +391,6 @@ const Affiliates = () => {
             <p className="text-gray-500 text-[13px] font-medium">
               {loading ? '…' : `${pendingDisplay} pending`}
             </p>
-          </div>
-          <div className="flex-shrink-1 overflow-hidden min-w-0 flex items-end h-full">
-            <svg width="140" height="60" viewBox="0 0 193 85" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-              <g clipPath="url(#clip0_1929_24910_styled)">
-                <path d="M194.369 0V86.2344H-1.36914V51.0439H0C1.14477 51.0439 2.24945 50.5479 3.43262 49.6162C4.63084 48.6726 5.7746 47.3933 7.01953 45.9941C8.2251 44.6392 9.53233 43.1639 10.957 42.042C12.3968 40.9082 14.0875 40.0274 16.083 40.0273C18.184 40.0273 19.9115 41.1826 21.3232 42.5723C22.7371 43.964 24.0339 45.7926 25.2402 47.4873C26.4844 49.2352 27.6385 50.8498 28.8477 52.04C30.0589 53.2322 31.1276 53.7979 32.167 53.7979C34.8065 53.7977 36.9094 52.3693 39.4219 50.6045C41.8105 48.9267 44.6087 46.9131 48.25 46.9131C50.9923 46.9131 53.1514 45.7572 55.6348 44.3975C58.0524 43.0737 60.7946 41.545 64.333 41.5449C64.6885 41.5449 65.1269 41.394 65.6807 40.9209C66.2419 40.4414 66.8338 39.7035 67.4551 38.7188C68.7015 36.743 69.8847 34.0748 71.123 31.2734C72.3353 28.5312 73.6029 25.6556 74.9795 23.4736C75.6697 22.3797 76.433 21.3845 77.291 20.6514C78.1564 19.9121 79.2025 19.3711 80.417 19.3711C82.6178 19.3712 84.3665 20.8137 85.7412 22.4375C87.1419 24.0921 88.4277 26.2671 89.6357 28.3037C90.8782 30.3982 92.0433 32.354 93.2656 33.7979C94.5139 35.2724 95.5605 35.8955 96.5 35.8955C99.1396 35.8955 101.242 34.467 103.755 32.7021C106.143 31.0244 108.942 29.0109 112.583 29.0107C113.572 29.0107 114.628 28.4149 115.857 27.084C117.073 25.7677 118.232 23.983 119.476 22.0615C120.683 20.196 121.974 18.1938 123.382 16.6699C124.776 15.1606 126.515 13.8623 128.667 13.8623C130.819 13.8624 132.558 15.1607 133.952 16.6699C135.359 18.1937 136.65 20.1962 137.857 22.0615C139.101 23.9829 140.26 25.7677 141.476 27.084C142.705 28.4149 143.761 29.0107 144.75 29.0107C147.39 29.0107 149.492 27.5813 152.005 25.8164C154.393 24.1387 157.192 22.1251 160.833 22.125C161.872 22.125 162.941 21.5586 164.152 20.3662C165.361 19.176 166.516 17.5623 167.76 15.8145C168.966 14.1197 170.263 12.2912 171.677 10.8994C173.088 9.50975 174.816 8.35449 176.917 8.35449C179.464 8.35434 181.526 6.67248 184.07 4.50391C186.427 2.49569 189.266 0 193 0H194.369Z" fill="url(#paint0_linear_1929_24910_styled)" fillOpacity="0.1" stroke="#019BF4" strokeWidth="2.73759"/>
-              </g>
-              <defs>
-                <linearGradient id="paint0_linear_1929_24910_styled" x1="95.56" y1="20.0511" x2="95.56" y2="88.2171" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#019BF4"/>
-                  <stop offset="1" stopColor="white" stopOpacity="0"/>
-                </linearGradient>
-                <clipPath id="clip0_1929_24910_styled">
-                  <rect width="193" height="84.8652" fill="white"/>
-                </clipPath>
-              </defs>
-            </svg>
           </div>
         </div>
       </div>

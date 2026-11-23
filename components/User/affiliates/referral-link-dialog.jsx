@@ -11,10 +11,14 @@ import { XIcon } from '@/components/icons';
 import toast from 'react-hot-toast';
 
 const ReferralLinkDialog = ({ isOpen, onClose, referralCode = '' }) => {
-  const shareBase =
-    typeof window !== 'undefined'
+  const publicOrigin = String(process.env.NEXT_PUBLIC_APP_URL || "")
+    .trim()
+    .replace(/\/$/, "");
+  const shareBase = publicOrigin
+    ? `${publicOrigin}/user/signup`
+    : typeof window !== "undefined"
       ? `${window.location.origin}/user/signup`
-      : '';
+      : "";
   const shareUrl = referralCode
     ? `${shareBase}?ref=${encodeURIComponent(referralCode)}`
     : '';

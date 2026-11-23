@@ -25,6 +25,7 @@ import {
   EUR_TO_USD_RATE,
   PAYMENT_ACCOUNT_BY_CURRENCY,
   PAYMENT_CURRENCY,
+  PAYMENT_REFERENCE_NOTE_SUBSCRIPTION,
   PAYMENT_REFERENCE_PLACEHOLDER,
   priceLabelInCurrency,
 } from '@/lib/payments/bank-details';
@@ -342,10 +343,10 @@ const PayNowModal = ({
               {isPlatformSubscription ? (
                 <div className="space-y-2">
                   <span className="text-[#8B9197] text-[16px] font-medium block">
-                    After payment:
+                    After we confirm payment:
                   </span>
                   <p className="text-white text-[14px] leading-relaxed">
-                    Your 24/7 priority service is now being activated. A dedicated team member will contact you within 5–15 minutes with further details and provide ongoing support.
+                    Your 24/7 priority service will be activated after we confirm the transfer. A dedicated team member will contact you within 15 minutes with further details and provide ongoing support.
                   </p>
                 </div>
               ) : (
@@ -413,7 +414,15 @@ const PayNowModal = ({
           ) : null}
 
           {/* Bank Details */}
-          <BankDetailsCard showTitle currency={chosenCurrency} />
+          <BankDetailsCard
+            showTitle
+            currency={chosenCurrency}
+            referenceNote={
+              flowType === "platformSubscription"
+                ? PAYMENT_REFERENCE_NOTE_SUBSCRIPTION
+                : undefined
+            }
+          />
 
           {/* Upload Screenshot */}
           <div className="space-y-5">
@@ -545,13 +554,18 @@ const PayNowModal = ({
             </button>
             <button 
               onClick={() => void handleDone()}
-              disabled={uploading}
+              disabled={uploading || !uploadedFile || !paymentReference.trim()}
               className="flex-1 h-[68px] rounded-2xl bg-[#B89C57] hover:bg-[#D4BB7D] text-black font-bold text-[17px] transition-all shadow-xl shadow-[#B89C57]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? 'Uploading…' : 'Done'}
             </button>
           </div>
-          <p className="text-[14px] text-[#8B9197] font-medium opacity-80 pb-2">Terms & Conditions applied</p>
+          <p className="text-[14px] text-[#8B9197] font-medium opacity-80 pb-2">
+            <a href="/user-notice" className="underline hover:text-white">
+              Terms & Conditions
+            </a>{" "}
+            applied
+          </p>
         </div>
       </DialogContent>
     </Dialog>

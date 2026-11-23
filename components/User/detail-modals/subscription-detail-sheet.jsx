@@ -153,7 +153,7 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
                       <SubscriptionPlatformIcon platformId={data.platformId} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-xl font-medium text-white truncate">
+                      <h4 className="text-xl font-medium text-white whitespace-normal break-words">
                         {data.platform || "—"}
                       </h4>
                       <p className="text-[12px] text-quaternary mt-1">
@@ -191,7 +191,7 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
                   </div>
                   <div className="flex justify-between items-center text-[14px] gap-4">
                     <span className="text-quaternary font-light shrink-0">
-                      Last Subscription Paid:
+                      {data.paymentInReview ? "Payment submitted:" : "Last subscription paid:"}
                     </span>
                     <span className="text-white font-medium text-right">
                       {lastPaid}
@@ -245,7 +245,7 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-[15px] font-medium text-white">
-                      Subscriptions Details
+                      Subscription Details
                     </h4>
                     <p className="text-[12px] text-quaternary mt-1">
                       Payments recorded for this subscription
@@ -259,25 +259,37 @@ const SubscriptionDetailSheet = ({ isOpen, onClose, data }) => {
                       </p>
                     ) : (
                       <>
-                        <div className="grid grid-cols-2 pb-4 border-b border-white/5">
+                        <div className="grid grid-cols-3 pb-4 border-b border-white/5">
                           <span className="text-[14px] font-medium text-quaternary">
                             Date
                           </span>
-                          <span className="text-[14px] font-medium text-quaternary text-right pr-4">
+                          <span className="text-[14px] font-medium text-quaternary text-right">
                             Amount
+                          </span>
+                          <span className="text-[14px] font-medium text-quaternary text-right pr-4">
+                            Status
                           </span>
                         </div>
                         <div className="divide-y divide-white/5">
                           {subscriptionHistory.map((item, idx) => (
                             <div
                               key={`${item.date}-${idx}`}
-                              className="grid grid-cols-2 py-5 items-center"
+                              className="grid grid-cols-3 py-5 items-center"
                             >
                               <span className="text-[14px] text-white font-light">
                                 {item.date}
                               </span>
-                              <span className="text-[14px] text-white font-light text-right pr-4">
+                              <span className="text-[14px] text-white font-light text-right">
                                 {item.amount}
+                              </span>
+                              <span
+                                className={`text-[14px] font-light text-right pr-4 ${
+                                  item.status === "In review"
+                                    ? "text-[#C5A964]"
+                                    : "text-[#39CB7F]"
+                                }`}
+                              >
+                                {item.status || "Paid"}
                               </span>
                             </div>
                           ))}

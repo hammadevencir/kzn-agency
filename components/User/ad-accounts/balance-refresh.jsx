@@ -23,7 +23,9 @@ function refreshErrorMessage(raw) {
     case "ad_account_paused":
       return "This ad account is currently paused. Contact support for details.";
     case "subscription_expired":
-      return "Your subscription has expired. Renew to continue.";
+      return "Your subscription has expired. Renew it before requesting balance updates.";
+    case "subscription_renewal_review":
+      return "Your renewal is in review. Balance refresh unlocks once it's approved.";
     case "subscription_inactive":
       return "Your subscription for this platform isn't active yet. Balance refresh unlocks once your subscription payment is approved.";
     case "forbidden":

@@ -96,8 +96,17 @@ const AdAccountDetailSheet = ({
   const accountId = String(data.id || "—");
   const balance = data.balance != null ? String(data.balance) : "—";
 
+  const planLocked =
+    data.planState === "expired" || data.planState === "renewal_review";
+  const planLockMessage =
+    data.planState === "renewal_review"
+      ? "Your renewal is in review. Top-ups and balance refresh unlock once it's approved."
+      : data.planState === "expired"
+        ? "Your subscription has expired. Renew it before topping up or refreshing balance."
+        : null;
+
   const handleTopUpClick = () => {
-    if (!isApproved || isPaused) return;
+    if (!isApproved || isPaused || planLocked) return;
     if (onTopUp) {
       onTopUp(data);
       return;
@@ -107,7 +116,7 @@ const AdAccountDetailSheet = ({
   };
 
   const handleRequestBalance = () => {
-    if (!isApproved || isPaused || requestBalanceSending) return;
+    if (!isApproved || isPaused || planLocked || requestBalanceSending) return;
     if (typeof onRequestBalance === "function") {
       void onRequestBalance(data);
     }
@@ -179,7 +188,8 @@ const AdAccountDetailSheet = ({
                   Ad account name:
                 </span>
                 <span className="text-white text-[15px] font-medium text-right break-words">
-                  {data?.platformAccountName || "—"}
+                  {data?.platformAccountName ||
+                    (isApproved ? "Filled in after delivery" : "—")}
                 </span>
               </div>
               <div className="flex justify-between items-center gap-3">
@@ -187,7 +197,8 @@ const AdAccountDetailSheet = ({
                   Ad account ID:
                 </span>
                 <span className="text-white text-[15px] font-medium text-right break-all">
-                  {data?.platformAccountId || "—"}
+                  {data?.platformAccountId ||
+                    (isApproved ? "Filled in after delivery" : "—")}
                 </span>
               </div>
               <div className="flex justify-between items-center gap-3">
@@ -265,11 +276,15 @@ const AdAccountDetailSheet = ({
           </div>
         </div>
 
-        <div className="p-6 bg-tertiary border-t border-white/5 flex flex-row gap-3 shrink-0 mt-auto">
+        <div className="p-6 bg-tertiary border-t border-white/5 flex flex-col gap-3 shrink-0 mt-auto">
+          {planLockMessage ? (
+            <p className="text-[13px] text-[#C5A964] leading-relaxed">{planLockMessage}</p>
+          ) : null}
+          <div className="flex flex-row gap-3">
           <button
             type="button"
             onClick={handleTopUpClick}
-            disabled={!isApproved || isPaused || requestBalanceSending}
+            disabled={!isApproved || isPaused || planLocked || requestBalanceSending}
             className="flex-1 h-14 rounded-2xl border border-[#C5A964] text-[#C5A964] text-[15px] font-medium hover:bg-[#C5A964]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Topup
@@ -278,7 +293,11 @@ const AdAccountDetailSheet = ({
             type="button"
             onClick={handleRequestBalance}
             disabled={
-              !isApproved || isPaused || requestBalanceSending || typeof onRequestBalance !== "function"
+              !isApproved ||
+              isPaused ||
+              planLocked ||
+              requestBalanceSending ||
+              typeof onRequestBalance !== "function"
             }
             className="flex-1 h-14 rounded-2xl bg-[#C5A964] hover:bg-[#b09650] text-[#151E25] text-[15px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
@@ -287,6 +306,7 @@ const AdAccountDetailSheet = ({
             />
             {requestBalanceSending ? "Refreshing…" : "Refresh balance"}
           </button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
