@@ -7,7 +7,7 @@ import LegendaryPackage from "@/components/sections/website/pricing/LegendaryPac
 export const metadata = {
   title: "Pricing | KAZAN Solutions",
   description:
-    "KAZAN Solutions agency ad accounts pricing: plans for general agency ad accounts and specialized supplement agency ad accounts.",
+    "KAZAN Solutions agency ad accounts pricing: Agency plans and Beauty & Supplements plans, with no setup fee.",
 };
 
 const PricingPage = () => {

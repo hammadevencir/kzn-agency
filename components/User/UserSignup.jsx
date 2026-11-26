@@ -157,6 +157,7 @@ export default function UserSignup() {
             <label className="block text-quaternary text-[12px] mb-2">Your name</label>
             <input
               type="text"
+              name="name"
               autoComplete="name"
               value={name}
               onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
@@ -170,6 +171,7 @@ export default function UserSignup() {
             <label className="block text-quaternary text-[12px] mb-2">Your email</label>
             <input
               type="email"
+              name="email"
               autoComplete="email"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
@@ -183,6 +185,7 @@ export default function UserSignup() {
             <label className="block text-quaternary text-[12px] mb-2">Phone number</label>
             <input
               type="tel"
+              name="tel"
               autoComplete="tel"
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
@@ -199,6 +202,7 @@ export default function UserSignup() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                name="new-password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}

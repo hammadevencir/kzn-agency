@@ -125,7 +125,8 @@ export default function AdminLogin() {
             <label className="block text-quaternary text-[12px] mb-2">Email</label>
             <input
               type="email"
-              autoComplete="email"
+              name="username"
+              autoComplete="username"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
               placeholder="Enter here"
@@ -139,6 +140,7 @@ export default function AdminLogin() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                name="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}

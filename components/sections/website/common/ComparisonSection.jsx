@@ -18,12 +18,12 @@ const ComparisonSection = () => {
     {
       feature: "Ad Account Delivery",
       others: "Estimated delivery: 2–7 days",
-      kazan: "Estimated delivery: 24-48 hours.",
+      kazan: "Estimated delivery: 24-72 hours.",
     },
     {
       feature: "Top-Up Speed",
       others: "Top-up takes: 1-2 hours (no top-ups during weekends)",
-      kazan: "Instant top-up within 15 minutes done.",
+      kazan: "Top-ups in 5-10 minutes, 24/7.",
     },
     {
       feature: "Credit-line Stability",
@@ -37,7 +37,7 @@ const ComparisonSection = () => {
       others:
         "Response time is slow, with no support on weekends and only during business hours.",
       kazan:
-        "Always available for help and support, 24/7, with a maximum response time of 15 minutes.",
+        "Always available for help and support, 24/7, with replies in about 10 minutes.",
     },
     {
       feature: "Ad Account Restrictions",

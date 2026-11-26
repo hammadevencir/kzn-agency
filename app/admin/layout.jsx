@@ -8,6 +8,7 @@ import LogoutConfirmationModal from '@/components/ui/logout-confirmation-modal';
 import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { useNavNotificationBadges } from '@/lib/hooks/useNavNotificationBadges';
 import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
 import { useAdminRole } from '@/lib/hooks/useAdminRole';
@@ -53,6 +54,7 @@ const AdminLayout = ({ children }) => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.ADMIN);
   const isLoginPage = pathname.includes('/login');
+  const navBadges = useNavNotificationBadges('admin', !isLoginPage);
   const openTicketCount = useOpenTicketCount(!isLoginPage);
 
   // Admin sub-role (manager | support). While loading, hide restricted items
@@ -180,7 +182,10 @@ const AdminLayout = ({ children }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         role="admin"
         chatUnreadCount={chatUnreadCount}
-        badgeCounts={{ tickets: openTicketCount }}
+        badgeCounts={{
+          ...navBadges,
+          tickets: Math.max(openTicketCount, navBadges.tickets || 0),
+        }}
         hiddenItemIds={hiddenNavIds}
       />
       

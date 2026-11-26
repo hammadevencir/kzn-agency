@@ -55,7 +55,7 @@ export default function MetaAdAccountRequestPage() {
   const canRequest = Boolean(selected);
 
   const typeLabel = cat === "vip" ? "VIP" : "White Hat";
-  const typeDisplay = cat === "vip" ? "Supplements" : "Agency";
+  const typeDisplay = cat === "vip" ? "Beauty & Supplements" : "Agency";
 
   const handleSubscriptionSuccess = async (subscriptionForm) => {
     setIsModalOpen(false);
@@ -114,7 +114,7 @@ export default function MetaAdAccountRequestPage() {
           Request Meta ad account
         </h1>
         <p className="text-quaternary text-[15px] mt-2 max-w-[720px]">
-          Your Agency or Supplements package comes from your Meta platform
+          Your Agency or Beauty & Supplements package comes from your Meta platform
           subscription. The new ad account is linked to the plan you request it
           for.
         </p>
@@ -130,7 +130,7 @@ export default function MetaAdAccountRequestPage() {
             </p>
             <p className="text-quaternary text-[14px] max-w-[600px]">
               Subscribe from your dashboard and choose your Meta package (Agency or
-              Supplements). Then you can request ad accounts here.
+              Beauty & Supplements). Then you can request ad accounts here.
             </p>
             <Button
               type="button"
@@ -146,8 +146,8 @@ export default function MetaAdAccountRequestPage() {
               Your Meta subscription uses a legacy plan without a tier on file.
             </p>
             <p className="text-quaternary text-[14px] max-w-[600px]">
-              Request a subscription update to select your package (Start, Scale,
-              Elite or a Supplements package). After approval, you can request ad
+              Request a subscription update to select your package (Silver, Gold,
+              Platinum, or Beauty & Supplements). After approval, you can request ad
               accounts.
             </p>
             <Button

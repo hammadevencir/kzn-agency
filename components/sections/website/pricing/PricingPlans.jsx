@@ -65,8 +65,8 @@ const PricingPlans = () => {
             <h2 className="text-center text-2xl md:text-4xl font-bold font-syne">
               {track.id === "supplements" ? (
                 <>
-                  <span className="text-primary">Supplements</span> Agency Ad
-                  Accounts
+                  <span className="text-primary">Beauty & Supplements</span>{" "}
+                  Agency Ad Accounts
                 </>
               ) : (
                 <>
@@ -79,7 +79,14 @@ const PricingPlans = () => {
             </span>
           </div>
 
-          <div className="grid md:grid-cols-3 w-full max-w-6xl gap-5 items-stretch">
+          <div
+            className={cn(
+              "grid w-full gap-5 items-stretch",
+              track.plans.length > 3
+                ? "sm:grid-cols-2 xl:grid-cols-4 max-w-7xl"
+                : "md:grid-cols-3 max-w-6xl"
+            )}
+          >
             {track.plans.map((plan, index) => (
               <PlanCard key={plan.id} plan={plan} index={index} />
             ))}
@@ -128,7 +135,9 @@ const PlanCard = ({ plan, index }) => {
           <span className="text-sm text-[#B0B0B0]">/month</span>
         </p>
         <p className="text-sm text-primary font-medium">
-          + {formatFee(plan.topUpFee)} top-up fee
+          {plan.topUpFee > 0
+            ? `+ ${formatFee(plan.topUpFee)} top-up fee`
+            : "No top-up fee"}
         </p>
       </div>
 

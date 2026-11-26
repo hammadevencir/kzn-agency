@@ -134,7 +134,8 @@ export default function UnifiedLogin() {
             <label className="block text-quaternary text-[12px] mb-2">Email</label>
             <input
               type="email"
-              autoComplete="email"
+              name="username"
+              autoComplete="username"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -161,6 +162,7 @@ export default function UnifiedLogin() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                name="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => {

@@ -207,7 +207,7 @@ export async function POST(request) {
       );
     }
     // Customer-facing package name (internal keys stay vip / white_hat).
-    const label = accountCategoryLabel(cat) || (cat === "vip" ? "Supplements" : "Agency");
+    const label = accountCategoryLabel(cat) || (cat === "vip" ? "Beauty & Supplements" : "Agency");
     subscriptionForm = {
       ...subscriptionForm,
       type: cat === "vip" ? "VIP" : "White Hat",

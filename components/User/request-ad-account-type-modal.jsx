@@ -73,7 +73,7 @@ const RequestAdAccountTypeModal = ({
             </DialogTitle>
             <p className="text-quaternary text-[14px]">
               {isMetaSubscription
-                ? "Select Agency or Supplements ad accounts. You'll choose Essential, Advanced, or Ultimate on the next step."
+                ? "Select Agency or Beauty & Supplements ad accounts. You'll choose the package on the next step."
                 : "Select which account you want to be created"}
             </p>
           </div>
@@ -98,7 +98,7 @@ const RequestAdAccountTypeModal = ({
                 <VIPHatIcon width={64} height={40} />
               </div>
               <span className={`text-[16px] font-semibold ${accountType === 'vip' && !isVipDisabled ? 'text-white' : 'text-quaternary'}`}>
-                Supplements Ad Accounts
+                Beauty & Supplements Ad Accounts
               </span>
               {isVipDisabled && (
                 <span className="absolute top-2 right-3 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-md bg-[#C5A964]/15 text-[#C5A964] border border-[#C5A964]/30">

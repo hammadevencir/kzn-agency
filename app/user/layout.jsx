@@ -11,6 +11,7 @@ import { HamburgerIcon } from '@/components/icons';
 import { signOutEverywhere } from '@/lib/auth/sign-out-client';
 import { Toaster } from 'react-hot-toast';
 import { useChatUnreadCount } from '@/lib/hooks/useChatUnreadCount';
+import { useNavNotificationBadges } from '@/lib/hooks/useNavNotificationBadges';
 import { useVerifySessionOrRedirect } from '@/lib/hooks/useVerifySessionOrRedirect';
 import { ROLE } from '@/lib/auth/constants';
 import PushNotificationSetup from '@/components/push/push-notification-setup';
@@ -51,6 +52,7 @@ const UserLayout = ({ children }) => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const chatUnreadCount = useChatUnreadCount(ROLE.USER);
   const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+  const navBadges = useNavNotificationBadges('user', !isAuthPage);
 
   useVerifySessionOrRedirect({
     endpoint: '/api/user/profile',
@@ -170,6 +172,7 @@ const UserLayout = ({ children }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         role="user"
         chatUnreadCount={chatUnreadCount}
+        badgeCounts={navBadges}
         allowedItemIds={isLocked ? PRE_SUBSCRIPTION_NAV_IDS : null}
         hiddenItemIds={HELP_CENTER_ENABLED ? [] : ['help']}
       />

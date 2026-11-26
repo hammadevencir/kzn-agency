@@ -278,8 +278,10 @@ const Sidebar = ({
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActiveItem = activeItem === item.id;
-              const badge =
-                item.id === 'chat' ? chatUnreadCount : Number(badgeCounts?.[item.id]) || 0;
+              const badge = Math.max(
+                Number(badgeCounts?.[item.id]) || 0,
+                item.id === 'chat' ? chatUnreadCount : 0
+              );
 
               return (
                 <Link

@@ -158,7 +158,7 @@ export async function POST(request) {
     subscriptionForm = {
       platform: displayPlatform,
       // Customer-facing package names (internal type stays "VIP"/"White Hat").
-      planName: `${catRaw === "vip" ? "Supplements" : "Agency"} — ${plan.name}`,
+      planName: `${catRaw === "vip" ? "Beauty & Supplements" : "Agency"} — ${plan.name}`,
       type: catRaw === "vip" ? "VIP" : "White Hat",
     };
     extraFlow = {

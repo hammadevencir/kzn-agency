@@ -223,7 +223,7 @@ const SubscriptionRequestModal = ({
         {/* Header */}
         <div className="p-8 pb-4 shrink-0 flex items-center justify-between border-b border-white/5">
           <SheetTitle className="text-[20px] font-bold text-white tracking-tight uppercase">
-            {platform === 'Meta' ? (type === 'VIP' ? 'Supplements' : type === 'White Hat' ? 'Agency' : type) : platform} - {planName?.replace(/ PLAN$/i, '')}
+            {platform === 'Meta' ? (type === 'VIP' ? 'Beauty & Supplements' : type === 'White Hat' ? 'Agency' : type) : platform} - {planName?.replace(/ PLAN$/i, '')}
           </SheetTitle>
           <button
             onClick={onClose}

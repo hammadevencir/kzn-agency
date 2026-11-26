@@ -39,10 +39,10 @@ import {
 import { isSubscriptionActive } from "@/lib/subscriptions/expiry";
 import { markMetaUpgradeExitToDashboard } from "@/lib/meta/meta-upgrade-session";
 
-// "Why Work With Us?" list as in the client's price list PDF (2026-10).
-const WHITE_HAT_BENEFITS = [
-  "Top-ups within 15 minutes, 24/7 availability.",
-  "Replies within 15 minutes.",
+// "Why Work With Us?" from the client's Agency and Beauty/Supplements price lists.
+const SHARED_BENEFITS = [
+  "5-10 minutes top-ups, 24/7 availability.",
+  "Ultra-fast replies, 10 minutes response.",
   "No Spend Issues, No Credit line Issues.",
   "Unlimited Spend, No Spending Limits.",
   "Unlimited Ad-Acc Request.",
@@ -50,33 +50,15 @@ const WHITE_HAT_BENEFITS = [
   "No random Ad-Acc restrictions/bans.",
   "Higher ad approvals, fewer rejections",
   "24/7 technical support with expertise.",
-  "Ad account delivery within 24–48 hours.",
+  "Ad-Acc delivery within 24-72 hours.",
   "All time-zones are available to use.",
   "Policy compliance checks.",
   "Expert guidance (8+ years experience)",
   "Direct META representative.",
 ];
 
-// "Why Work With Us?" list from the client's Supplements pricing text.
-const VIP_BENEFITS = [
-  "The best ad-accounts for Supplement stores.",
-  "Free ad-account replacements.",
-  "Top-ups within 15 minutes, 24/7 availability.",
-  "Unlimited Ad-Acc Request.",
-  "Replies within 15 minutes.",
-  "Highest ad approval rates, fewer rejections",
-  "24/7 technical support with expertise.",
-  "No Spend Issues, No Credit line Issues.",
-  "Unlimited Spend, No Spending Limits.",
-  "Best Algorithm For Nutraceutical Advertisers.",
-  "No random Ad-Acc restrictions/bans.",
-  "Ad account delivery within 24–48 hours.",
-  "All time-zones are available to use.",
-  "Policy compliance checks.",
-  "Expert guidance (8+ years experience)",
-  "Direct META representative.",
-  "Cancel monthly.",
-];
+const WHITE_HAT_BENEFITS = SHARED_BENEFITS;
+const VIP_BENEFITS = SHARED_BENEFITS;
 
 /**
  * Full-page Meta platform subscription (same layout as former ad-account plan pages).
@@ -309,12 +291,12 @@ export default function MetaSubscriptionFullPage({ category }) {
         </button>
         <h1 className="text-[32px] font-bold tracking-tight">
           {isVip
-            ? "KAZAN Solutions — Supplements Agency Ad Accounts"
+            ? "KAZAN Solutions — Beauty & Supplements Agency Ad Accounts"
             : "KAZAN Solutions — Agency Ad Accounts"}
         </h1>
         <p className="text-quaternary text-[14px] mt-2 max-w-[720px]">
           {isVip
-            ? "Choose the package that fits your advertising needs. Whether you're entering the supplement market, ready to scale, or already managing serious volume, KAZAN provides specialized Agency Ad-Accounts built for supplement advertisers."
+            ? "Only Health & Beauty. We don't prefer adult or sexual content — send your creatives first so we can check. No setup fee. Plans are one flat monthly fee."
             : "Choose the plan that fits where you are today! Whether you're just getting started, already scaling, or managing serious volume, KAZAN is built to grow together with you."}
         </p>
       </div>
@@ -450,7 +432,7 @@ export default function MetaSubscriptionFullPage({ category }) {
             </div>
           ) : expiredMetaDocSameCategory ? (
             <div className="mb-8 rounded-2xl border border-[#FF4D59]/40 bg-[#FF4D59]/10 p-4 text-center text-[14px] text-white">
-              Your {isVip ? "Supplements" : "Agency"} plan has expired. Renew it from{" "}
+              Your {isVip ? "Beauty & Supplements" : "Agency"} plan has expired. Renew it from{" "}
               <button
                 type="button"
                 onClick={() => router.push("/user/subscriptions")}
@@ -499,7 +481,7 @@ export default function MetaSubscriptionFullPage({ category }) {
             </h4>
           </div>
           <p className="text-[13px] text-gray-400 leading-relaxed">
-            One subscription sets your package (Agency or Supplements). Request ad
+            One subscription sets your package (Agency or Beauty & Supplements). Request ad
             accounts anytime while your plan is active.
           </p>
         </div>

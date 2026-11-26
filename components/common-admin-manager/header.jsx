@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/common/theme-toggle';
 import { auth } from '@/lib/firebase/client';
 import { AUTH_PROFILE_UPDATED_EVENT } from '@/lib/auth/constants';
 import { showNotificationToast } from '@/components/common-admin-manager/notification-toast';
+import { notifyNotificationsChanged } from '@/lib/hooks/useNavNotificationBadges';
 import { useAdminRole } from '@/lib/hooks/useAdminRole';
 import { ADMIN_SECTION, canAccessAdminSection } from '@/lib/auth/admin-permissions';
 import {
@@ -212,6 +213,7 @@ const Header = ({
             unreadIds.includes(n.id) ? { ...n, read: true } : n
           )
         );
+        notifyNotificationsChanged();
         toast.success(
           unreadIds.length === 1
             ? 'Notification marked as read.'
@@ -244,6 +246,7 @@ const Header = ({
           setNotifications((prev) =>
             prev.map((n) => (n.id === msg.id ? { ...n, read: true } : n))
           );
+          notifyNotificationsChanged();
         }
       } catch {
         /* still navigate */
